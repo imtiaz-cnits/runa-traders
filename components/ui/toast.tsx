@@ -63,7 +63,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-2xl bg-[#090d16]/95 text-white shadow-2xl shadow-black/70 border backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-5 ${
+            className={`pointer-events-auto flex items-center gap-3 py-2.5 px-4 min-h-[46px] rounded-2xl bg-[#090d16]/95 text-white shadow-2xl shadow-black/70 border backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-5 ${
               t.type === "success"
                 ? "border-emerald-500/40 border-l-4 border-l-emerald-500 shadow-emerald-950/20"
                 : t.type === "error"
@@ -73,7 +73,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           >
             {/* Status Icon Badge */}
             <div
-              className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+              className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
                 t.type === "success"
                   ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                   : t.type === "error"
@@ -87,13 +87,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Message Content */}
-            <div className="flex-1 min-w-0 pr-1">
+            <div className="flex-1 min-w-0 pr-1 flex flex-col justify-center">
               {t.title && (
                 <h5 className="text-xs font-bold tracking-tight mb-0.5 text-white">
                   {t.title}
                 </h5>
               )}
-              <p className="text-xs font-medium leading-relaxed text-slate-100">
+              <p className="text-[13px] font-semibold leading-tight text-white m-0">
                 {t.message}
               </p>
             </div>
@@ -101,7 +101,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             {/* Close Button */}
             <button
               onClick={() => removeToast(t.id)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer shrink-0 self-center"
               title="Close"
             >
               <X className="w-3.5 h-3.5" />
