@@ -13,6 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { useToast } from "@/components/ui/toast";
 
 interface CategoryItem {
   id: number;
@@ -22,6 +23,7 @@ interface CategoryItem {
 }
 
 export default function CategoriesPage() {
+  const { toast } = useToast();
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -89,6 +91,9 @@ export default function CategoriesPage() {
       }
 
       setModalOpen(false);
+      toast.success(
+        editingItem ? "Category updated successfully!" : "Category created successfully!"
+      );
       loadData();
     } catch (err: any) {
       setError(err?.message || "An error occurred");
@@ -100,10 +105,16 @@ export default function CategoriesPage() {
   async function handleDelete(id: number) {
     if (!confirm("Are you sure you want to delete this category?")) return;
     try {
-      await fetch(`/api/categories/${id}`, { method: "DELETE" });
-      loadData();
+      const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.status === "success") {
+        toast.success("Category deleted successfully!");
+        loadData();
+      } else {
+        toast.error(data.message || "Failed to delete category");
+      }
     } catch {
-      alert("Failed to delete category");
+      toast.error("Failed to delete category");
     }
   }
 

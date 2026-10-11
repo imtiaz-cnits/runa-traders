@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { POPULAR_TILE_SIZES, TILE_GRADES, SURFACE_FINISHES } from "@/lib/tiles-calculator";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { useToast } from "@/components/ui/toast";
 
 interface ProductItem {
   id: number;
@@ -53,6 +54,7 @@ interface OptionItem {
 }
 
 export default function ProductsPage() {
+  const { toast } = useToast();
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [categories, setCategories] = useState<OptionItem[]>([]);
   const [brands, setBrands] = useState<OptionItem[]>([]);
@@ -210,6 +212,9 @@ export default function ProductsPage() {
       }
 
       setModalOpen(false);
+      toast.success(
+        editingProduct ? "Product updated successfully!" : "Product created successfully!"
+      );
       // Post-Creation Reset Rule: Reset pagination & refresh
       loadData();
     } catch (err: any) {
@@ -222,10 +227,16 @@ export default function ProductsPage() {
   async function handleDelete(id: number) {
     if (!confirm("Are you sure you want to delete this product?")) return;
     try {
-      await fetch(`/api/products/${id}`, { method: "DELETE" });
-      loadData();
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.status === "success") {
+        toast.success("Product deleted successfully!");
+        loadData();
+      } else {
+        toast.error(data.message || "Failed to delete product");
+      }
     } catch {
-      alert("Failed to delete product");
+      toast.error("Failed to delete product");
     }
   }
 

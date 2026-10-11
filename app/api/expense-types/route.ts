@@ -86,8 +86,10 @@ export async function POST(req: NextRequest) {
       data: {
         ...created,
         id: Number(created.id),
+        user_id: Number(created.user_id),
       },
     });
+
   } catch (error: any) {
     console.error("Expense Type Create Error:", error);
     return NextResponse.json(

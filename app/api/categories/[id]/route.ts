@@ -25,8 +25,10 @@ export async function PUT(
       data: {
         ...updated,
         id: Number(updated.id),
+        user_id: Number(updated.user_id),
       },
     });
+
   } catch (error: any) {
     return NextResponse.json(
       { status: "fail", message: error?.message || "Failed to update category" },

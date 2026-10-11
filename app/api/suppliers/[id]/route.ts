@@ -88,9 +88,11 @@ export async function PUT(
       data: {
         ...updated,
         id: Number(updated.id),
+        user_id: Number(updated.user_id),
         purchase_payable_amount: parseFloat(updated.purchase_payable_amount || "0"),
       },
     });
+
   } catch (error: any) {
     return NextResponse.json({ status: "fail", message: error?.message }, { status: 500 });
   }

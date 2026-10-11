@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { useToast } from "@/components/ui/toast";
 
 interface Supplier {
   id: number;
@@ -36,6 +37,7 @@ interface Supplier {
 }
 
 export default function SuppliersPage() {
+  const { toast } = useToast();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -147,6 +149,11 @@ export default function SuppliersPage() {
           email: "",
           purchase_payable_amount: "0",
         });
+        toast.success(
+          selectedSupplier
+            ? "Supplier updated successfully!"
+            : "Supplier created successfully!"
+        );
         loadSuppliers();
       } else {
         setErrorMsg(data.message || "Failed to save supplier");
@@ -183,6 +190,7 @@ export default function SuppliersPage() {
       if (data.status === "success") {
         setIsPayModalOpen(false);
         setSelectedSupplier(null);
+        toast.success("Due payment recorded successfully!");
         loadSuppliers();
       } else {
         setErrorMsg(data.message || "Failed to process payment");
@@ -201,14 +209,16 @@ export default function SuppliersPage() {
       const res = await fetch(`/api/suppliers/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.status === "success") {
+        toast.success("Supplier deleted successfully!");
         loadSuppliers();
       } else {
-        alert(data.message || "Failed to delete supplier");
+        toast.error(data.message || "Failed to delete supplier");
       }
     } catch (err) {
-      alert("Error deleting supplier");
+      toast.error("Error deleting supplier");
     }
   };
+
 
   const totalPayableDue = suppliers.reduce((sum, s) => sum + s.purchase_payable_amount, 0);
 

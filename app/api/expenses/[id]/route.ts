@@ -31,9 +31,13 @@ export async function PUT(
       data: {
         ...updated,
         id: Number(updated.id),
+        expense_type_id: Number(updated.expense_type_id),
+        staff_id: updated.staff_id ? Number(updated.staff_id) : null,
+        user_id: Number(updated.user_id),
         expense_amount: parseFloat(String(updated.expense_amount)),
       },
     });
+
   } catch (error: any) {
     return NextResponse.json({ status: "fail", message: error?.message }, { status: 500 });
   }

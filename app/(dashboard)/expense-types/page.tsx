@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { useToast } from "@/components/ui/toast";
 
 interface ExpenseType {
   id: number;
@@ -29,6 +30,7 @@ interface ExpenseType {
 }
 
 export default function ExpenseTypesPage() {
+  const { toast } = useToast();
   const [types, setTypes] = useState<ExpenseType[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -107,6 +109,11 @@ export default function ExpenseTypesPage() {
       const data = await res.json();
       if (data.status === "success") {
         setIsModalOpen(false);
+        toast.success(
+          selectedType
+            ? "Expense category updated successfully!"
+            : "Expense category created successfully!"
+        );
         loadExpenseTypes();
       } else {
         setErrorMsg(data.message || "Operation failed");
@@ -120,8 +127,8 @@ export default function ExpenseTypesPage() {
 
   const handleDelete = async (item: ExpenseType) => {
     if (item.total_records > 0) {
-      alert(
-        `Cannot delete "${item.type_name}" because it already has ${item.total_records} expense records recorded under it.`
+      toast.error(
+        `Cannot delete "${item.type_name}" because it already has ${item.total_records} expense records.`
       );
       return;
     }
@@ -140,14 +147,16 @@ export default function ExpenseTypesPage() {
       });
       const data = await res.json();
       if (data.status === "success") {
+        toast.success("Expense category deleted successfully!");
         loadExpenseTypes();
       } else {
-        alert(data.message || "Failed to delete expense type");
+        toast.error(data.message || "Failed to delete expense type");
       }
     } catch {
-      alert("Error deleting expense type");
+      toast.error("Error deleting expense type");
     }
   };
+
 
   // KPI Calculations
   const totalTypes = types.length;

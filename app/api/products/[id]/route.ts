@@ -69,8 +69,14 @@ export async function PUT(
       data: {
         ...updated,
         id: Number(updated.id),
+        brand_id: Number(updated.brand_id),
+        category_id: Number(updated.category_id),
+        sub_category_id: updated.sub_category_id ? Number(updated.sub_category_id) : null,
+        unit_id: updated.unit_id ? Number(updated.unit_id) : null,
+        user_id: Number(updated.user_id),
       },
     });
+
   } catch (error: any) {
     return NextResponse.json({ status: "fail", message: error?.message }, { status: 500 });
   }

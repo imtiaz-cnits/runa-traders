@@ -40,3 +40,14 @@ export function formatBdCurrency(amount: any): string {
 
   return `৳ ${formattedInteger}.${decimalPart}`;
 }
+
+/**
+ * Deep serializer for BigInt values to ensure clean JSON responses
+ */
+export function serializeBigInt<T>(obj: T): T {
+  return JSON.parse(
+    JSON.stringify(obj, (_, value) =>
+      typeof value === 'bigint' ? (Number.isSafeInteger(Number(value)) ? Number(value) : value.toString()) : value
+    )
+  );
+}

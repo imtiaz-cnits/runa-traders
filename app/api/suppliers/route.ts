@@ -121,9 +121,11 @@ export async function POST(req: NextRequest) {
       data: {
         ...newSupplier,
         id: Number(newSupplier.id),
+        user_id: Number(newSupplier.user_id),
         purchase_payable_amount: parseFloat(newSupplier.purchase_payable_amount || "0"),
       },
     });
+
   } catch (error: any) {
     console.error("Supplier Create Error:", error);
     return NextResponse.json(

@@ -177,8 +177,14 @@ export async function POST(req: NextRequest) {
       data: {
         ...newProduct,
         id: Number(newProduct.id),
+        brand_id: Number(newProduct.brand_id),
+        category_id: Number(newProduct.category_id),
+        sub_category_id: newProduct.sub_category_id ? Number(newProduct.sub_category_id) : null,
+        unit_id: newProduct.unit_id ? Number(newProduct.unit_id) : null,
+        user_id: Number(newProduct.user_id),
       },
     });
+
   } catch (error: any) {
     console.error("Product Create Error:", error);
     return NextResponse.json(

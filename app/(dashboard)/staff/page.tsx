@@ -22,6 +22,7 @@ import {
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { useToast } from "@/components/ui/toast";
 
 interface StaffMember {
   id: number;
@@ -41,6 +42,7 @@ interface ExpenseType {
 }
 
 export default function StaffPage() {
+  const { toast } = useToast();
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -158,6 +160,11 @@ export default function StaffPage() {
       const data = await res.json();
       if (data.status === "success") {
         setIsModalOpen(false);
+        toast.success(
+          selectedStaff
+            ? "Staff member updated successfully!"
+            : "Staff member added successfully!"
+        );
         loadData();
       } else {
         setErrorMsg(data.message || "Operation failed");
@@ -171,7 +178,7 @@ export default function StaffPage() {
 
   const handleDeleteStaff = async (item: StaffMember) => {
     if (item.id === 1 || item.id === 7) {
-      alert("Super Admin account cannot be deleted!");
+      toast.error("Super Admin account cannot be deleted!");
       return;
     }
 
@@ -183,12 +190,13 @@ export default function StaffPage() {
       const res = await fetch(`/api/staff/${item.id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.status === "success") {
+        toast.success("Staff member removed successfully!");
         loadData();
       } else {
-        alert(data.message || "Failed to remove staff");
+        toast.error(data.message || "Failed to remove staff");
       }
     } catch {
-      alert("Error deleting staff");
+      toast.error("Error deleting staff");
     }
   };
 
@@ -238,6 +246,7 @@ export default function StaffPage() {
       const data = await res.json();
       if (data.status === "success") {
         setIsPayoutModalOpen(false);
+        toast.success("Salary payout disbursed successfully!");
         loadData();
       } else {
         setPayoutError(data.message || "Failed to disburse salary");
@@ -246,6 +255,7 @@ export default function StaffPage() {
       setPayoutError(err?.message || "Communication error");
     } finally {
       setSavingPayout(false);
+
     }
   };
 

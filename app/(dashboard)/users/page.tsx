@@ -16,6 +16,7 @@ import {
   User,
 } from "lucide-react";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { useToast } from "@/components/ui/toast";
 
 interface UserItem {
   id: number;
@@ -29,6 +30,7 @@ interface UserItem {
 }
 
 export default function UsersPage() {
+  const { toast } = useToast();
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -96,6 +98,7 @@ export default function UsersPage() {
       }
 
       setModalOpen(false);
+      toast.success("User created successfully!");
       setFormData({
         name: "",
         email: "",

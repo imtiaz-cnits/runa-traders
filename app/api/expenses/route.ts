@@ -151,9 +151,13 @@ export async function POST(req: NextRequest) {
       data: {
         ...newExpense,
         id: Number(newExpense.id),
+        expense_type_id: Number(newExpense.expense_type_id),
+        staff_id: newExpense.staff_id ? Number(newExpense.staff_id) : null,
+        user_id: Number(newExpense.user_id),
         expense_amount: parseFloat(String(newExpense.expense_amount)),
       },
     });
+
   } catch (error: any) {
     console.error("Expense Record Error:", error);
     return NextResponse.json(

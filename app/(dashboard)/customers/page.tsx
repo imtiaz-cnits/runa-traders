@@ -16,6 +16,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 
 interface Customer {
   id: number;
@@ -29,6 +30,7 @@ interface Customer {
 }
 
 export default function CustomersPage() {
+  const { toast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -115,10 +117,16 @@ export default function CustomersPage() {
           nid: "",
           previous_due_amount: "0",
         });
+        toast.success(
+          selectedCustomer
+            ? "Customer updated successfully!"
+            : "Customer created successfully!"
+        );
         loadCustomers();
       } else {
         setErrorMsg(data.message || "Failed to save customer");
       }
+
     } catch (err: any) {
       setErrorMsg(err?.message || "Communication error");
     } finally {

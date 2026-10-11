@@ -8,6 +8,7 @@ import {
   X,
   Loader2,
 } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 
 interface UnitItem {
   id: number;
@@ -16,6 +17,7 @@ interface UnitItem {
 }
 
 export default function UnitsPage() {
+  const { toast } = useToast();
   const [units, setUnits] = useState<UnitItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -62,6 +64,7 @@ export default function UnitsPage() {
 
       setModalOpen(false);
       setUnitName("");
+      toast.success("Unit created successfully!");
       loadData();
     } catch (err: any) {
       setError(err?.message || "An error occurred");

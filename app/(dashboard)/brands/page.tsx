@@ -11,6 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { useToast } from "@/components/ui/toast";
 
 interface BrandItem {
   id: number;
@@ -20,6 +21,7 @@ interface BrandItem {
 }
 
 export default function BrandsPage() {
+  const { toast } = useToast();
   const [brands, setBrands] = useState<BrandItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -87,6 +89,9 @@ export default function BrandsPage() {
       }
 
       setModalOpen(false);
+      toast.success(
+        editingItem ? "Brand updated successfully!" : "Brand created successfully!"
+      );
       loadData();
     } catch (err: any) {
       setError(err?.message || "An error occurred");
@@ -98,10 +103,16 @@ export default function BrandsPage() {
   async function handleDelete(id: number) {
     if (!confirm("Are you sure you want to delete this brand?")) return;
     try {
-      await fetch(`/api/brands/${id}`, { method: "DELETE" });
-      loadData();
+      const res = await fetch(`/api/brands/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.status === "success") {
+        toast.success("Brand deleted successfully!");
+        loadData();
+      } else {
+        toast.error(data.message || "Failed to delete brand");
+      }
     } catch {
-      alert("Failed to delete brand");
+      toast.error("Failed to delete brand");
     }
   }
 

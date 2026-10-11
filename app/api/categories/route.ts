@@ -60,8 +60,10 @@ export async function POST(req: NextRequest) {
       data: {
         ...category,
         id: Number(category.id),
+        user_id: Number(category.user_id),
       },
     });
+
   } catch (error: any) {
     return NextResponse.json(
       { status: "fail", message: error?.message || "Failed to create category" },

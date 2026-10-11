@@ -24,6 +24,7 @@ import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { useToast } from "@/components/ui/toast";
 
 interface Expense {
   id: number;
@@ -57,6 +58,7 @@ interface Summary {
 }
 
 export default function ExpensesPage() {
+  const { toast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -185,6 +187,11 @@ export default function ExpensesPage() {
           expense_details: "",
           date: new Date().toISOString().split("T")[0],
         });
+        toast.success(
+          selectedExpense
+            ? "Expense updated successfully!"
+            : "Expense recorded successfully!"
+        );
         loadData();
       } else {
         setErrorMsg(data.message || "Failed to record expense");
@@ -202,14 +209,16 @@ export default function ExpensesPage() {
       const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.status === "success") {
+        toast.success("Expense deleted successfully!");
         loadData();
       } else {
-        alert(data.message || "Failed to delete expense");
+        toast.error(data.message || "Failed to delete expense");
       }
     } catch {
-      alert("Error deleting expense");
+      toast.error("Error deleting expense");
     }
   };
+
 
   const handleSaveOpening = async (e: React.FormEvent) => {
     e.preventDefault();
