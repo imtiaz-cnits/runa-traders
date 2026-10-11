@@ -451,12 +451,15 @@ export default function ProductsPage() {
                     <td className="p-[10px] text-center">
                       <span
                         className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                          p.status === "active" ? "bg-rose-600 text-white" : "bg-slate-400 text-white"
+                          p.status?.toLowerCase() === "inactive"
+                            ? "bg-rose-500 text-white"
+                            : "bg-slate-400 text-white"
                         }`}
                       >
                         {p.status}
                       </span>
                     </td>
+
                     <td className="p-[10px] text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         <button

@@ -93,9 +93,11 @@ table thead th {
 }
 
 /* Global Badge Overrides */
-[class*="bg-emerald-50"] {
+[class~="bg-emerald-50"],
+.bg-emerald-50 {
   background-color: #fff1f2 !important;
 }
+
 
 [class*="text-emerald-600"] {
   color: #e11d48 !important;

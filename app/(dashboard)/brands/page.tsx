@@ -200,7 +200,9 @@ export default function BrandsPage() {
                     <td className="p-[10px] text-center">
                       <span
                         className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                          b.status === "active" ? "bg-emerald-500 text-white" : "bg-slate-400 text-white"
+                          b.status?.toLowerCase() === "inactive"
+                            ? "bg-rose-500 text-white"
+                            : "bg-slate-400 text-white"
                         }`}
                       >
                         {b.status}
@@ -247,10 +249,17 @@ export default function BrandsPage() {
                   <h4 className="font-bold text-xs text-slate-800 dark:text-white">
                     {b.name}
                   </h4>
-                  <span className="inline-block px-2 py-0.5 mt-1 rounded-full text-[9px] font-bold uppercase bg-emerald-100 text-emerald-800">
+                  <span
+                    className={`inline-block px-2 py-0.5 mt-1 rounded-full text-[9px] font-bold uppercase ${
+                      b.status?.toLowerCase() === "inactive"
+                        ? "bg-rose-500 text-white"
+                        : "bg-slate-400 text-white"
+                    }`}
+                  >
                     {b.status}
                   </span>
                 </div>
+
 
                 <div className="flex items-center gap-1.5">
                   <button

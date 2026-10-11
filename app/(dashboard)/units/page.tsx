@@ -158,10 +158,17 @@ export default function UnitsPage() {
                       {u.unit_name}
                     </td>
                     <td className="p-[10px] text-center">
-                      <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500 text-white">
+                      <span
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                          u.status?.toLowerCase() === "inactive"
+                            ? "bg-rose-500 text-white"
+                            : "bg-slate-400 text-white"
+                        }`}
+                      >
                         {u.status}
                       </span>
                     </td>
+
                   </tr>
                 ))
               )}
