@@ -58,26 +58,27 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast, toast }}>
       {children}
-      {/* Toast Notification Container */}
-      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none p-2 sm:p-0">
+      {/* Toast Notification Container: Pinned to Bottom-Right */}
+      <div className="fixed bottom-5 right-5 z-[9999] flex flex-col-reverse gap-2.5 max-w-sm w-full pointer-events-none p-3 sm:p-0">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-top-4 ${
+            className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-2xl bg-[#090d16]/95 text-white shadow-2xl shadow-black/70 border backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-5 ${
               t.type === "success"
-                ? "bg-white/95 dark:bg-slate-900/95 border-emerald-500/30 text-slate-800 dark:text-slate-100 shadow-emerald-500/10"
+                ? "border-emerald-500/40 border-l-4 border-l-emerald-500 shadow-emerald-950/20"
                 : t.type === "error"
-                ? "bg-white/95 dark:bg-slate-900/95 border-rose-500/30 text-slate-800 dark:text-slate-100 shadow-rose-500/10"
-                : "bg-white/95 dark:bg-slate-900/95 border-sky-500/30 text-slate-800 dark:text-slate-100 shadow-sky-500/10"
+                ? "border-rose-500/40 border-l-4 border-l-rose-500 shadow-rose-950/20"
+                : "border-sky-500/40 border-l-4 border-l-sky-500 shadow-sky-950/20"
             }`}
           >
+            {/* Status Icon Badge */}
             <div
               className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                 t.type === "success"
-                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                   : t.type === "error"
-                  ? "bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
-                  : "bg-sky-50 text-sky-600 dark:bg-sky-950/60 dark:text-sky-400"
+                  ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                  : "bg-sky-500/20 text-sky-400 border border-sky-500/30"
               }`}
             >
               {t.type === "success" && <CheckCircle2 className="w-4 h-4" />}
@@ -85,20 +86,22 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               {t.type === "info" && <Info className="w-4 h-4" />}
             </div>
 
+            {/* Message Content */}
             <div className="flex-1 min-w-0 pr-1">
               {t.title && (
-                <h5 className="text-xs font-bold tracking-tight mb-0.5 text-slate-900 dark:text-white">
+                <h5 className="text-xs font-bold tracking-tight mb-0.5 text-white">
                   {t.title}
                 </h5>
               )}
-              <p className="text-xs font-medium leading-relaxed text-slate-700 dark:text-slate-200">
+              <p className="text-xs font-medium leading-relaxed text-slate-100">
                 {t.message}
               </p>
             </div>
 
+            {/* Close Button */}
             <button
               onClick={() => removeToast(t.id)}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer shrink-0"
               title="Close"
             >
               <X className="w-3.5 h-3.5" />

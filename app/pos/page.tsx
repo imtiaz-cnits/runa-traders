@@ -41,6 +41,7 @@ import { QuickProductModal } from "@/components/pos/quick-product-modal";
 import { TileCalculatorModal } from "@/components/pos/tile-calculator-modal";
 import { PosDatePicker } from "@/components/pos/date-picker";
 import { getInitialTheme, applyTheme } from "@/lib/theme";
+import { useToast } from "@/components/ui/toast";
 
 interface Product {
   id: number;
@@ -80,6 +81,7 @@ interface Unit {
 }
 
 export default function PosPage() {
+  const { showToast: triggerGlobalToast } = useToast();
   // Store
   const {
     cart,
@@ -171,11 +173,9 @@ export default function PosPage() {
 
   // Show notification banner
   const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
-    setNotification({ message, type });
-    setTimeout(() => {
-      setNotification((curr) => (curr?.message === message ? null : curr));
-    }, 3500);
-  }, []);
+    triggerGlobalToast(message, type);
+  }, [triggerGlobalToast]);
+
 
   // Synchronize Theme state
   useEffect(() => {
@@ -620,25 +620,8 @@ export default function PosPage() {
 
   return (
     <div className="fixed inset-0 h-screen w-full max-h-screen max-w-full overflow-hidden flex flex-col bg-slate-100 dark:bg-[#0b0f19] text-slate-800 dark:text-slate-100 select-none">
-      {/* Toast Notification Banner */}
-      {notification && (
-        <div
-          className={`fixed top-3 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 text-xs font-bold transition-all animate-in slide-in-from-top duration-200 ${
-            notification.type === "success"
-              ? "bg-[#15803d] text-white"
-              : "bg-rose-600 text-white"
-          }`}
-        >
-          {notification.type === "success" ? (
-            <CheckCircle className="w-4 h-4 shrink-0" />
-          ) : (
-            <RotateCcw className="w-4 h-4 shrink-0" />
-          )}
-          <span>{notification.message}</span>
-        </div>
-      )}
-
       {/* TOP COMPACT NAVIGATION BAR (Marss Corp Rule: Compact, Emerald Theme) */}
+
       <header className="h-[46px] bg-white dark:bg-[#0f172a] border-b border-[#cbd5e1] dark:border-[#334155] px-3 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-2.5">
           <Link
