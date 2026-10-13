@@ -16,6 +16,7 @@ import {
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { Pagination } from "@/components/ui";
 
 interface ReturnRecord {
   id: number;
@@ -49,6 +50,8 @@ export default function ReturnsPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -139,6 +142,7 @@ export default function ReturnsPage() {
       const data = await res.json();
       if (data.status === "success") {
         setIsModalOpen(false);
+        setCurrentPage(1);
         loadData();
       } else {
         setErrorMsg(data.message || "Failed to process return");
@@ -149,6 +153,9 @@ export default function ReturnsPage() {
       setSubmitting(false);
     }
   };
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedReturns = returns.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="space-y-4">
@@ -224,7 +231,10 @@ export default function ReturnsPage() {
             type="text"
             placeholder="Search return by invoice, customer..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-[38px] pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-600 font-medium"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -236,75 +246,90 @@ export default function ReturnsPage() {
 
       {/* 4. Desktop Table (Rule 5.3 & 5.4: Solid Emerald Header #15803d) */}
       <div className="hidden md:block bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
-        <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
-              <th className="py-3 px-4 w-12 text-center">SL</th>
-              <th className="py-3 px-4">Return ID / Date</th>
-              <th className="py-3 px-4">Original Invoice</th>
-              <th className="py-3 px-4">Customer Name</th>
-              <th className="py-3 px-3 text-center">Quantity Returned</th>
-              <th className="py-3 px-4 text-right">Refund Amount (৳)</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {loading ? (
-              <tr>
-                <td colSpan={6} className="py-10 text-center text-slate-400">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                  <span>Loading returns list...</span>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
+                <th className="py-3 px-4 w-12 text-center">SL</th>
+                <th className="py-3 px-4">Return ID / Date</th>
+                <th className="py-3 px-4">Original Invoice</th>
+                <th className="py-3 px-4">Customer Name</th>
+                <th className="py-3 px-3 text-center">Quantity Returned</th>
+                <th className="py-3 px-4 text-right">Refund Amount (৳)</th>
               </tr>
-            ) : returns.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="py-10 text-center text-slate-400 font-bold">
-                  No sales return records found.
-                </td>
-              </tr>
-            ) : (
-              returns.map((r, idx) => (
-                <tr
-                  key={r.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <td className="py-3 px-4 text-center text-slate-400 font-mono">
-                    {idx + 1}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="font-bold text-slate-800 dark:text-slate-100">
-                      #RET-{r.id}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                      {r.date}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">
-                    {r.order_no}
-                  </td>
-                  <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-100">
-                    <div>{r.customer_name}</div>
-                    {r.customer_mobile && (
-                      <div className="text-[10px] text-slate-400 font-normal">
-                        {r.customer_mobile}
-                      </div>
-                    )}
-                  </td>
-                  <td className="py-3 px-3 text-center font-black text-amber-600">
-                    {r.quantity} Pcs
-                  </td>
-                  <td className="py-3 px-4 text-right font-black text-rose-600 dark:text-rose-400">
-                    {formatBdCurrency(r.amount)}
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="py-10 text-center text-slate-400">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
+                    <span>Loading returns list...</span>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : returns.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-10 text-center text-slate-400 font-bold">
+                    No sales return records found.
+                  </td>
+                </tr>
+              ) : (
+                displayedReturns.map((r, idx) => (
+                  <tr
+                    key={r.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <td className="py-3 px-4 text-center text-slate-400 font-mono">
+                      {startIndex + idx + 1}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-slate-800 dark:text-slate-100">
+                        #RET-{r.id}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                        {r.date}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">
+                      {r.order_no}
+                    </td>
+                    <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-100">
+                      <div>{r.customer_name}</div>
+                      {r.customer_mobile && (
+                        <div className="text-[10px] text-slate-400 font-normal">
+                          {r.customer_mobile}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-center font-black text-amber-600">
+                      {r.quantity} Pcs
+                    </td>
+                    <td className="py-3 px-4 text-right font-black text-rose-600 dark:text-rose-400">
+                      {formatBdCurrency(r.amount)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Desktop Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={returns.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* 5. Mobile Cards View */}
       <div className="block md:hidden space-y-2.5">
-        {returns.map((r) => (
+        {displayedReturns.map((r) => (
           <div
             key={r.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -327,6 +352,21 @@ export default function ReturnsPage() {
             </div>
           </div>
         ))}
+
+        {/* Mobile Pagination */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={returns.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
 
       {/* 6. Process Return Modal (Strict Rule 6.1 - 6.4) */}

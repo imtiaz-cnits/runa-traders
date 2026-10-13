@@ -198,7 +198,7 @@ export default function PosPage() {
     async function loadData() {
       try {
         const [prodRes, catRes, brandRes, unitRes, custRes] = await Promise.all([
-          fetch("/api/products?limit=250"),
+          fetch("/api/products"),
           fetch("/api/categories"),
           fetch("/api/brands"),
           fetch("/api/units"),
@@ -1129,34 +1129,35 @@ export default function PosPage() {
 
                       {/* QTY Controller */}
                       <td className="py-2 text-center">
-                        <div className="inline-flex items-center rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#1e293b] overflow-hidden">
+                        <div className="inline-flex items-center rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#1e293b] overflow-hidden shadow-2xs">
                           <button
                             type="button"
-                            onClick={() =>
-                              updateQty(item.product_id, item.quantity - 1)
-                            }
-                            className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
+                            onClick={() => {
+                              const next = Math.max(0.01, parseFloat((item.quantity - 1).toFixed(2)));
+                              updateQty(item.product_id, next);
+                            }}
+                            className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
                           >
                             <Minus className="w-3 h-3" />
                           </button>
                           <input
                             type="number"
-                            min="1"
+                            step="any"
+                            min="0.01"
                             value={item.quantity}
-                            onChange={(e) =>
-                              updateQty(
-                                item.product_id,
-                                parseInt(e.target.value) || 1
-                              )
-                            }
-                            className="w-8 h-6 text-center text-xs font-bold bg-transparent border-x border-[#cbd5e1] dark:border-[#334155] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              updateQty(item.product_id, isNaN(val) ? 0 : val);
+                            }}
+                            className="w-14 h-6 text-center text-xs font-bold bg-transparent border-x border-[#cbd5e1] dark:border-[#334155] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none px-1"
                           />
                           <button
                             type="button"
-                            onClick={() =>
-                              updateQty(item.product_id, item.quantity + 1)
-                            }
-                            className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
+                            onClick={() => {
+                              const next = parseFloat((item.quantity + 1).toFixed(2));
+                              updateQty(item.product_id, next);
+                            }}
+                            className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
                           >
                             <Plus className="w-3 h-3" />
                           </button>
@@ -1439,7 +1440,7 @@ export default function PosPage() {
           <div className="relative">
             <ShoppingBag className="w-5 h-5 text-rose-400" />
             <span className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center">
-              {cart.reduce((s, i) => s + i.quantity, 0)}
+              {cart.length}
             </span>
           </div>
           <div>

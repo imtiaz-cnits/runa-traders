@@ -20,6 +20,7 @@ import {
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { Pagination } from "@/components/ui";
 
 interface PurchaseItem {
   product_id: number;
@@ -89,6 +90,8 @@ export default function PurchasesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Modals
   const [isNewPurchaseOpen, setIsNewPurchaseOpen] = useState(false);
@@ -234,6 +237,7 @@ export default function PurchasesPage() {
         setReferenceNo("");
         setPaidAmount("0");
         setDeliveryCharge("0");
+        setCurrentPage(1);
         loadData();
       } else {
         setErrorMsg(data.message || "Failed to save purchase");
@@ -244,6 +248,20 @@ export default function PurchasesPage() {
       setSaving(false);
     }
   };
+
+  const filteredPurchases = purchases.filter((p) => {
+    const term = search.toLowerCase();
+    return (
+      p.purchase_id?.toLowerCase().includes(term) ||
+      p.referance_no?.toLowerCase().includes(term) ||
+      p.supplier?.name?.toLowerCase().includes(term) ||
+      p.supplier?.company?.toLowerCase().includes(term) ||
+      p.supplier?.mobile?.includes(term)
+    );
+  });
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedPurchases = filteredPurchases.slice(startIndex, startIndex + pageSize);
 
   const totalPurchasesCost = purchases.reduce((sum, p) => sum + p.grand_subtotal, 0);
   const totalPurchasesDue = purchases.reduce((sum, p) => sum + p.due_amount, 0);
@@ -307,13 +325,16 @@ export default function PurchasesPage() {
             type="text"
             placeholder="Search by Purchase ID, Ref / Memo No, Supplier..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-[38px] pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-600 font-medium"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
         </div>
         <span className="text-xs font-bold text-slate-500">
-          Total: {purchases.length} Purchase(s)
+          Total: {filteredPurchases.length} Purchase(s)
         </span>
       </div>
 
@@ -341,14 +362,14 @@ export default function PurchasesPage() {
                     <span>Loading purchases...</span>
                   </td>
                 </tr>
-              ) : purchases.length === 0 ? (
+              ) : filteredPurchases.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-10 text-center text-slate-400 font-bold">
                     No purchases recorded yet. Click "+ New Purchase" to inward stock.
                   </td>
                 </tr>
               ) : (
-                purchases.map((p) => (
+                displayedPurchases.map((p) => (
                   <tr
                     key={p.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -408,11 +429,24 @@ export default function PurchasesPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls Desktop */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredPurchases.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* 4. Mobile Card View */}
       <div className="block md:hidden space-y-2.5">
-        {purchases.map((p) => (
+        {displayedPurchases.map((p) => (
           <div
             key={p.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -458,6 +492,21 @@ export default function PurchasesPage() {
             </button>
           </div>
         ))}
+
+        {/* Pagination Controls Mobile */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredPurchases.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
 
       {/* 5. NEW PURCHASE (STOCK IN) MODAL */}

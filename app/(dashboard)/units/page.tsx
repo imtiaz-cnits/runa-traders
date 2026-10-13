@@ -9,6 +9,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import { Pagination } from "@/components/ui";
 
 interface UnitItem {
   id: number;
@@ -21,6 +22,8 @@ export default function UnitsPage() {
   const [units, setUnits] = useState<UnitItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [unitName, setUnitName] = useState("");
@@ -65,6 +68,7 @@ export default function UnitsPage() {
       setModalOpen(false);
       setUnitName("");
       toast.success("Unit created successfully!");
+      setCurrentPage(1);
       loadData();
     } catch (err: any) {
       setError(err?.message || "An error occurred");
@@ -76,6 +80,8 @@ export default function UnitsPage() {
   const filtered = units.filter((u) =>
     u.unit_name.toLowerCase().includes(search.toLowerCase())
   );
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedUnits = filtered.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="space-y-4">
@@ -111,7 +117,10 @@ export default function UnitsPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Search unit name..."
               className="w-full bg-transparent border-none outline-none text-xs text-slate-800 dark:text-white placeholder:text-slate-400"
             />
@@ -146,13 +155,13 @@ export default function UnitsPage() {
                   </td>
                 </tr>
               ) : (
-                filtered.map((u, idx) => (
+                displayedUnits.map((u, idx) => (
                   <tr
                     key={u.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
                   >
                     <td className="p-[10px] text-center font-bold text-slate-500">
-                      {idx + 1}
+                      {startIndex + idx + 1}
                     </td>
                     <td className="p-[10px] font-bold text-slate-900 dark:text-white">
                       {u.unit_name}
@@ -175,6 +184,19 @@ export default function UnitsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {modalOpen && (

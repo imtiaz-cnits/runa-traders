@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
+import { Pagination } from "@/components/ui";
 
 interface LedgerItem {
   id: string;
@@ -49,6 +50,8 @@ export default function DailyLedgerPage() {
   const [startDate, setStartDate] = useState(todayStr);
   const [endDate, setEndDate] = useState(todayStr);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const loadData = async () => {
     try {
@@ -68,8 +71,13 @@ export default function DailyLedgerPage() {
   };
 
   useEffect(() => {
+    setCurrentPage(1);
     loadData();
   }, [startDate, endDate]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const setPreset = (preset: "today" | "yesterday" | "7days" | "month") => {
     const now = new Date();
@@ -104,6 +112,9 @@ export default function DailyLedgerPage() {
       item.party_name.toLowerCase().includes(search.toLowerCase()) ||
       item.ref_no.toLowerCase().includes(search.toLowerCase())
   );
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedLedger = filteredLedger.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="space-y-4">
@@ -279,7 +290,7 @@ export default function DailyLedgerPage() {
                 </td>
               </tr>
             ) : (
-              filteredLedger.map((tx) => (
+              displayedLedger.map((tx) => (
                 <tr
                   key={tx.id}
                   className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -312,11 +323,24 @@ export default function DailyLedgerPage() {
             )}
           </tbody>
         </table>
+
+        {/* Desktop Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredLedger.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* 5. Mobile Cards View */}
       <div className="block md:hidden space-y-2.5">
-        {filteredLedger.map((tx) => (
+        {displayedLedger.map((tx) => (
           <div
             key={tx.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -355,6 +379,19 @@ export default function DailyLedgerPage() {
             </div>
           </div>
         ))}
+
+        {/* Mobile Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredLedger.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
     </div>
   );

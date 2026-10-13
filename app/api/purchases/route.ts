@@ -17,14 +17,15 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search")?.trim().toLowerCase();
     const supplierId = searchParams.get("supplier_id");
-    const limit = Number(searchParams.get("limit") || 100);
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam && limitParam !== "all" && !isNaN(Number(limitParam)) ? Number(limitParam) : undefined;
 
     const where: any = {};
     if (supplierId) where.supplier_id = BigInt(supplierId);
 
     const purchases = await prisma.purchases.findMany({
       where,
-      take: limit,
+      ...(limit ? { take: limit } : {}),
       orderBy: { id: "desc" },
       include: {
         suppliers: {

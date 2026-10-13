@@ -9,9 +9,12 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const dateParam = searchParams.get("date");
 
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam && limitParam !== "all" && !isNaN(Number(limitParam)) ? Number(limitParam) : undefined;
+
     const balances = await prisma.opening_balances.findMany({
       orderBy: { date: "desc" },
-      take: 30,
+      ...(limit ? { take: limit } : {}),
       include: {
         users: {
           select: { name: true },

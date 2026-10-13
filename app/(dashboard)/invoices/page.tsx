@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { ThermalReceiptModal } from "@/components/pos/thermal-receipt";
-import { CustomSelect } from "@/components/ui/custom-select";
+import { CustomSelect, Pagination } from "@/components/ui";
 
 interface Invoice {
   id: number;
@@ -68,6 +68,8 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Modals
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -129,6 +131,7 @@ export default function InvoicesPage() {
       if (data.status === "success") {
         setIsCollectDueOpen(false);
         setSelectedInvoice(null);
+        setCurrentPage(1);
         loadInvoices();
       } else {
         alert(data.message || "Failed to collect due");
@@ -179,6 +182,9 @@ export default function InvoicesPage() {
     if (statusFilter === "partial" && inv.payment_status !== "Partial Paid") return false;
     return true;
   });
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedInvoices = filteredInvoices.slice(startIndex, startIndex + pageSize);
 
   const totalSalesRevenue = invoices.reduce((sum, inv) => sum + inv.net_payable, 0);
   const totalSalesDue = invoices.reduce((sum, inv) => sum + inv.due_amount, 0);
@@ -231,7 +237,10 @@ export default function InvoicesPage() {
             type="text"
             placeholder="Search by Invoice #, Customer name, or mobile..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-[38px] pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-600 font-medium"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -247,7 +256,10 @@ export default function InvoicesPage() {
           ].map((tab) => (
             <button
               key={tab.value}
-              onClick={() => setStatusFilter(tab.value)}
+              onClick={() => {
+                setStatusFilter(tab.value);
+                setCurrentPage(1);
+              }}
               className={`h-[32px] px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                 statusFilter === tab.value
                   ? "bg-emerald-700 text-white shadow-xs"
@@ -291,7 +303,7 @@ export default function InvoicesPage() {
                   </td>
                 </tr>
               ) : (
-                filteredInvoices.map((inv) => (
+                displayedInvoices.map((inv) => (
                   <tr
                     key={inv.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -399,11 +411,24 @@ export default function InvoicesPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls Desktop */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredInvoices.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* 4. Mobile Card View */}
       <div className="block md:hidden space-y-2.5">
-        {filteredInvoices.map((inv) => (
+        {displayedInvoices.map((inv) => (
           <div
             key={inv.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -467,6 +492,21 @@ export default function InvoicesPage() {
             </div>
           </div>
         ))}
+
+        {/* Pagination Controls Mobile */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredInvoices.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
 
       {/* 5. VIEW INVOICE DETAILS MODAL */}

@@ -12,7 +12,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import { CustomSelect } from "@/components/ui/custom-select";
+import { CustomSelect, Pagination } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
 interface CategoryItem {
@@ -27,6 +27,8 @@ export default function CategoriesPage() {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CategoryItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -94,6 +96,7 @@ export default function CategoriesPage() {
       toast.success(
         editingItem ? "Category updated successfully!" : "Category created successfully!"
       );
+      setCurrentPage(1);
       loadData();
     } catch (err: any) {
       setError(err?.message || "An error occurred");
@@ -109,6 +112,7 @@ export default function CategoriesPage() {
       const data = await res.json();
       if (data.status === "success") {
         toast.success("Category deleted successfully!");
+        setCurrentPage(1);
         loadData();
       } else {
         toast.error(data.message || "Failed to delete category");
@@ -121,6 +125,8 @@ export default function CategoriesPage() {
   const filtered = categories.filter((c) =>
     c.category_name.toLowerCase().includes(search.toLowerCase())
   );
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedCategories = filtered.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="space-y-4">
@@ -155,7 +161,10 @@ export default function CategoriesPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Search category name..."
               className="w-full bg-transparent border-none outline-none text-xs text-slate-800 dark:text-white placeholder:text-slate-400"
             />
@@ -192,13 +201,13 @@ export default function CategoriesPage() {
                   </td>
                 </tr>
               ) : (
-                filtered.map((c, idx) => (
+                displayedCategories.map((c, idx) => (
                   <tr
                     key={c.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
                   >
                     <td className="p-[10px] text-center font-bold text-slate-500">
-                      {idx + 1}
+                      {startIndex + idx + 1}
                     </td>
                     <td className="p-[10px] font-bold text-slate-900 dark:text-white">
                       {c.category_name}
@@ -247,7 +256,7 @@ export default function CategoriesPage() {
           ) : filtered.length === 0 ? (
             <div className="p-6 text-center text-slate-400 text-xs">No categories found.</div>
           ) : (
-            filtered.map((c) => (
+            displayedCategories.map((c) => (
               <div
                 key={c.id}
                 className="rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] p-3.5 bg-white dark:bg-slate-800/60 shadow-xs flex items-center justify-between"
@@ -286,6 +295,19 @@ export default function CategoriesPage() {
             ))
           )}
         </div>
+
+        {/* Pagination Controls */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* Modal (Rule 6.1 - 6.4) */}

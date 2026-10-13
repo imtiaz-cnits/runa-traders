@@ -20,7 +20,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
-import { CustomSelect } from "@/components/ui/custom-select";
+import { CustomSelect, Pagination } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
 interface Supplier {
@@ -41,6 +41,8 @@ export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [isPending, startTransition] = useTransition();
 
   // Modals
@@ -154,6 +156,7 @@ export default function SuppliersPage() {
             ? "Supplier updated successfully!"
             : "Supplier created successfully!"
         );
+        setCurrentPage(1);
         loadSuppliers();
       } else {
         setErrorMsg(data.message || "Failed to save supplier");
@@ -191,6 +194,7 @@ export default function SuppliersPage() {
         setIsPayModalOpen(false);
         setSelectedSupplier(null);
         toast.success("Due payment recorded successfully!");
+        setCurrentPage(1);
         loadSuppliers();
       } else {
         setErrorMsg(data.message || "Failed to process payment");
@@ -210,6 +214,7 @@ export default function SuppliersPage() {
       const data = await res.json();
       if (data.status === "success") {
         toast.success("Supplier deleted successfully!");
+        setCurrentPage(1);
         loadSuppliers();
       } else {
         toast.error(data.message || "Failed to delete supplier");
@@ -219,6 +224,15 @@ export default function SuppliersPage() {
     }
   };
 
+  const filteredSuppliers = suppliers.filter(
+    (s) =>
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.company.toLowerCase().includes(search.toLowerCase()) ||
+      s.mobile.includes(search) ||
+      s.supplier_id.toLowerCase().includes(search.toLowerCase())
+  );
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedSuppliers = filteredSuppliers.slice(startIndex, startIndex + pageSize);
 
   const totalPayableDue = suppliers.reduce((sum, s) => sum + s.purchase_payable_amount, 0);
 
@@ -279,7 +293,10 @@ export default function SuppliersPage() {
             type="text"
             placeholder="Search by supplier name, company, mobile, or ID..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-[38px] pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-600 font-medium"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -319,7 +336,7 @@ export default function SuppliersPage() {
                   </td>
                 </tr>
               ) : (
-                suppliers.map((s) => (
+                displayedSuppliers.map((s) => (
                   <tr
                     key={s.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -400,6 +417,19 @@ export default function SuppliersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls Desktop */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredSuppliers.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* 4. Mobile View: Responsive Card List (Strict Rule: block md:hidden) */}
@@ -414,7 +444,7 @@ export default function SuppliersPage() {
             No suppliers found.
           </div>
         ) : (
-          suppliers.map((s) => (
+          displayedSuppliers.map((s) => (
             <div
               key={s.id}
               className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -473,6 +503,21 @@ export default function SuppliersPage() {
             </div>
           ))
         )}
+
+        {/* Pagination Controls Mobile */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredSuppliers.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
 
       {/* 5. ADD / EDIT SUPPLIER MODAL (Marss Corp Rule: #15803d Header, 28x28 Red Close) */}

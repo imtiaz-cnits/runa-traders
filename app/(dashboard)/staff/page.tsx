@@ -23,6 +23,7 @@ import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
+import { Pagination } from "@/components/ui";
 
 interface StaffMember {
   id: number;
@@ -47,6 +48,8 @@ export default function StaffPage() {
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Staff Add/Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -165,6 +168,7 @@ export default function StaffPage() {
             ? "Staff member updated successfully!"
             : "Staff member added successfully!"
         );
+        setCurrentPage(1);
         loadData();
       } else {
         setErrorMsg(data.message || "Operation failed");
@@ -191,6 +195,7 @@ export default function StaffPage() {
       const data = await res.json();
       if (data.status === "success") {
         toast.success("Staff member removed successfully!");
+        setCurrentPage(1);
         loadData();
       } else {
         toast.error(data.message || "Failed to remove staff");
@@ -247,6 +252,7 @@ export default function StaffPage() {
       if (data.status === "success") {
         setIsPayoutModalOpen(false);
         toast.success("Salary payout disbursed successfully!");
+        setCurrentPage(1);
         loadData();
       } else {
         setPayoutError(data.message || "Failed to disburse salary");
@@ -255,9 +261,11 @@ export default function StaffPage() {
       setPayoutError(err?.message || "Communication error");
     } finally {
       setSavingPayout(false);
-
     }
   };
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedStaff = staffList.slice(startIndex, startIndex + pageSize);
 
   // KPIs
   const totalStaff = staffList.length;
@@ -341,7 +349,10 @@ export default function StaffPage() {
             type="text"
             placeholder="Search by name, mobile, role..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-[38px] pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-600 font-medium"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -353,134 +364,149 @@ export default function StaffPage() {
 
       {/* 4. Desktop Table (Rule 5.3 & 5.4: Solid Emerald Header #15803d) */}
       <div className="hidden md:block bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
-        <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
-              <th className="py-3 px-4 w-12 text-center">SL</th>
-              <th className="py-3 px-4">Staff Name & Contact</th>
-              <th className="py-3 px-4 text-center">Role / Position</th>
-              <th className="py-3 px-4 text-center">Status</th>
-              <th className="py-3 px-4 text-center">Payouts Count</th>
-              <th className="py-3 px-4 text-right">Total Disbursed (৳)</th>
-              <th className="py-3 px-4 text-center w-36">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {loading ? (
-              <tr>
-                <td colSpan={7} className="py-10 text-center text-slate-400">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                  <span>Loading staff directory...</span>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
+                <th className="py-3 px-4 w-12 text-center">SL</th>
+                <th className="py-3 px-4">Staff Name & Contact</th>
+                <th className="py-3 px-4 text-center">Role / Position</th>
+                <th className="py-3 px-4 text-center">Status</th>
+                <th className="py-3 px-4 text-center">Payouts Count</th>
+                <th className="py-3 px-4 text-right">Total Disbursed (৳)</th>
+                <th className="py-3 px-4 text-center w-36">Actions</th>
               </tr>
-            ) : staffList.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-10 text-center text-slate-400 font-bold">
-                  No staff members found. Click "+ Add New Staff" to register one.
-                </td>
-              </tr>
-            ) : (
-              staffList.map((item, idx) => (
-                <tr
-                  key={item.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <td className="py-3 px-4 text-center text-slate-400 font-mono">
-                    {idx + 1}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-black text-xs shrink-0">
-                        {item.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div>{item.name}</div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-normal flex items-center gap-2">
-                          <span className="flex items-center gap-0.5">
-                            <Phone className="w-3 h-3 text-slate-400" />
-                            {item.mobile}
-                          </span>
-                          {item.email && (
-                            <span className="flex items-center gap-0.5">
-                              <Mail className="w-3 h-3 text-slate-400" />
-                              {item.email}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700">
-                      {item.role}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                        item.status === "approved"
-                          ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
-                          : "bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-300"
-                      }`}
-                    >
-                      {item.status === "approved" ? (
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      ) : (
-                        <XCircle className="w-3 h-3 text-amber-500" />
-                      )}
-                      <span>{item.status}</span>
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-center font-bold text-slate-700 dark:text-slate-300">
-                    {item.total_payout_count} vouchers
-                  </td>
-                  <td className="py-3 px-4 text-right font-black text-rose-600 dark:text-rose-400 text-xs">
-                    {formatBdCurrency(item.total_salary_paid)}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenPayout(item)}
-                        className="h-7 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                        title="Disburse Salary / Advance"
-                      >
-                        <Banknote className="w-3.5 h-3.5" />
-                        <span>Pay</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(item)}
-                        className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
-                        title="Edit Details"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteStaff(item)}
-                        disabled={item.id === 1 || item.id === 7}
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                          item.id === 1 || item.id === 7
-                            ? "bg-slate-100 text-slate-300 cursor-not-allowed"
-                            : "bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 cursor-pointer"
-                        }`}
-                        title="Delete Staff"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="py-10 text-center text-slate-400">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
+                    <span>Loading staff directory...</span>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : staffList.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-10 text-center text-slate-400 font-bold">
+                    No staff members found. Click "+ Add New Staff" to register one.
+                  </td>
+                </tr>
+              ) : (
+                displayedStaff.map((item, idx) => (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <td className="py-3 px-4 text-center text-slate-400 font-mono">
+                      {startIndex + idx + 1}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-black text-xs shrink-0">
+                          {item.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div>{item.name}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-normal flex items-center gap-2">
+                            <span className="flex items-center gap-0.5">
+                              <Phone className="w-3 h-3 text-slate-400" />
+                              {item.mobile}
+                            </span>
+                            {item.email && (
+                              <span className="flex items-center gap-0.5">
+                                <Mail className="w-3 h-3 text-slate-400" />
+                                {item.email}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700">
+                        {item.role}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                          item.status === "approved"
+                            ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
+                            : "bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-300"
+                        }`}
+                      >
+                        {item.status === "approved" ? (
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        ) : (
+                          <XCircle className="w-3 h-3 text-amber-500" />
+                        )}
+                        <span>{item.status}</span>
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center font-bold text-slate-700 dark:text-slate-300">
+                      {item.total_payout_count} vouchers
+                    </td>
+                    <td className="py-3 px-4 text-right font-black text-rose-600 dark:text-rose-400 text-xs">
+                      {formatBdCurrency(item.total_salary_paid)}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPayout(item)}
+                          className="h-7 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Disburse Salary / Advance"
+                        >
+                          <Banknote className="w-3.5 h-3.5" />
+                          <span>Pay</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(item)}
+                          className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Edit Details"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteStaff(item)}
+                          disabled={item.id === 1 || item.id === 7}
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                            item.id === 1 || item.id === 7
+                              ? "bg-slate-100 text-slate-300 cursor-not-allowed"
+                              : "bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 cursor-pointer"
+                          }`}
+                          title="Delete Staff"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Desktop Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={staffList.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* 5. Mobile Cards View */}
       <div className="block md:hidden space-y-2.5">
-        {staffList.map((item) => (
+        {displayedStaff.map((item) => (
           <div
             key={item.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -523,6 +549,21 @@ export default function StaffPage() {
             </div>
           </div>
         ))}
+
+        {/* Mobile Pagination */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={staffList.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
 
       {/* 6. ADD / EDIT STAFF MODAL (Strict Rule 6.1 - 6.4) */}

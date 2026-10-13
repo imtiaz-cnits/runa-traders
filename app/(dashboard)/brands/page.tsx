@@ -10,7 +10,7 @@ import {
   X,
   Loader2,
 } from "lucide-react";
-import { CustomSelect } from "@/components/ui/custom-select";
+import { CustomSelect, Pagination } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
 interface BrandItem {
@@ -25,6 +25,8 @@ export default function BrandsPage() {
   const [brands, setBrands] = useState<BrandItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<BrandItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -92,6 +94,7 @@ export default function BrandsPage() {
       toast.success(
         editingItem ? "Brand updated successfully!" : "Brand created successfully!"
       );
+      setCurrentPage(1);
       loadData();
     } catch (err: any) {
       setError(err?.message || "An error occurred");
@@ -107,6 +110,7 @@ export default function BrandsPage() {
       const data = await res.json();
       if (data.status === "success") {
         toast.success("Brand deleted successfully!");
+        setCurrentPage(1);
         loadData();
       } else {
         toast.error(data.message || "Failed to delete brand");
@@ -119,6 +123,8 @@ export default function BrandsPage() {
   const filtered = brands.filter((b) =>
     b.name.toLowerCase().includes(search.toLowerCase())
   );
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedBrands = filtered.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="space-y-4">
@@ -150,7 +156,10 @@ export default function BrandsPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Search brand name..."
               className="w-full bg-transparent border-none outline-none text-xs text-slate-800 dark:text-white placeholder:text-slate-400"
             />
@@ -186,13 +195,13 @@ export default function BrandsPage() {
                   </td>
                 </tr>
               ) : (
-                filtered.map((b, idx) => (
+                displayedBrands.map((b, idx) => (
                   <tr
                     key={b.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
                   >
                     <td className="p-[10px] text-center font-bold text-slate-500">
-                      {idx + 1}
+                      {startIndex + idx + 1}
                     </td>
                     <td className="p-[10px] font-bold text-slate-900 dark:text-white">
                       {b.name}
@@ -240,7 +249,7 @@ export default function BrandsPage() {
           ) : filtered.length === 0 ? (
             <div className="p-6 text-center text-slate-400 text-xs">No brands found.</div>
           ) : (
-            filtered.map((b) => (
+            displayedBrands.map((b) => (
               <div
                 key={b.id}
                 className="rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] p-3.5 bg-white dark:bg-slate-800/60 shadow-xs flex items-center justify-between"
@@ -279,6 +288,19 @@ export default function BrandsPage() {
             ))
           )}
         </div>
+
+        {/* Pagination Controls */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {modalOpen && (

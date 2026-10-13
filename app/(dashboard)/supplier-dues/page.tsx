@@ -15,7 +15,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
-import { CustomSelect } from "@/components/ui/custom-select";
+import { CustomSelect, Pagination } from "@/components/ui";
 
 interface Supplier {
   id: number;
@@ -31,6 +31,8 @@ export default function SupplierDuesPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Pay Modal
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
@@ -96,6 +98,7 @@ export default function SupplierDuesPage() {
       if (data.status === "success") {
         setIsPayModalOpen(false);
         setSelectedSupplier(null);
+        setCurrentPage(1);
         loadSuppliers();
       } else {
         alert(data.message || "Payment failed");
@@ -113,6 +116,9 @@ export default function SupplierDuesPage() {
       s.company.toLowerCase().includes(search.toLowerCase()) ||
       s.mobile.includes(search)
   );
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedSuppliers = filteredSuppliers.slice(startIndex, startIndex + pageSize);
 
   const totalDueAmount = suppliers.reduce((sum, s) => sum + s.purchase_payable_amount, 0);
 
@@ -151,7 +157,10 @@ export default function SupplierDuesPage() {
             type="text"
             placeholder="Search vendor or mobile..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-[38px] pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-600 font-medium"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -191,7 +200,7 @@ export default function SupplierDuesPage() {
                   </td>
                 </tr>
               ) : (
-                filteredSuppliers.map((s) => (
+                displayedSuppliers.map((s) => (
                   <tr
                     key={s.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -234,6 +243,18 @@ export default function SupplierDuesPage() {
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredSuppliers.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* Pay Modal */}

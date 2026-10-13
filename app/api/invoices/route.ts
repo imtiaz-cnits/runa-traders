@@ -10,14 +10,15 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search")?.trim().toLowerCase();
     const customerId = searchParams.get("customer_id");
     const status = searchParams.get("status"); // 'Paid', 'Due', 'Partial'
-    const limit = Number(searchParams.get("limit") || 100);
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam && limitParam !== "all" && !isNaN(Number(limitParam)) ? Number(limitParam) : undefined;
 
     const where: any = {};
     if (customerId) where.customer_id = BigInt(customerId);
 
     const orders = await prisma.orders.findMany({
       where,
-      take: limit,
+      ...(limit ? { take: limit } : {}),
       orderBy: { id: "desc" },
       include: {
         customers: {

@@ -19,6 +19,7 @@ import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
+import { Pagination } from "@/components/ui";
 
 interface ExpenseType {
   id: number;
@@ -34,6 +35,8 @@ export default function ExpenseTypesPage() {
   const [types, setTypes] = useState<ExpenseType[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -114,6 +117,7 @@ export default function ExpenseTypesPage() {
             ? "Expense category updated successfully!"
             : "Expense category created successfully!"
         );
+        setCurrentPage(1);
         loadExpenseTypes();
       } else {
         setErrorMsg(data.message || "Operation failed");
@@ -148,6 +152,7 @@ export default function ExpenseTypesPage() {
       const data = await res.json();
       if (data.status === "success") {
         toast.success("Expense category deleted successfully!");
+        setCurrentPage(1);
         loadExpenseTypes();
       } else {
         toast.error(data.message || "Failed to delete expense type");
@@ -157,6 +162,8 @@ export default function ExpenseTypesPage() {
     }
   };
 
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedTypes = types.slice(startIndex, startIndex + pageSize);
 
   // KPI Calculations
   const totalTypes = types.length;
@@ -248,7 +255,10 @@ export default function ExpenseTypesPage() {
             type="text"
             placeholder="Search expense category name..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-[38px] pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-600 font-medium"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -260,107 +270,122 @@ export default function ExpenseTypesPage() {
 
       {/* 4. Desktop Table (Rule 5.3 & 5.4: Solid Emerald Header #15803d) */}
       <div className="hidden md:block bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
-        <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
-              <th className="py-3 px-4 w-12 text-center">SL</th>
-              <th className="py-3 px-4">Expense Category Name</th>
-              <th className="py-3 px-4 text-center">Status</th>
-              <th className="py-3 px-4 text-center">Total Vouchers</th>
-              <th className="py-3 px-4 text-right">Total Spent (৳)</th>
-              <th className="py-3 px-4 text-center w-28">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {loading ? (
-              <tr>
-                <td colSpan={6} className="py-10 text-center text-slate-400">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                  <span>Loading expense categories...</span>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
+                <th className="py-3 px-4 w-12 text-center">SL</th>
+                <th className="py-3 px-4">Expense Category Name</th>
+                <th className="py-3 px-4 text-center">Status</th>
+                <th className="py-3 px-4 text-center">Total Vouchers</th>
+                <th className="py-3 px-4 text-right">Total Spent (৳)</th>
+                <th className="py-3 px-4 text-center w-28">Actions</th>
               </tr>
-            ) : types.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="py-10 text-center text-slate-400 font-bold">
-                  No expense categories found.
-                </td>
-              </tr>
-            ) : (
-              types.map((item, idx) => (
-                <tr
-                  key={item.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <td className="py-3 px-4 text-center text-slate-400 font-mono">
-                    {idx + 1}
-                  </td>
-                  <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-100">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-600" />
-                      <span>{item.type_name}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                        item.status === "Active"
-                          ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-300 dark:border-slate-700"
-                      }`}
-                    >
-                      {item.status === "Active" ? (
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      ) : (
-                        <XCircle className="w-3 h-3 text-slate-400" />
-                      )}
-                      <span>{item.status}</span>
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-center font-bold text-slate-700 dark:text-slate-300">
-                    {item.total_records}
-                  </td>
-                  <td className="py-3 px-4 text-right font-black text-rose-600 dark:text-rose-400 text-xs">
-                    {formatBdCurrency(item.total_amount)}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(item)}
-                        className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
-                        title="Edit Category"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(item)}
-                        disabled={item.total_records > 0}
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                          item.total_records > 0
-                            ? "bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed"
-                            : "bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 cursor-pointer"
-                        }`}
-                        title={
-                          item.total_records > 0
-                            ? "Cannot delete (records attached)"
-                            : "Delete Category"
-                        }
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="py-10 text-center text-slate-400">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
+                    <span>Loading expense categories...</span>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : types.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-10 text-center text-slate-400 font-bold">
+                    No expense categories found.
+                  </td>
+                </tr>
+              ) : (
+                displayedTypes.map((item, idx) => (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <td className="py-3 px-4 text-center text-slate-400 font-mono">
+                      {startIndex + idx + 1}
+                    </td>
+                    <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-100">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-600" />
+                        <span>{item.type_name}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                          item.status === "Active"
+                            ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-300 dark:border-slate-700"
+                        }`}
+                      >
+                        {item.status === "Active" ? (
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        ) : (
+                          <XCircle className="w-3 h-3 text-slate-400" />
+                        )}
+                        <span>{item.status}</span>
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center font-bold text-slate-700 dark:text-slate-300">
+                      {item.total_records}
+                    </td>
+                    <td className="py-3 px-4 text-right font-black text-rose-600 dark:text-rose-400 text-xs">
+                      {formatBdCurrency(item.total_amount)}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(item)}
+                          className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Edit Category"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item)}
+                          disabled={item.total_records > 0}
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                            item.total_records > 0
+                              ? "bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                              : "bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 cursor-pointer"
+                          }`}
+                          title={
+                            item.total_records > 0
+                              ? "Cannot delete (records attached)"
+                              : "Delete Category"
+                          }
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Desktop Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={types.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* 5. Mobile Cards View */}
       <div className="block md:hidden space-y-2.5">
-        {types.map((item) => (
+        {displayedTypes.map((item) => (
           <div
             key={item.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -413,6 +438,21 @@ export default function ExpenseTypesPage() {
             </div>
           </div>
         ))}
+
+        {/* Mobile Pagination */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={types.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
 
       {/* 6. ADD / EDIT EXPENSE TYPE MODAL (Strict Rule 6.1 - 6.4) */}

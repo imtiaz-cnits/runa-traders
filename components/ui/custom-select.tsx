@@ -32,7 +32,7 @@ export function CustomSelect({
   className = "",
   disabled = false,
   required = false,
-  searchThreshold = 5,
+  searchThreshold = 8,
   name,
   placement = "auto",
 }: CustomSelectProps) {
@@ -84,20 +84,23 @@ export function CustomSelect({
       targetPlacement = spaceBelow < 260 && spaceAbove > spaceBelow ? "top" : "bottom";
     }
 
+    const maxPopoverHeight = 360;
     const availableHeight =
       targetPlacement === "top"
-        ? Math.min(spaceAbove - 14, 300)
-        : Math.min(spaceBelow - 14, 300);
+        ? Math.min(spaceAbove - 14, maxPopoverHeight)
+        : Math.min(spaceBelow - 14, maxPopoverHeight);
 
+    // Keep popover comfortably wide so long labels aren't cut off
+    const popoverWidth = Math.max(rect.width, 210);
     // Keep horizontally within viewport boundaries with 8px margin
-    const safeLeft = Math.max(8, Math.min(rect.left, viewportWidth - rect.width - 8));
+    const safeLeft = Math.max(8, Math.min(rect.left, viewportWidth - popoverWidth - 8));
 
     setCoords({
       top: rect.bottom + 6,
       bottom: viewportHeight - rect.top + 6,
       left: safeLeft,
-      width: rect.width,
-      maxHeight: Math.max(availableHeight, 160),
+      width: popoverWidth,
+      maxHeight: Math.max(availableHeight, 180),
       placement: targetPlacement,
     });
   };
@@ -270,13 +273,52 @@ export function CustomSelect({
               maxHeight: `${coords.maxHeight}px`,
               zIndex: 99999,
             }}
-            className={`bg-white dark:bg-[#0f172a] rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-2xl p-2.5 flex flex-col select-none animate-in fade-in zoom-in-95 duration-100 ${
+            className={`bg-white dark:bg-[#0f172a] rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-2xl p-2 flex flex-col select-none animate-in fade-in zoom-in-95 duration-100 ${
               coords.placement === "top" ? "origin-bottom" : "origin-top"
             }`}
           >
-            {/* SEARCH SYSTEM - STRICTLY SHOWN ONLY IF OPTIONS > 5 */}
+            {/* Scoped Scrollbar Styling to completely eliminate native OS stepper arrows */}
+            <style>{`
+              .custom-select-scrollbar::-webkit-scrollbar {
+                width: 5px !important;
+                height: 5px !important;
+              }
+              .custom-select-scrollbar::-webkit-scrollbar-track {
+                background: transparent !important;
+                margin: 4px 0 !important;
+              }
+              .custom-select-scrollbar::-webkit-scrollbar-thumb {
+                background: #cbd5e1 !important;
+                border-radius: 9999px !important;
+              }
+              .custom-select-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8 !important;
+              }
+              .dark .custom-select-scrollbar::-webkit-scrollbar-thumb {
+                background: #334155 !important;
+              }
+              .dark .custom-select-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #475569 !important;
+              }
+              .custom-select-scrollbar::-webkit-scrollbar-button {
+                display: none !important;
+                width: 0 !important;
+                height: 0 !important;
+              }
+              @supports (-moz-appearance: none) {
+                .custom-select-scrollbar {
+                  scrollbar-width: thin !important;
+                  scrollbar-color: #cbd5e1 transparent !important;
+                }
+                .dark .custom-select-scrollbar {
+                  scrollbar-color: #334155 transparent !important;
+                }
+              }
+            `}</style>
+
+            {/* SEARCH SYSTEM - STRICTLY SHOWN ONLY IF OPTIONS > 8 */}
             {showSearch && (
-              <div className="relative mb-2 shrink-0">
+              <div className="relative mb-2 shrink-0 px-0.5">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   ref={searchInputRef}
@@ -284,7 +326,7 @@ export function CustomSelect({
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-[36px] pl-8.5 pr-8 text-xs font-medium rounded-xl border border-[#cbd5e1] dark:border-[#334155] bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-rose-600 focus:ring-1 focus:ring-rose-600/30 transition-all"
+                  className="w-full h-[34px] pl-8.5 pr-8 text-xs font-medium rounded-xl border border-[#cbd5e1] dark:border-[#334155] bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-rose-600 focus:ring-1 focus:ring-rose-600/30 transition-all"
                 />
                 {searchQuery && (
                   <button
@@ -298,8 +340,8 @@ export function CustomSelect({
               </div>
             )}
 
-            {/* OPTIONS LIST */}
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-1 pr-0.5">
+            {/* OPTIONS LIST WITH SLEEK CUSTOM SCROLLBAR */}
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-0.5 pr-1.5 custom-select-scrollbar">
               {filteredOptions.length === 0 ? (
                 <div className="py-5 text-center text-xs text-slate-400 font-medium">
                   No matching options found
@@ -311,17 +353,19 @@ export function CustomSelect({
                     <div
                       key={String(opt.value)}
                       onClick={() => handleSelect(opt.value)}
-                      className={`p-2.5 rounded-xl text-xs cursor-pointer flex items-center justify-between transition-colors ${
+                      className={`px-3 py-2 rounded-xl text-xs cursor-pointer flex items-center justify-between transition-colors ${
                         isSelected
                           ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white font-bold shadow-xs"
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-800 dark:text-slate-200"
+                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200"
                       }`}
                     >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="truncate">{opt.label}</span>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis font-medium">
+                          {opt.label}
+                        </span>
                         {opt.subLabel && (
                           <span
-                            className={`text-[10px] truncate ${
+                            className={`text-[10px] whitespace-nowrap overflow-hidden text-ellipsis ${
                               isSelected ? "text-white/80" : "text-slate-400"
                             }`}
                           >

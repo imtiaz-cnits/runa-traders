@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { Pagination } from "@/components/ui";
 
 interface InventoryItem {
   id: number;
@@ -53,6 +54,8 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "low" | "out">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Stock Adjustment Modal
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
@@ -111,6 +114,7 @@ export default function InventoryPage() {
       if (data.status === "success") {
         setIsAdjustModalOpen(false);
         setSelectedItem(null);
+        setCurrentPage(1);
         loadInventory();
       } else {
         alert(data.message || "Failed to adjust stock");
@@ -121,6 +125,9 @@ export default function InventoryPage() {
       setAdjusting(false);
     }
   };
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedItems = items.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="space-y-4">
@@ -242,7 +249,10 @@ export default function InventoryPage() {
             type="text"
             placeholder="Search product name, barcode, category, or brand..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-[38px] pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-600 font-medium"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -251,7 +261,10 @@ export default function InventoryPage() {
         {/* Filter Pills */}
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => setStatusFilter("all")}
+            onClick={() => {
+              setStatusFilter("all");
+              setCurrentPage(1);
+            }}
             className={`h-[32px] px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               statusFilter === "all"
                 ? "bg-emerald-700 text-white shadow-xs"
@@ -261,7 +274,10 @@ export default function InventoryPage() {
             All Stock Items
           </button>
           <button
-            onClick={() => setStatusFilter("low")}
+            onClick={() => {
+              setStatusFilter("low");
+              setCurrentPage(1);
+            }}
             className={`h-[32px] px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               statusFilter === "low"
                 ? "bg-amber-600 text-white shadow-xs"
@@ -271,7 +287,10 @@ export default function InventoryPage() {
             Low Stock (&le; 5)
           </button>
           <button
-            onClick={() => setStatusFilter("out")}
+            onClick={() => {
+              setStatusFilter("out");
+              setCurrentPage(1);
+            }}
             className={`h-[32px] px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               statusFilter === "out"
                 ? "bg-rose-600 text-white shadow-xs"
@@ -314,7 +333,7 @@ export default function InventoryPage() {
                   </td>
                 </tr>
               ) : (
-                items.map((item) => (
+                displayedItems.map((item) => (
                   <tr
                     key={item.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -391,11 +410,24 @@ export default function InventoryPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Desktop Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={items.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* 5. Mobile Card View */}
       <div className="block md:hidden space-y-2.5">
-        {items.map((item) => (
+        {displayedItems.map((item) => (
           <div
             key={item.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -445,6 +477,21 @@ export default function InventoryPage() {
             </button>
           </div>
         ))}
+
+        {/* Mobile Pagination */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={items.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
 
       {/* 6. STOCK ADJUSTMENT MODAL */}

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
+import { Pagination } from "@/components/ui";
 
 interface SalesOrder {
   id: number;
@@ -56,6 +57,8 @@ export default function SalesReportPage() {
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const loadData = async () => {
     try {
@@ -109,7 +112,11 @@ export default function SalesReportPage() {
       setStartDate("");
       setEndDate("");
     }
+    setCurrentPage(1);
   };
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedOrders = orders.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="space-y-4">
@@ -200,7 +207,10 @@ export default function SalesReportPage() {
             type="text"
             placeholder="Search invoice or customer..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-[38px] pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-600 font-medium"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -211,7 +221,10 @@ export default function SalesReportPage() {
             <div className="w-[135px]">
               <CustomDatePicker
                 value={startDate}
-                onChange={(d) => setStartDate(d)}
+                onChange={(d) => {
+                  setStartDate(d);
+                  setCurrentPage(1);
+                }}
                 placeholder="From Date"
               />
             </div>
@@ -219,7 +232,10 @@ export default function SalesReportPage() {
             <div className="w-[135px]">
               <CustomDatePicker
                 value={endDate}
-                onChange={(d) => setEndDate(d)}
+                onChange={(d) => {
+                  setEndDate(d);
+                  setCurrentPage(1);
+                }}
                 placeholder="To Date"
               />
             </div>
@@ -265,85 +281,100 @@ export default function SalesReportPage() {
 
       {/* 4. Desktop Table (Rule 5.3 & 5.4: Solid Emerald Header #15803d) */}
       <div className="hidden md:block bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
-        <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
-              <th className="py-3 px-4">Invoice / Date</th>
-              <th className="py-3 px-4">Customer</th>
-              <th className="py-3 px-3 text-center">Items</th>
-              <th className="py-3 px-3 text-right">Cost Price (৳)</th>
-              <th className="py-3 px-3 text-right">Selling Total (৳)</th>
-              <th className="py-3 px-3 text-right">Paid (৳)</th>
-              <th className="py-3 px-3 text-right">Due (৳)</th>
-              <th className="py-3 px-4 text-right">Profit (৳)</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {loading ? (
-              <tr>
-                <td colSpan={8} className="py-10 text-center text-slate-400">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                  <span>Loading sales report...</span>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
+                <th className="py-3 px-4">Invoice / Date</th>
+                <th className="py-3 px-4">Customer</th>
+                <th className="py-3 px-3 text-center">Items</th>
+                <th className="py-3 px-3 text-right">Cost Price (৳)</th>
+                <th className="py-3 px-3 text-right">Selling Total (৳)</th>
+                <th className="py-3 px-3 text-right">Paid (৳)</th>
+                <th className="py-3 px-3 text-right">Due (৳)</th>
+                <th className="py-3 px-4 text-right">Profit (৳)</th>
               </tr>
-            ) : orders.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="py-10 text-center text-slate-400 font-bold">
-                  No sales invoices found for the specified period.
-                </td>
-              </tr>
-            ) : (
-              orders.map((o) => (
-                <tr
-                  key={o.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <td className="py-3 px-4">
-                    <div className="font-bold text-slate-800 dark:text-slate-100">
-                      {o.order_no}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                      {o.date}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="font-bold text-slate-800 dark:text-slate-100">
-                      {o.customer_name}
-                    </div>
-                    {o.customer_mobile && (
-                      <div className="text-[10px] text-slate-400">
-                        {o.customer_mobile}
-                      </div>
-                    )}
-                  </td>
-                  <td className="py-3 px-3 text-center font-bold text-slate-700 dark:text-slate-300">
-                    {o.items_count}
-                  </td>
-                  <td className="py-3 px-3 text-right font-medium text-slate-600 dark:text-slate-400">
-                    {formatBdCurrency(o.cost_amount)}
-                  </td>
-                  <td className="py-3 px-3 text-right font-black text-slate-900 dark:text-white">
-                    {formatBdCurrency(o.net_amount)}
-                  </td>
-                  <td className="py-3 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
-                    {formatBdCurrency(o.paid_amount)}
-                  </td>
-                  <td className="py-3 px-3 text-right font-bold text-rose-600 dark:text-rose-400">
-                    {formatBdCurrency(o.due_amount)}
-                  </td>
-                  <td className="py-3 px-4 text-right font-black text-emerald-700 dark:text-emerald-300">
-                    {formatBdCurrency(o.profit_amount)}
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="py-10 text-center text-slate-400">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
+                    <span>Loading sales report...</span>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : orders.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-10 text-center text-slate-400 font-bold">
+                    No sales invoices found for the specified period.
+                  </td>
+                </tr>
+              ) : (
+                displayedOrders.map((o) => (
+                  <tr
+                    key={o.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-slate-800 dark:text-slate-100">
+                        {o.order_no}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                        {o.date}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-slate-800 dark:text-slate-100">
+                        {o.customer_name}
+                      </div>
+                      {o.customer_mobile && (
+                        <div className="text-[10px] text-slate-400">
+                          {o.customer_mobile}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-center font-bold text-slate-700 dark:text-slate-300">
+                      {o.items_count}
+                    </td>
+                    <td className="py-3 px-3 text-right font-medium text-slate-600 dark:text-slate-400">
+                      {formatBdCurrency(o.cost_amount)}
+                    </td>
+                    <td className="py-3 px-3 text-right font-black text-slate-900 dark:text-white">
+                      {formatBdCurrency(o.net_amount)}
+                    </td>
+                    <td className="py-3 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                      {formatBdCurrency(o.paid_amount)}
+                    </td>
+                    <td className="py-3 px-3 text-right font-bold text-rose-600 dark:text-rose-400">
+                      {formatBdCurrency(o.due_amount)}
+                    </td>
+                    <td className="py-3 px-4 text-right font-black text-emerald-700 dark:text-emerald-300">
+                      {formatBdCurrency(o.profit_amount)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Desktop Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={orders.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* 5. Mobile Cards View */}
       <div className="block md:hidden space-y-2.5">
-        {orders.map((o) => (
+        {displayedOrders.map((o) => (
           <div
             key={o.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -380,6 +411,21 @@ export default function SalesReportPage() {
             </div>
           </div>
         ))}
+
+        {/* Mobile Pagination */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={orders.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
     </div>
   );

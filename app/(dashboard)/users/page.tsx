@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
+import { Pagination } from "@/components/ui";
 
 interface UserItem {
   id: number;
@@ -34,6 +35,8 @@ export default function UsersPage() {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -119,6 +122,7 @@ export default function UsersPage() {
         },
       });
       // Post-Creation Reset Rule: reload and show latest on top
+      setCurrentPage(1);
       loadUsers();
     } catch (err: any) {
       setError(err?.message || "An unexpected error occurred");
@@ -136,6 +140,9 @@ export default function UsersPage() {
       u.role.toLowerCase().includes(q)
     );
   });
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedUsers = filteredUsers.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="space-y-4">
@@ -172,7 +179,10 @@ export default function UsersPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Search by name, phone, role..."
               className="w-full bg-transparent border-none outline-none text-xs text-slate-800 dark:text-white placeholder:text-slate-400"
             />
@@ -212,13 +222,13 @@ export default function UsersPage() {
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((user, idx) => (
+                displayedUsers.map((user, idx) => (
                   <tr
                     key={user.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
                   >
                     <td className="p-[10px] text-center font-bold text-slate-500">
-                      {idx + 1}
+                      {startIndex + idx + 1}
                     </td>
                     <td className="p-[10px] font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-black text-xs">
@@ -263,6 +273,21 @@ export default function UsersPage() {
           </table>
         </div>
 
+        {/* Desktop Pagination */}
+        <div className="hidden md:block">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredUsers.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
+
         {/* Mobile View Card List (< 768px, Rule 5.5) */}
         <div className="block md:hidden p-3 space-y-3">
           {loading ? (
@@ -270,7 +295,7 @@ export default function UsersPage() {
           ) : filteredUsers.length === 0 ? (
             <div className="p-6 text-center text-slate-400 text-xs">No users found.</div>
           ) : (
-            filteredUsers.map((user) => (
+            displayedUsers.map((user) => (
               <div
                 key={user.id}
                 className="rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] p-3.5 bg-white dark:bg-slate-800/60 shadow-xs"
@@ -296,6 +321,21 @@ export default function UsersPage() {
               </div>
             ))
           )}
+
+          {/* Mobile Pagination */}
+          <div className="pt-2">
+            <Pagination
+              currentPage={currentPage}
+              totalItems={filteredUsers.length}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(1);
+              }}
+              pageSizeOptions={[20, 50, 100, 200, 500]}
+            />
+          </div>
         </div>
       </div>
 

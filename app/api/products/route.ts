@@ -23,7 +23,8 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search")?.trim().toLowerCase();
     const categoryId = searchParams.get("category_id");
     const brandId = searchParams.get("brand_id");
-    const limit = Number(searchParams.get("limit") || 100);
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam && limitParam !== "all" && !isNaN(Number(limitParam)) ? Number(limitParam) : undefined;
 
     const where: any = {};
     if (categoryId) where.category_id = BigInt(categoryId);
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     const products = await prisma.products.findMany({
       where,
-      take: limit,
+      ...(limit ? { take: limit } : {}),
       orderBy: { id: "desc" }, // Strict Rule: Latest records on top
       include: {
         categories: true,

@@ -17,9 +17,10 @@ import {
   Barcode,
   Layers,
   Sparkles,
+  RotateCcw,
 } from "lucide-react";
 import { POPULAR_TILE_SIZES, TILE_GRADES, SURFACE_FINISHES } from "@/lib/tiles-calculator";
-import { CustomSelect } from "@/components/ui/custom-select";
+import { CustomSelect, Pagination } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
 interface ProductItem {
@@ -61,7 +62,15 @@ export default function ProductsPage() {
   const [units, setUnits] = useState<OptionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [entries, setEntries] = useState("15");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedBrand, setSelectedBrand] = useState<string>("all");
+  const [selectedStockStatus, setSelectedStockStatus] = useState<string>("all");
+  const [selectedUnit, setSelectedUnit] = useState<string>("all");
+  const [selectedTileSize, setSelectedTileSize] = useState<string>("all");
+  const [selectedGrade, setSelectedGrade] = useState<string>("all");
+  const [selectedSurfaceFinish, setSelectedSurfaceFinish] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -216,6 +225,7 @@ export default function ProductsPage() {
         editingProduct ? "Product updated successfully!" : "Product created successfully!"
       );
       // Post-Creation Reset Rule: Reset pagination & refresh
+      setCurrentPage(1);
       loadData();
     } catch (err: any) {
       setError(err?.message || "An error occurred");
@@ -231,6 +241,7 @@ export default function ProductsPage() {
       const data = await res.json();
       if (data.status === "success") {
         toast.success("Product deleted successfully!");
+        setCurrentPage(1);
         loadData();
       } else {
         toast.error(data.message || "Failed to delete product");
@@ -240,17 +251,194 @@ export default function ProductsPage() {
     }
   }
 
+  const selectedCatObj = categories.find((c) => String(c.id) === String(selectedCategory));
+  const isTilesSelected = Boolean(
+    selectedCatObj?.category_name &&
+    (selectedCatObj.category_name.toLowerCase().includes("tile") ||
+     selectedCatObj.category_name.toLowerCase().includes("টাইল"))
+  );
+
+  const categoryOptions = [
+    { value: "all", label: "All Categories" },
+    ...categories.map((c) => ({
+      value: String(c.id),
+      label: c.category_name || `Category #${c.id}`,
+    })),
+  ];
+
+  const brandOptions = [
+    { value: "all", label: "All Brands" },
+    ...brands.map((b) => ({
+      value: String(b.id),
+      label: b.name || `Brand #${b.id}`,
+    })),
+  ];
+
+  // Tile-specific filter options: gathered from DB products + standard constants
+  const dbTileSizes = new Set(
+    products
+      .filter((p) => Boolean(p.tile_size && p.tile_size.trim()))
+      .map((p) => p.tile_size!.trim())
+  );
+  const sortedTileSizes = [
+    ...Array.from(dbTileSizes),
+    ...POPULAR_TILE_SIZES.map((s) => s.value).filter((s) => !dbTileSizes.has(s)),
+  ];
+  const tileSizeOptions = [
+    { value: "all", label: "All Sizes" },
+    ...sortedTileSizes.map((s) => ({ value: s, label: s })),
+  ];
+
+  const dbGrades = new Set(
+    products
+      .filter((p) => Boolean(p.grade && p.grade.trim()))
+      .map((p) => p.grade!.trim())
+  );
+  const sortedGrades = [
+    ...Array.from(dbGrades),
+    ...TILE_GRADES.map((g) => g.value).filter((g) => !dbGrades.has(g)),
+  ];
+  const gradeOptions = [
+    { value: "all", label: "All Grades" },
+    ...sortedGrades.map((g) => ({ value: g, label: g })),
+  ];
+
+  const dbFinishes = new Set(
+    products
+      .filter((p) => Boolean(p.surface_finish && p.surface_finish.trim()))
+      .map((p) => p.surface_finish!.trim())
+  );
+  const sortedFinishes = [
+    ...Array.from(dbFinishes),
+    ...SURFACE_FINISHES.filter((f) => !dbFinishes.has(f)),
+  ];
+  const finishOptions = [
+    { value: "all", label: "All Finishes" },
+    ...sortedFinishes.map((f) => ({ value: f, label: f })),
+  ];
+
+  const stockStatusOptions = [
+    { value: "all", label: "All Stock Status" },
+    { value: "in_stock", label: "In Stock (> 0)" },
+    { value: "low_stock", label: "Low Stock (≤ 5)" },
+    { value: "out_of_stock", label: "Out of Stock (0)" },
+  ];
+
+  const unitOptions = [
+    { value: "all", label: "All Units" },
+    ...units.map((u) => ({
+      value: String(u.id),
+      label: u.unit_name || `Unit #${u.id}`,
+    })),
+  ];
+
+  const hasActiveFilters =
+    search.trim() !== "" ||
+    selectedCategory !== "all" ||
+    (isTilesSelected ? (
+      selectedTileSize !== "all" ||
+      selectedGrade !== "all" ||
+      selectedSurfaceFinish !== "all"
+    ) : (
+      selectedBrand !== "all"
+    )) ||
+    selectedStockStatus !== "all" ||
+    selectedUnit !== "all";
+
+  const handleCategoryChange = (catId: string) => {
+    setSelectedCategory(catId);
+    setSelectedBrand("all");
+    setSelectedTileSize("all");
+    setSelectedGrade("all");
+    setSelectedSurfaceFinish("all");
+    setCurrentPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setSelectedCategory("all");
+    setSelectedBrand("all");
+    setSelectedStockStatus("all");
+    setSelectedUnit("all");
+    setSelectedTileSize("all");
+    setSelectedGrade("all");
+    setSelectedSurfaceFinish("all");
+    setCurrentPage(1);
+  };
+
   const filteredProducts = products.filter((p) => {
-    const q = search.toLowerCase();
-    return (
-      p.product_name.toLowerCase().includes(q) ||
-      p.display_codes.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q) ||
-      p.brand.toLowerCase().includes(q)
-    );
+    // 1. Text Search
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const matchSearch =
+        p.product_name.toLowerCase().includes(q) ||
+        p.display_codes.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        p.brand.toLowerCase().includes(q) ||
+        (p.tile_size && p.tile_size.toLowerCase().includes(q)) ||
+        (p.grade && p.grade.toLowerCase().includes(q)) ||
+        (p.surface_finish && p.surface_finish.toLowerCase().includes(q));
+      if (!matchSearch) return false;
+    }
+
+    // 2. Category Filter
+    if (selectedCategory !== "all") {
+      if (String(p.category_id) !== String(selectedCategory)) {
+        return false;
+      }
+    }
+
+    // 3. Conditional Tile / Non-Tile Filters
+    if (isTilesSelected) {
+      // Tile Size
+      if (selectedTileSize !== "all") {
+        if (!p.tile_size || p.tile_size.toLowerCase() !== selectedTileSize.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // Grade
+      if (selectedGrade !== "all") {
+        if (!p.grade || p.grade.toLowerCase() !== selectedGrade.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // Surface Finish
+      if (selectedSurfaceFinish !== "all") {
+        if (!p.surface_finish || p.surface_finish.toLowerCase() !== selectedSurfaceFinish.toLowerCase()) {
+          return false;
+        }
+      }
+    } else {
+      // Non-tiles: Brand Filter
+      if (selectedBrand !== "all") {
+        if (String(p.brand_id) !== String(selectedBrand)) {
+          return false;
+        }
+      }
+    }
+
+    // 4. Stock Status Filter (applies to both)
+    if (selectedStockStatus !== "all") {
+      const qty = Number(p.quantity || 0);
+      if (selectedStockStatus === "in_stock" && qty <= 0) return false;
+      if (selectedStockStatus === "low_stock" && (qty <= 0 || qty > 5)) return false;
+      if (selectedStockStatus === "out_of_stock" && qty > 0) return false;
+    }
+
+    // 5. Unit Filter (applies to both)
+    if (selectedUnit !== "all") {
+      if (String(p.unit_id) !== String(selectedUnit)) {
+        return false;
+      }
+    }
+
+    return true;
   });
 
-  const displayedProducts = filteredProducts.slice(0, Number(entries));
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedProducts = filteredProducts.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="space-y-4">
@@ -304,36 +492,171 @@ export default function ProductsPage() {
       {/* Main Table Card (Rule 5.1) */}
       <div className="card bg-white dark:bg-slate-900 rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
         {/* Controls & Filter Bar (Rule 5.3) */}
-        <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
-          {/* Search Bar */}
-          <div className="w-full md:w-80 h-[38px] flex items-center px-3 bg-white dark:bg-slate-800/90 rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus-within:border-rose-600 focus-within:ring-2 focus-within:ring-rose-600/20 transition-all shadow-xs">
-            <Search className="w-4 h-4 text-slate-400 mr-2.5 shrink-0" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search product name, barcode, model..."
-              className="w-full bg-transparent border-none outline-none text-xs text-slate-800 dark:text-white placeholder:text-slate-400"
-            />
-          </div>
+        <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col xl:flex-row items-center justify-between gap-3">
+          {/* Left Side: Search Bar + Category, Brand, Stock Status & Unit Filters */}
+          <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto flex-1">
+            {/* Search Bar */}
+            <div className="w-full sm:w-60 md:w-64 h-[38px] flex items-center px-3 bg-white dark:bg-slate-800/90 rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus-within:border-rose-600 focus-within:ring-2 focus-within:ring-rose-600/20 transition-all shadow-xs">
+              <Search className="w-4 h-4 text-slate-400 mr-2.5 shrink-0" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search product, barcode..."
+                className="w-full bg-transparent border-none outline-none text-xs text-slate-800 dark:text-white placeholder:text-slate-400"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setCurrentPage(1);
+                  }}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
 
-          {/* Show Entries Selector (Rule 5.3) */}
-          <div className="flex items-center gap-2 self-start md:self-auto">
-            <div className="w-[120px]">
+            {/* 1. Category Filter */}
+            <div className="w-full sm:w-[150px]">
               <CustomSelect
-                value={entries}
-                onChange={(val) => setEntries(String(val))}
-                options={[
-                  { value: "15", label: "Show: 15" },
-                  { value: "50", label: "Show: 50" },
-                  { value: "100", label: "Show: 100" },
-                  { value: "200", label: "Show: 200" },
-                ]}
-                className="[&_button]:!min-h-[38px] [&_button]:!py-1"
+                value={selectedCategory}
+                onChange={handleCategoryChange}
+                options={categoryOptions}
+                placeholder="All Categories"
+                className="[&_button]:!min-h-[38px] [&_button]:!h-[38px] [&_button]:!py-1"
               />
             </div>
 
-            <span className="text-xs text-slate-500 font-medium">
+            {/* Conditional Filters: If Tiles category selected -> Size, Grade, Finish (Brand excluded); Otherwise -> Brand */}
+            {isTilesSelected ? (
+              <>
+                {/* Tile Size Filter */}
+                <div className="w-full sm:w-[135px]">
+                  <CustomSelect
+                    value={selectedTileSize}
+                    onChange={(val) => {
+                      setSelectedTileSize(String(val));
+                      setCurrentPage(1);
+                    }}
+                    options={tileSizeOptions}
+                    placeholder="All Sizes"
+                    className="[&_button]:!min-h-[38px] [&_button]:!h-[38px] [&_button]:!py-1"
+                  />
+                </div>
+
+                {/* Tile Grade Filter */}
+                <div className="w-full sm:w-[130px]">
+                  <CustomSelect
+                    value={selectedGrade}
+                    onChange={(val) => {
+                      setSelectedGrade(String(val));
+                      setCurrentPage(1);
+                    }}
+                    options={gradeOptions}
+                    placeholder="All Grades"
+                    className="[&_button]:!min-h-[38px] [&_button]:!h-[38px] [&_button]:!py-1"
+                  />
+                </div>
+
+                {/* Tile Surface Finish Filter */}
+                <div className="w-full sm:w-[140px]">
+                  <CustomSelect
+                    value={selectedSurfaceFinish}
+                    onChange={(val) => {
+                      setSelectedSurfaceFinish(String(val));
+                      setCurrentPage(1);
+                    }}
+                    options={finishOptions}
+                    placeholder="All Finishes"
+                    className="[&_button]:!min-h-[38px] [&_button]:!h-[38px] [&_button]:!py-1"
+                  />
+                </div>
+              </>
+            ) : (
+              /* Brand Filter (shown when NOT Tiles category) */
+              <div className="w-full sm:w-[150px]">
+                <CustomSelect
+                  value={selectedBrand}
+                  onChange={(val) => {
+                    setSelectedBrand(String(val));
+                    setCurrentPage(1);
+                  }}
+                  options={brandOptions}
+                  placeholder="All Brands"
+                  className="[&_button]:!min-h-[38px] [&_button]:!h-[38px] [&_button]:!py-1"
+                />
+              </div>
+            )}
+
+            {/* Stock Status Filter (Present in both) */}
+            <div className="w-full sm:w-[155px]">
+              <CustomSelect
+                value={selectedStockStatus}
+                onChange={(val) => {
+                  setSelectedStockStatus(String(val));
+                  setCurrentPage(1);
+                }}
+                options={stockStatusOptions}
+                placeholder="All Stock Status"
+                className="[&_button]:!min-h-[38px] [&_button]:!h-[38px] [&_button]:!py-1"
+              />
+            </div>
+
+            {/* Unit Filter (Present in both) */}
+            <div className="w-full sm:w-[120px]">
+              <CustomSelect
+                value={selectedUnit}
+                onChange={(val) => {
+                  setSelectedUnit(String(val));
+                  setCurrentPage(1);
+                }}
+                options={unitOptions}
+                placeholder="All Units"
+                className="[&_button]:!min-h-[38px] [&_button]:!h-[38px] [&_button]:!py-1"
+              />
+            </div>
+
+            {/* Reset Filter Button */}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                title="Reset All Filters"
+                className="h-[38px] px-3 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
+
+          {/* Right Side: Show Entries Selector (Rule 5.3) & Total Count */}
+          <div className="flex items-center gap-2.5 self-start xl:self-auto shrink-0">
+            <div className="w-[125px]">
+              <CustomSelect
+                value={String(pageSize)}
+                onChange={(val) => {
+                  setPageSize(Number(val));
+                  setCurrentPage(1);
+                }}
+                options={[
+                  { value: "20", label: "Show: 20" },
+                  { value: "50", label: "Show: 50" },
+                  { value: "100", label: "Show: 100" },
+                  { value: "200", label: "Show: 200" },
+                  { value: "500", label: "Show: 500" },
+                ]}
+                className="[&_button]:!min-h-[38px] [&_button]:!h-[38px] [&_button]:!py-1"
+              />
+            </div>
+
+            <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
               Total <strong>{filteredProducts.length}</strong> Products
             </span>
           </div>
@@ -565,6 +888,19 @@ export default function ProductsPage() {
             ))
           )}
         </div>
+
+        {/* Pagination Controls */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredProducts.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* Add / Edit Product Modal (Strict Rule 6.1 - 6.4) */}

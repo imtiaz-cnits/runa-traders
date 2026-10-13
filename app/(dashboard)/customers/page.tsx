@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { Pagination } from "@/components/ui";
 
 interface Customer {
   id: number;
@@ -34,6 +35,8 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -122,6 +125,7 @@ export default function CustomersPage() {
             ? "Customer updated successfully!"
             : "Customer created successfully!"
         );
+        setCurrentPage(1);
         loadCustomers();
       } else {
         setErrorMsg(data.message || "Failed to save customer");
@@ -134,6 +138,8 @@ export default function CustomersPage() {
     }
   };
 
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedCustomers = customers.slice(startIndex, startIndex + pageSize);
   const totalCustomerDue = customers.reduce((sum, c) => sum + c.previous_due_amount, 0);
 
   return (
@@ -192,7 +198,10 @@ export default function CustomersPage() {
             type="text"
             placeholder="Search by customer name, mobile, or ID..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-[38px] pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-600 font-medium"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -202,8 +211,8 @@ export default function CustomersPage() {
         </span>
       </div>
 
-      {/* Desktop Table (Strict Marss Corp Rule) */}
-      <div className="hidden md:block bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
+      {/* Table */}
+      <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
@@ -230,7 +239,7 @@ export default function CustomersPage() {
                   </td>
                 </tr>
               ) : (
-                customers.map((c) => (
+                displayedCustomers.map((c) => (
                   <tr
                     key={c.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -274,6 +283,19 @@ export default function CustomersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={customers.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* Modal */}

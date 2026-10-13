@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
+import { Pagination } from "@/components/ui";
 
 interface ProductItem {
   id: number;
@@ -55,6 +56,8 @@ export default function StockOutReportPage() {
   // Filters
   const [activeTab, setActiveTab] = useState<"critical" | "out_of_stock" | "low_stock" | "all">("critical");
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const loadData = async () => {
     try {
@@ -75,8 +78,12 @@ export default function StockOutReportPage() {
   };
 
   useEffect(() => {
+    setCurrentPage(1);
     loadData();
   }, [activeTab, search]);
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedProducts = products.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="space-y-4">
@@ -292,13 +299,13 @@ export default function StockOutReportPage() {
                 </td>
               </tr>
             ) : (
-              products.map((p, idx) => (
+              displayedProducts.map((p, idx) => (
                 <tr
                   key={p.id}
                   className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <td className="py-3 px-4 text-center text-slate-400 font-mono">
-                    {idx + 1}
+                    {startIndex + idx + 1}
                   </td>
                   <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-100">
                     <div>{p.product_name}</div>
@@ -355,11 +362,24 @@ export default function StockOutReportPage() {
             )}
           </tbody>
         </table>
+
+        {/* Desktop Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={products.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* 6. Mobile Cards View */}
       <div className="block md:hidden space-y-2.5">
-        {products.map((p) => (
+        {displayedProducts.map((p) => (
           <div
             key={p.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -407,6 +427,19 @@ export default function StockOutReportPage() {
             </div>
           </div>
         ))}
+
+        {/* Mobile Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={products.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
     </div>
   );

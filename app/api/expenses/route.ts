@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
     const staffId = searchParams.get("staff_id");
     const fromDate = searchParams.get("from_date");
     const toDate = searchParams.get("to_date");
-    const limit = Number(searchParams.get("limit") || 150);
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam && limitParam !== "all" && !isNaN(Number(limitParam)) ? Number(limitParam) : undefined;
 
     const where: any = {};
     if (typeId) where.expense_type_id = BigInt(typeId);
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     const expenses = await prisma.expenses.findMany({
       where,
-      take: limit,
+      ...(limit ? { take: limit } : {}),
       orderBy: { id: "desc" },
       include: {
         expense_types: true,

@@ -25,6 +25,7 @@ import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
+import { Pagination } from "@/components/ui";
 
 interface Expense {
   id: number;
@@ -70,6 +71,8 @@ export default function ExpensesPage() {
   const [selectedTypeFilter, setSelectedTypeFilter] = useState("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -192,6 +195,7 @@ export default function ExpensesPage() {
             ? "Expense updated successfully!"
             : "Expense recorded successfully!"
         );
+        setCurrentPage(1);
         loadData();
       } else {
         setErrorMsg(data.message || "Failed to record expense");
@@ -210,6 +214,7 @@ export default function ExpensesPage() {
       const data = await res.json();
       if (data.status === "success") {
         toast.success("Expense deleted successfully!");
+        setCurrentPage(1);
         loadData();
       } else {
         toast.error(data.message || "Failed to delete expense");
@@ -218,6 +223,9 @@ export default function ExpensesPage() {
       toast.error("Error deleting expense");
     }
   };
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedExpenses = expenses.slice(startIndex, startIndex + pageSize);
 
 
   const handleSaveOpening = async (e: React.FormEvent) => {
@@ -375,7 +383,10 @@ export default function ExpensesPage() {
             type="text"
             placeholder="Search details, category, or staff..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-[38px] pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-600 font-medium"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -390,7 +401,10 @@ export default function ExpensesPage() {
                 ...expenseTypes.map((t) => ({ value: t.id, label: t.type_name })),
               ]}
               value={selectedTypeFilter}
-              onChange={(val) => setSelectedTypeFilter(String(val))}
+              onChange={(val) => {
+                setSelectedTypeFilter(String(val));
+                setCurrentPage(1);
+              }}
               placeholder="All Categories"
             />
           </div>
@@ -400,7 +414,10 @@ export default function ExpensesPage() {
             <div className="w-[135px]">
               <CustomDatePicker
                 value={fromDate}
-                onChange={(d) => setFromDate(d)}
+                onChange={(d) => {
+                  setFromDate(d);
+                  setCurrentPage(1);
+                }}
                 placeholder="From Date"
                 allowClear
               />
@@ -409,7 +426,10 @@ export default function ExpensesPage() {
             <div className="w-[135px]">
               <CustomDatePicker
                 value={toDate}
-                onChange={(d) => setToDate(d)}
+                onChange={(d) => {
+                  setToDate(d);
+                  setCurrentPage(1);
+                }}
                 placeholder="To Date"
                 allowClear
               />
@@ -422,6 +442,7 @@ export default function ExpensesPage() {
                 setFromDate("");
                 setToDate("");
                 setSelectedTypeFilter("all");
+                setCurrentPage(1);
               }}
               className="h-[38px] px-2.5 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-xs font-bold"
             >
@@ -460,7 +481,7 @@ export default function ExpensesPage() {
                   </td>
                 </tr>
               ) : (
-                expenses.map((exp) => (
+                displayedExpenses.map((exp) => (
                   <tr
                     key={exp.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -523,11 +544,24 @@ export default function ExpensesPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Desktop Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={expenses.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[20, 50, 100, 200, 500]}
+        />
       </div>
 
       {/* 5. Mobile Card View */}
       <div className="block md:hidden space-y-2.5">
-        {expenses.map((exp) => (
+        {displayedExpenses.map((exp) => (
           <div
             key={exp.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -569,6 +603,21 @@ export default function ExpensesPage() {
             </div>
           </div>
         ))}
+
+        {/* Mobile Pagination */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={expenses.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
 
       {/* 6. ADD / EDIT EXPENSE MODAL */}
