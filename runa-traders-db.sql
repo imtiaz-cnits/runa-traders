@@ -14,11 +14,6 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-
--- Dumping database structure for runa_traders_db
-CREATE DATABASE IF NOT EXISTS `runa_traders_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
-USE `runa_traders_db`;
-
 -- Dumping structure for table runa_traders_db.brands
 DROP TABLE IF EXISTS `brands`;
 CREATE TABLE IF NOT EXISTS `brands` (
@@ -117,6 +112,71 @@ INSERT INTO `categories` (`id`, `category_name`, `img_url`, `status`, `user_id`,
 	(29, 'General', NULL, 'active', 7, '2026-10-08 12:54:10', '2026-10-08 12:54:10'),
 	(30, 'Tiles', NULL, 'active', 1, '2026-10-09 13:09:00', '2026-10-09 13:09:00');
 
+-- Dumping structure for table runa_traders_db.challans
+DROP TABLE IF EXISTS `challans`;
+CREATE TABLE IF NOT EXISTS `challans` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `challan_no` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `order_id` bigint unsigned NOT NULL,
+  `customer_id` bigint unsigned NOT NULL,
+  `challan_date` date NOT NULL DEFAULT (curdate()),
+  `delivery_address` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `driver_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `driver_phone` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `vehicle_no` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'DELIVERED',
+  `note` text COLLATE utf8mb4_unicode_ci,
+  `user_id` bigint unsigned NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `challans_challan_no_unique` (`challan_no`),
+  UNIQUE KEY `challans_order_id_unique` (`order_id`),
+  KEY `challans_customer_id_foreign` (`customer_id`),
+  KEY `challans_user_id_foreign` (`user_id`),
+  CONSTRAINT `challans_customer_id_foreign` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `challans_order_id_foreign` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `challans_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Dumping data for table runa_traders_db.challans: ~5 rows (approximately)
+INSERT INTO `challans` (`id`, `challan_no`, `order_id`, `customer_id`, `challan_date`, `delivery_address`, `driver_name`, `driver_phone`, `vehicle_no`, `status`, `note`, `user_id`, `created_at`, `updated_at`) VALUES
+	(1, 'CHL-20261014-4724', 63, 57, '2026-10-14', 'Showroom Counter', NULL, NULL, NULL, 'DELIVERED', NULL, 2, '2026-10-14 03:22:16', '2026-10-14 03:22:16'),
+	(2, 'CHL-20261014-5493', 65, 57, '2026-10-14', 'Showroom Counter', NULL, NULL, NULL, 'DELIVERED', NULL, 2, '2026-10-14 03:25:57', '2026-10-14 03:25:57'),
+	(3, 'CHL-20261014-8331', 66, 57, '2026-10-14', 'Showroom Counter', NULL, NULL, NULL, 'DELIVERED', NULL, 2, '2026-10-14 03:27:16', '2026-10-14 03:27:16'),
+	(4, 'CHL-20261014-7329', 70, 53, '2026-10-14', 'Cartola gopalpur pabna', 'hhhhhhhhhh', '56564645646', '4545345', 'DELIVERED', 'fhfhfgh', 2, '2026-10-14 05:31:28', '2026-10-14 05:31:28'),
+	(5, 'CHL-20261014-4353', 71, 53, '2026-10-14', 'Cartola gopalpur pabna', NULL, NULL, NULL, 'DELIVERED', NULL, 2, '2026-10-14 06:02:44', '2026-10-14 06:02:44');
+
+-- Dumping structure for table runa_traders_db.challan_items
+DROP TABLE IF EXISTS `challan_items`;
+CREATE TABLE IF NOT EXISTS `challan_items` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `challan_id` bigint unsigned NOT NULL,
+  `order_detail_id` bigint unsigned DEFAULT NULL,
+  `product_id` bigint unsigned NOT NULL,
+  `product_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `product_code` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `quantity` decimal(12,2) NOT NULL,
+  `unit` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `challan_items_challan_id_foreign` (`challan_id`),
+  KEY `challan_items_order_detail_id_foreign` (`order_detail_id`),
+  KEY `challan_items_product_id_foreign` (`product_id`),
+  CONSTRAINT `challan_items_challan_id_foreign` FOREIGN KEY (`challan_id`) REFERENCES `challans` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `challan_items_order_detail_id_foreign` FOREIGN KEY (`order_detail_id`) REFERENCES `order_details` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `challan_items_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Dumping data for table runa_traders_db.challan_items: ~5 rows (approximately)
+INSERT INTO `challan_items` (`id`, `challan_id`, `order_detail_id`, `product_id`, `product_name`, `product_code`, `quantity`, `unit`, `created_at`, `updated_at`) VALUES
+	(1, 1, 162, 740, 'Fresh Ceramics 60x60 Statuario Marble Tiles', 'FC-6060-STAT', 1.00, 'Box', '2026-10-14 03:22:16', '2026-10-14 03:22:16'),
+	(2, 2, 165, 740, 'Fresh Ceramics 60x60 Statuario Marble Tiles', 'FC-6060-STAT', 1.00, 'Box', '2026-10-14 03:25:57', '2026-10-14 03:25:57'),
+	(3, 3, 166, 740, 'Fresh Ceramics 60x60 Statuario Marble Tiles', 'FC-6060-STAT', 1.00, 'Box', '2026-10-14 03:27:16', '2026-10-14 03:27:16'),
+	(4, 4, 171, 740, 'Fresh Ceramics 60x60 Statuario Marble Tiles', 'FC-6060-STAT', 1.00, 'Box', '2026-10-14 05:31:28', '2026-10-14 05:31:28'),
+	(5, 5, 174, 740, 'Fresh Ceramics 60x60 Statuario Marble Tiles', 'FC-6060-STAT', 1.00, 'Box', '2026-10-14 06:02:44', '2026-10-14 06:02:44');
+
 -- Dumping structure for table runa_traders_db.customers
 DROP TABLE IF EXISTS `customers`;
 CREATE TABLE IF NOT EXISTS `customers` (
@@ -202,10 +262,10 @@ INSERT INTO `customers` (`id`, `customer_id`, `customer_name`, `address_details`
 	(50, 'CUST-0050', 'Sweet vai', 'DC Banglor,pabna', NULL, '01733193028', NULL, NULL, NULL, '0', NULL, NULL, NULL, 1, '2026-09-30 16:30:34', '2026-09-30 16:30:34', NULL),
 	(51, 'CUST-0051', 'Siraj Sir', 'Noynamoti', NULL, '01718022660', NULL, NULL, NULL, '0', NULL, NULL, NULL, 1, '2026-09-30 16:48:58', '2026-09-30 16:48:58', NULL),
 	(52, 'CUST-0052', 'Robbin hossian', 'Dapuniya Pabna', NULL, '01744812481', NULL, NULL, NULL, '0', NULL, NULL, NULL, 1, '2026-09-30 17:16:38', '2026-09-30 17:16:38', NULL),
-	(53, 'CUST-0053', 'Md.Faruk Hossian', 'Cartola gopalpur pabna', NULL, '01716013280', NULL, NULL, NULL, '0', NULL, NULL, NULL, 1, '2026-09-30 17:21:11', '2026-09-30 17:21:11', NULL),
-	(54, 'CUST-0054', 'Rahat vai', 'Arifpur,Pabna', NULL, '01880248238', NULL, NULL, NULL, '0', NULL, NULL, NULL, 1, '2026-09-30 17:30:04', '2026-09-30 17:30:04', NULL),
+	(53, 'CUST-0053', 'Md.Faruk Hossian', 'Cartola gopalpur pabna', NULL, '01716013280', NULL, NULL, NULL, '15700', NULL, NULL, NULL, 1, '2026-09-30 17:21:11', '2026-10-14 12:01:55', NULL),
+	(54, 'CUST-0054', 'Rahat vai', 'Arifpur,Pabna', NULL, '01880248238', NULL, NULL, NULL, '15200', NULL, NULL, NULL, 1, '2026-09-30 17:30:04', '2026-10-14 09:03:43', NULL),
 	(55, 'CUST-0055', 'Shohel vai', 'Nolda notunpara', NULL, '01835651412', NULL, NULL, NULL, '12788', NULL, NULL, NULL, 1, '2026-10-01 11:50:46', '2026-10-08 20:07:24', NULL),
-	(57, 'CUST-0001', 'Walking Customer', 'Showroom Counter', NULL, '01700000000', NULL, NULL, NULL, '0', NULL, NULL, NULL, 7, '2026-10-08 13:19:15', '2026-10-08 13:19:15', NULL);
+	(57, 'CUST-0001', 'Walking Customer', 'Showroom Counter', NULL, '01700000000', NULL, NULL, NULL, '55000', NULL, NULL, NULL, 7, '2026-10-08 13:19:15', '2026-10-14 11:29:19', NULL);
 
 -- Dumping structure for table runa_traders_db.customer_payment_details
 DROP TABLE IF EXISTS `customer_payment_details`;
@@ -476,7 +536,7 @@ CREATE TABLE IF NOT EXISTS `opening_balances` (
   CONSTRAINT `opening_balances_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table runa_traders_db.opening_balances: ~0 rows (approximately)
+-- Dumping data for table runa_traders_db.opening_balances: ~1 rows (approximately)
 INSERT INTO `opening_balances` (`id`, `amount`, `date`, `note`, `user_id`, `created_at`, `updated_at`) VALUES
 	(1, 5000.00, '2026-10-08', 'Cash drawer morning float', 2, NULL, NULL);
 
@@ -498,14 +558,30 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `user_id` bigint unsigned NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `challan_status` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'NOT_REQUIRED',
   PRIMARY KEY (`id`),
   KEY `orders_customer_id_foreign` (`customer_id`),
   KEY `orders_user_id_foreign` (`user_id`),
   CONSTRAINT `orders_customer_id_foreign` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `orders_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table runa_traders_db.orders: ~1 rows (approximately)
+-- Dumping data for table runa_traders_db.orders: ~14 rows (approximately)
+INSERT INTO `orders` (`id`, `order_no`, `sub_total`, `return_adjustment_amount`, `paid_amount`, `delivery_charge`, `discount_amount`, `due_amount`, `previous_due_amount`, `order_note`, `customer_id`, `invoice_date`, `user_id`, `created_at`, `updated_at`, `challan_status`) VALUES
+	(58, 'ORD-20261014-9382', 1200.00, 0.00, 0.00, 0.00, 0.00, 1200.00, 0.00, NULL, 57, '2026-10-14', 2, '2026-10-13 23:53:25', '2026-10-13 23:53:25', 'NOT_REQUIRED'),
+	(59, 'ORD-20261014-6566', 8200.00, 0.00, 0.00, 0.00, 0.00, 8200.00, 1200.00, NULL, 57, '2026-10-14', 2, '2026-10-14 03:00:51', '2026-10-14 03:00:51', 'PENDING'),
+	(60, 'ORD-20261014-4874', 8200.00, 0.00, 0.00, 0.00, 0.00, 8200.00, 0.00, NULL, 54, '2026-10-14', 2, '2026-10-14 03:02:21', '2026-10-14 03:02:21', 'PENDING'),
+	(61, 'ORD-20261014-7488', 7000.00, 0.00, 0.00, 0.00, 0.00, 7000.00, 0.00, NULL, 54, '2026-10-14', 2, '2026-10-14 03:03:44', '2026-10-14 03:03:44', 'NOT_REQUIRED'),
+	(62, 'ORD-20261014-1176', 7000.00, 0.00, 0.00, 0.00, 0.00, 7000.00, 9400.00, NULL, 57, '2026-10-14', 2, '2026-10-14 03:21:25', '2026-10-14 03:21:25', 'NOT_REQUIRED'),
+	(63, 'ORD-20261014-9335', 8200.00, 0.00, 1200.00, 0.00, 0.00, 7000.00, 9400.00, NULL, 57, '2026-10-14', 2, '2026-10-14 03:21:57', '2026-10-14 09:22:16', 'DELIVERED'),
+	(64, 'ORD-20261014-9566', 7000.00, 0.00, 0.00, 0.00, 0.00, 7000.00, 9400.00, NULL, 57, '2026-10-14', 2, '2026-10-14 03:25:36', '2026-10-14 03:25:36', 'NOT_REQUIRED'),
+	(65, 'ORD-20261014-5823', 1200.00, 0.00, 0.00, 0.00, 0.00, 1200.00, 9400.00, NULL, 57, '2026-10-14', 2, '2026-10-14 03:25:40', '2026-10-14 09:25:57', 'DELIVERED'),
+	(66, 'ORD-20261014-8734', 1200.00, 0.00, 0.00, 0.00, 0.00, 1200.00, 9400.00, NULL, 57, '2026-10-14', 2, '2026-10-14 03:27:09', '2026-10-14 09:27:15', 'DELIVERED'),
+	(67, 'ORD-20261014-7573', 8200.00, 0.00, 0.00, 0.00, 0.00, 8200.00, 32800.00, NULL, 57, '2026-10-14', 2, '2026-10-14 03:30:51', '2026-10-14 03:30:51', 'PENDING'),
+	(68, 'ORD-20261014-4144', 7000.00, 0.00, 0.00, 0.00, 0.00, 7000.00, 41000.00, NULL, 57, '2026-10-14', 2, '2026-10-14 05:18:09', '2026-10-14 05:18:09', 'NOT_REQUIRED'),
+	(69, 'ORD-20261014-8197', 7000.00, 0.00, 0.00, 0.00, 0.00, 7000.00, 48000.00, NULL, 57, '2026-10-14', 2, '2026-10-14 05:29:19', '2026-10-14 05:29:19', 'NOT_REQUIRED'),
+	(70, 'ORD-20261014-4397', 8200.00, 500.00, 200.00, 0.00, 0.00, 7500.00, 0.00, NULL, 53, '2026-10-14', 2, '2026-10-14 05:30:29', '2026-10-14 11:31:27', 'DELIVERED'),
+	(71, 'ORD-20261014-8268', 8200.00, 0.00, 0.00, 0.00, 0.00, 8200.00, 7500.00, NULL, 53, '2026-10-14', 2, '2026-10-14 06:01:55', '2026-10-14 12:02:43', 'DELIVERED');
 
 -- Dumping structure for table runa_traders_db.order_details
 DROP TABLE IF EXISTS `order_details`;
@@ -519,6 +595,7 @@ CREATE TABLE IF NOT EXISTS `order_details` (
   `user_id` bigint unsigned DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `stock_lifecycle_state` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'DEDUCTED_AT_INVOICE',
   PRIMARY KEY (`id`),
   KEY `order_details_order_id_foreign` (`order_id`),
   KEY `order_details_product_id_foreign` (`product_id`),
@@ -526,9 +603,30 @@ CREATE TABLE IF NOT EXISTS `order_details` (
   CONSTRAINT `order_details_order_id_foreign` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `order_details_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `order_details_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=155 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=175 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table runa_traders_db.order_details: ~0 rows (approximately)
+-- Dumping data for table runa_traders_db.order_details: ~20 rows (approximately)
+INSERT INTO `order_details` (`id`, `order_id`, `product_id`, `quantity`, `price`, `selling_price`, `user_id`, `created_at`, `updated_at`, `stock_lifecycle_state`) VALUES
+	(155, 58, 740, '1', '950', '1200', 2, '2026-10-13 23:53:25', '2026-10-13 23:53:25', 'DEDUCTED_AT_INVOICE'),
+	(156, 59, 740, '1', '950', '1200', 2, '2026-10-14 03:00:51', '2026-10-14 03:00:51', 'PENDING_CHALLAN'),
+	(157, 59, 741, '1', '5000', '7000', 2, '2026-10-14 03:00:51', '2026-10-14 03:00:51', 'DEDUCTED_AT_INVOICE'),
+	(158, 60, 740, '1', '950', '1200', 2, '2026-10-14 03:02:21', '2026-10-14 03:02:21', 'PENDING_CHALLAN'),
+	(159, 60, 741, '1', '5000', '7000', 2, '2026-10-14 03:02:21', '2026-10-14 03:02:21', 'DEDUCTED_AT_INVOICE'),
+	(160, 61, 741, '1', '5000', '7000', 2, '2026-10-14 03:03:44', '2026-10-14 03:03:44', 'DEDUCTED_AT_INVOICE'),
+	(161, 62, 741, '1', '5000', '7000', 2, '2026-10-14 03:21:25', '2026-10-14 03:21:25', 'DEDUCTED_AT_INVOICE'),
+	(162, 63, 740, '1', '950', '1200', 2, '2026-10-14 03:21:57', '2026-10-14 09:22:16', 'DEDUCTED_AT_CHALLAN'),
+	(163, 63, 741, '1', '5000', '7000', 2, '2026-10-14 03:21:57', '2026-10-14 03:21:57', 'DEDUCTED_AT_INVOICE'),
+	(164, 64, 741, '1', '5000', '7000', 2, '2026-10-14 03:25:36', '2026-10-14 03:25:36', 'DEDUCTED_AT_INVOICE'),
+	(165, 65, 740, '1', '950', '1200', 2, '2026-10-14 03:25:40', '2026-10-14 09:25:57', 'DEDUCTED_AT_CHALLAN'),
+	(166, 66, 740, '1', '950', '1200', 2, '2026-10-14 03:27:09', '2026-10-14 09:27:15', 'DEDUCTED_AT_CHALLAN'),
+	(167, 67, 740, '1', '950', '1200', 2, '2026-10-14 03:30:51', '2026-10-14 03:30:51', 'PENDING_CHALLAN'),
+	(168, 67, 741, '1', '5000', '7000', 2, '2026-10-14 03:30:51', '2026-10-14 03:30:51', 'DEDUCTED_AT_INVOICE'),
+	(169, 68, 741, '1', '5000', '7000', 2, '2026-10-14 05:18:09', '2026-10-14 05:18:09', 'DEDUCTED_AT_INVOICE'),
+	(170, 69, 741, '1', '5000', '7000', 2, '2026-10-14 05:29:19', '2026-10-14 05:29:19', 'DEDUCTED_AT_INVOICE'),
+	(171, 70, 740, '1', '950', '1200', 2, '2026-10-14 05:30:29', '2026-10-14 11:31:27', 'DEDUCTED_AT_CHALLAN'),
+	(172, 70, 741, '1', '5000', '7000', 2, '2026-10-14 05:30:29', '2026-10-14 05:30:29', 'DEDUCTED_AT_INVOICE'),
+	(173, 71, 741, '1', '5000', '7000', 2, '2026-10-14 06:01:55', '2026-10-14 06:01:55', 'DEDUCTED_AT_INVOICE'),
+	(174, 71, 740, '1', '950', '1200', 2, '2026-10-14 06:01:55', '2026-10-14 12:02:43', 'DEDUCTED_AT_CHALLAN');
 
 -- Dumping structure for table runa_traders_db.order_payment_details
 DROP TABLE IF EXISTS `order_payment_details`;
@@ -549,9 +647,24 @@ CREATE TABLE IF NOT EXISTS `order_payment_details` (
   KEY `order_payment_details_user_id_foreign` (`user_id`),
   CONSTRAINT `order_payment_details_order_id_foreign` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `order_payment_details_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=106 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=120 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table runa_traders_db.order_payment_details: ~0 rows (approximately)
+-- Dumping data for table runa_traders_db.order_payment_details: ~14 rows (approximately)
+INSERT INTO `order_payment_details` (`id`, `order_id`, `paid_amount`, `discount_amount`, `transaction_id`, `payment_method`, `due_collection_date`, `payment_status`, `user_id`, `created_at`, `updated_at`) VALUES
+	(106, 58, 0.00, NULL, NULL, 'Cash', '2026-10-14', 'Due', 2, '2026-10-13 23:53:25', '2026-10-13 23:53:25'),
+	(107, 59, 0.00, NULL, NULL, 'Cash', '2026-10-14', 'Due', 2, '2026-10-14 03:00:51', '2026-10-14 03:00:51'),
+	(108, 60, 0.00, NULL, NULL, 'Cash', '2026-10-14', 'Due', 2, '2026-10-14 03:02:21', '2026-10-14 03:02:21'),
+	(109, 61, 0.00, NULL, NULL, 'Cash', '2026-10-14', 'Due', 2, '2026-10-14 03:03:44', '2026-10-14 03:03:44'),
+	(110, 62, 0.00, NULL, NULL, 'Cash', '2026-10-14', 'Due', 2, '2026-10-14 03:21:25', '2026-10-14 03:21:25'),
+	(111, 63, 1200.00, NULL, NULL, 'Cash', '2026-10-14', 'Partial Paid', 2, '2026-10-14 03:21:57', '2026-10-14 03:21:57'),
+	(112, 64, 0.00, NULL, NULL, 'Cash', '2026-10-14', 'Due', 2, '2026-10-14 03:25:36', '2026-10-14 03:25:36'),
+	(113, 65, 0.00, NULL, NULL, 'Cash', '2026-10-14', 'Due', 2, '2026-10-14 03:25:40', '2026-10-14 03:25:40'),
+	(114, 66, 0.00, NULL, NULL, 'Cash', '2026-10-14', 'Due', 2, '2026-10-14 03:27:09', '2026-10-14 03:27:09'),
+	(115, 67, 0.00, NULL, NULL, 'Cash', '2026-10-14', 'Due', 2, '2026-10-14 03:30:51', '2026-10-14 03:30:51'),
+	(116, 68, 0.00, NULL, NULL, 'Cash', '2026-10-14', 'Due', 2, '2026-10-14 05:18:09', '2026-10-14 05:18:09'),
+	(117, 69, 0.00, NULL, NULL, 'Cash', '2026-10-14', 'Due', 2, '2026-10-14 05:29:19', '2026-10-14 05:29:19'),
+	(118, 70, 200.00, NULL, NULL, 'Cash', '2026-10-14', 'Partial Paid', 2, '2026-10-14 05:30:29', '2026-10-14 05:30:29'),
+	(119, 71, 0.00, NULL, NULL, 'Cash', '2026-10-14', 'Due', 2, '2026-10-14 06:01:55', '2026-10-14 06:01:55');
 
 -- Dumping structure for table runa_traders_db.password_reset_tokens
 DROP TABLE IF EXISTS `password_reset_tokens`;
@@ -603,11 +716,11 @@ CREATE TABLE IF NOT EXISTS `products` (
   `user_id` bigint unsigned NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `tile_size` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `sqft_per_box` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `pcs_per_box` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `grade` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `surface_finish` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tile_size` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `sqft_per_box` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `pcs_per_box` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `grade` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `surface_finish` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `products_brand_id_foreign` (`brand_id`),
   KEY `products_category_id_foreign` (`category_id`),
@@ -619,11 +732,12 @@ CREATE TABLE IF NOT EXISTS `products` (
   CONSTRAINT `products_sub_category_id_foreign` FOREIGN KEY (`sub_category_id`) REFERENCES `sub_categories` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `products_unit_id_foreign` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `products_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=741 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=742 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table runa_traders_db.products: ~1 rows (approximately)
+-- Dumping data for table runa_traders_db.products: ~2 rows (approximately)
 INSERT INTO `products` (`id`, `img_url`, `product_name`, `quantity`, `cost_price`, `sell_price`, `status`, `product_code`, `brand_id`, `category_id`, `door_side`, `sub_category_id`, `unit_id`, `user_id`, `created_at`, `updated_at`, `tile_size`, `sqft_per_box`, `pcs_per_box`, `grade`, `surface_finish`) VALUES
-	(740, NULL, 'Fresh Ceramics 60x60 Statuario Marble Tiles', '150', '950.00', '1200.00', 'active', '["FC-6060-STAT", "894100123456"]', 24, 30, NULL, NULL, 4, 1, '2026-10-09 13:18:41', '2026-10-09 19:51:24', '24"x24"', '16.0', '4', 'Grade A', 'Glossy');
+	(740, NULL, 'Fresh Ceramics 60x60 Statuario Marble Tiles', '144', '950.00', '1200.00', 'active', '["FC-6060-STAT", "894100123456"]', 24, 30, NULL, NULL, 4, 1, '2026-10-09 13:18:41', '2026-10-14 12:02:43', '24"x24"', '16.0', '4', 'Grade A', 'Glossy'),
+	(741, NULL, 'door', '19', '5000', '7000', 'active', '["PRD-0741"]', 22, 23, NULL, NULL, 2, 2, '2026-10-14 02:59:40', '2026-10-14 12:01:55', NULL, NULL, NULL, NULL, NULL);
 
 -- Dumping structure for table runa_traders_db.product_returns
 DROP TABLE IF EXISTS `product_returns`;
