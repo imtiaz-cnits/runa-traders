@@ -19,7 +19,7 @@ import {
   Sparkles,
   RotateCcw,
 } from "lucide-react";
-import { POPULAR_TILE_SIZES, TILE_GRADES, SURFACE_FINISHES } from "@/lib/tiles-calculator";
+import { POPULAR_TILE_SIZES, TILE_GRADES, SURFACE_FINISHES, autoCalculateSqftPerBox } from "@/lib/tiles-calculator";
 import { CustomSelect, Pagination } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
@@ -1137,8 +1137,17 @@ export default function ProductsPage() {
                         <input
                           type="text"
                           value={formData.tile_size}
-                          onChange={(e) => setFormData({ ...formData, tile_size: e.target.value })}
-                          placeholder="Or enter custom size (e.g. 24x24 or 60x60 cm)"
+                          onChange={(e) => {
+                            const newSize = e.target.value;
+                            const pcs = parseFloat(formData.pcs_per_box || "0");
+                            const autoSqft = autoCalculateSqftPerBox(newSize, pcs);
+                            setFormData({
+                              ...formData,
+                              tile_size: newSize,
+                              ...(autoSqft !== null ? { sqft_per_box: String(autoSqft) } : {}),
+                            });
+                          }}
+                          placeholder="Or enter custom size (e.g. 8/12, 12x24, 10.5/24)"
                           className="w-full h-[38px] px-3 rounded-xl bg-white dark:bg-slate-800/90 text-xs text-slate-800 dark:text-white border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600 font-medium"
                         />
                       </div>
@@ -1151,11 +1160,11 @@ export default function ProductsPage() {
                           </label>
                           <input
                             type="number"
-                            step="0.01"
+                            step="0.001"
                             min="0"
                             value={formData.sqft_per_box}
                             onChange={(e) => setFormData({ ...formData, sqft_per_box: e.target.value })}
-                            placeholder="e.g. 16.0 or 14.4"
+                            placeholder="e.g. 16.66 or 16.0"
                             className="w-full h-[40px] px-3.5 rounded-xl bg-white dark:bg-slate-800/90 text-xs font-bold text-rose-700 dark:text-rose-400 border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600"
                           />
                           <p className="text-[10px] text-slate-400 mt-0.5">
@@ -1171,8 +1180,17 @@ export default function ProductsPage() {
                             type="number"
                             min="1"
                             value={formData.pcs_per_box}
-                            onChange={(e) => setFormData({ ...formData, pcs_per_box: e.target.value })}
-                            placeholder="e.g. 4 or 6"
+                            onChange={(e) => {
+                              const newPcs = e.target.value;
+                              const pcsNum = parseFloat(newPcs || "0");
+                              const autoSqft = autoCalculateSqftPerBox(formData.tile_size, pcsNum);
+                              setFormData({
+                                ...formData,
+                                pcs_per_box: newPcs,
+                                ...(autoSqft !== null ? { sqft_per_box: String(autoSqft) } : {}),
+                              });
+                            }}
+                            placeholder="e.g. 25, 11, 10, 8, 4"
                             className="w-full h-[40px] px-3.5 rounded-xl bg-white dark:bg-slate-800/90 text-xs font-bold text-slate-800 dark:text-white border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600"
                           />
                           <p className="text-[10px] text-slate-400 mt-0.5">

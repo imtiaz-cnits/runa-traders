@@ -43,11 +43,20 @@ export async function GET(req: NextRequest) {
                 grade: true,
                 surface_finish: true,
                 units: true,
+                categories: true,
               },
             },
           },
         },
         order_payment_details: true,
+        challans: {
+          select: {
+            id: true,
+            challan_no: true,
+            challan_date: true,
+            status: true,
+          },
+        },
         users: {
           select: {
             name: true,
@@ -83,6 +92,24 @@ export async function GET(req: NextRequest) {
         0
       );
 
+      const hasPendingTiles = o.order_details.some(
+        (d) => d.stock_lifecycle_state === "PENDING_CHALLAN"
+      );
+
+      const hasTiles =
+        o.challan_status !== "NOT_REQUIRED" ||
+        hasPendingTiles ||
+        !!o.challans ||
+        o.order_details.some(
+          (d) =>
+            d.stock_lifecycle_state === "DEDUCTED_AT_CHALLAN" ||
+            Boolean(d.products?.tile_size) ||
+            Boolean(d.products?.sqft_per_box) ||
+            (d.products?.product_name && d.products.product_name.toLowerCase().includes("tile")) ||
+            (d.products?.categories?.category_name &&
+              d.products.categories.category_name.toLowerCase().includes("tile"))
+        );
+
       return {
         id: Number(o.id),
         order_no: o.order_no || `ORD-${o.id}`,
@@ -105,6 +132,12 @@ export async function GET(req: NextRequest) {
         payment_status: paymentStatus,
         total_items: totalItems,
         order_note: o.order_note,
+        challan_status: o.challan_status || "NOT_REQUIRED",
+        has_pending_tiles: hasPendingTiles,
+        has_tiles: hasTiles,
+        has_challan: !!o.challans,
+        challan_id: o.challans?.id ? Number(o.challans.id) : null,
+        challan_no: o.challans?.challan_no || null,
         details: o.order_details.map((d) => ({
           id: Number(d.id),
           product_id: Number(d.product_id),
@@ -118,6 +151,7 @@ export async function GET(req: NextRequest) {
           price: parseFloat(d.price || "0"),
           selling_price: parseFloat(d.selling_price || "0"),
           unit: d.products?.units?.unit_name || "Pcs",
+          stock_lifecycle_state: d.stock_lifecycle_state || "DEDUCTED_AT_INVOICE",
           line_total: parseFloat(d.selling_price || "0") * parseFloat(d.quantity || "0"),
         })),
         payments: o.order_payment_details.map((p) => ({

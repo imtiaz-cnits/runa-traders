@@ -15,6 +15,7 @@ export interface CartItem {
   pcs_per_box?: number | null;
   grade?: string | null;
   surface_finish?: string | null;
+  category?: string | null;
   selling_mode?: "box" | "sqft";
   custom_sqft?: number | null;
 }

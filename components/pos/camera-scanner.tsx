@@ -110,7 +110,7 @@ export function CameraScannerModal({ isOpen, onClose, onScanSuccess }: CameraSca
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/75 backdrop-blur-xs p-4 animate-in fade-in duration-200">
       <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
         {/* Sticky Header */}
-        <div className="bg-[#15803d] px-4 py-3 flex items-center justify-between text-white shrink-0">
+        <div className="bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-4 py-3 flex items-center justify-between text-white shrink-0">
           <div className="flex items-center gap-2">
             <Camera className="w-5 h-5 text-white" />
             <h3 className="text-sm font-bold tracking-wide uppercase m-0 text-white">
@@ -135,7 +135,7 @@ export function CameraScannerModal({ isOpen, onClose, onScanSuccess }: CameraSca
 
             {isStarting && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white gap-2 z-10">
-                <RefreshCw className="w-8 h-8 animate-spin text-emerald-400" />
+                <RefreshCw className="w-8 h-8 animate-spin text-rose-400" />
                 <p className="text-xs font-semibold">Starting camera feed...</p>
               </div>
             )}
@@ -143,11 +143,11 @@ export function CameraScannerModal({ isOpen, onClose, onScanSuccess }: CameraSca
             {/* Target Reticle Overlay */}
             {!isStarting && !errorMsg && (
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                <div className="w-48 h-48 border-2 border-dashed border-emerald-400 rounded-lg relative animate-pulse shadow-[0_0_15px_rgba(52,211,153,0.5)]">
-                  <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-emerald-500 -mt-1 -ml-1"></div>
-                  <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-emerald-500 -mt-1 -mr-1"></div>
-                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-emerald-500 -mb-1 -ml-1"></div>
-                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-emerald-500 -mb-1 -mr-1"></div>
+                <div className="w-48 h-48 border-2 border-dashed border-rose-400 rounded-lg relative animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.5)]">
+                  <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-rose-500 -mt-1 -ml-1"></div>
+                  <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-rose-500 -mt-1 -mr-1"></div>
+                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-rose-500 -mb-1 -ml-1"></div>
+                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-rose-500 -mb-1 -mr-1"></div>
                 </div>
               </div>
             )}

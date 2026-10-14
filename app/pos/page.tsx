@@ -39,6 +39,7 @@ import { CustomerModal } from "@/components/pos/customer-modal";
 import { HeldInvoicesModal, HeldInvoice } from "@/components/pos/held-invoices-modal";
 import { QuickProductModal } from "@/components/pos/quick-product-modal";
 import { TileCalculatorModal } from "@/components/pos/tile-calculator-modal";
+import { ChallanModal } from "@/components/challan/challan-modal";
 import { PosDatePicker } from "@/components/pos/date-picker";
 import { getInitialTheme, applyTheme } from "@/lib/theme";
 import { useToast } from "@/components/ui/toast";
@@ -89,6 +90,7 @@ export default function PosPage() {
     discount,
     discountType,
     deliveryCharge,
+    returnAdjustment,
     paidAmount,
     paymentMethod,
     transactionId,
@@ -102,6 +104,7 @@ export default function PosPage() {
     setDiscount,
     setDiscountType,
     setDeliveryCharge,
+    setReturnAdjustment,
     setPaidAmount,
     setPaymentMethod,
     setTransactionId,
@@ -138,6 +141,7 @@ export default function PosPage() {
   const [tileCalcProduct, setTileCalcProduct] = useState<any | null>(null);
   const [isTileCalcOpen, setIsTileCalcOpen] = useState(false);
   const [receiptData, setReceiptData] = useState<any | null>(null);
+  const [challanOrderId, setChallanOrderId] = useState<number | null>(null);
 
   // Held invoices
   const [heldInvoices, setHeldInvoices] = useState<HeldInvoice[]>([]);
@@ -194,41 +198,41 @@ export default function PosPage() {
   }, []);
 
   // 1. Initial Data Fetching
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [prodRes, catRes, brandRes, unitRes, custRes] = await Promise.all([
-          fetch("/api/products"),
-          fetch("/api/categories"),
-          fetch("/api/brands"),
-          fetch("/api/units"),
-          fetch("/api/customers"),
-        ]);
+  const loadData = useCallback(async () => {
+    try {
+      const [prodRes, catRes, brandRes, unitRes, custRes] = await Promise.all([
+        fetch("/api/products"),
+        fetch("/api/categories"),
+        fetch("/api/brands"),
+        fetch("/api/units"),
+        fetch("/api/customers"),
+      ]);
 
-        const [prodData, catData, brandData, unitData, custData] = await Promise.all([
-          prodRes.json(),
-          catRes.json(),
-          brandRes.json(),
-          unitRes.json(),
-          custRes.json(),
-        ]);
+      const [prodData, catData, brandData, unitData, custData] = await Promise.all([
+        prodRes.json(),
+        catRes.json(),
+        brandRes.json(),
+        unitRes.json(),
+        custRes.json(),
+      ]);
 
-        if (prodData.status === "success") setProducts(prodData.data);
-        if (catData.status === "success") setCategories(catData.data);
-        if (brandData.status === "success") setBrands(brandData.data);
-        if (unitData.status === "success") setUnits(unitData.data);
-        if (custData.status === "success") {
-          setCustomers(custData.data);
-          // Auto select first customer if none selected
-          if (!selectedCustomer && custData.data.length > 0) {
-            setCustomer(custData.data[0]);
-          }
+      if (prodData.status === "success") setProducts(prodData.data);
+      if (catData.status === "success") setCategories(catData.data);
+      if (brandData.status === "success") setBrands(brandData.data);
+      if (unitData.status === "success") setUnits(unitData.data);
+      if (custData.status === "success") {
+        setCustomers(custData.data);
+        // Auto select first customer if none selected
+        if (!selectedCustomer && custData.data.length > 0) {
+          setCustomer(custData.data[0]);
         }
-      } catch (err) {
-        console.error("Failed to load POS data:", err);
       }
+    } catch (err) {
+      console.error("Failed to load POS data:", err);
     }
+  }, [selectedCustomer, setCustomer]);
 
+  useEffect(() => {
     loadData();
 
     // Load held invoices from localStorage
@@ -508,7 +512,7 @@ export default function PosPage() {
       sub_total: subTotal,
       delivery_charge: deliveryCharge,
       discount_amount: discountAmount,
-      return_adjustment_amount: 0,
+      return_adjustment_amount: returnAdjustment,
       paid_amount: paidAmount,
       due_amount: dueAmount,
       previous_due_amount: prevDue,
@@ -537,7 +541,10 @@ export default function PosPage() {
       if (res.ok && data.status === "success") {
         // Prepare thermal receipt
         setReceiptData({
+          id: data.invoice_id,
           order_no: data.order_no,
+          has_tiles: data.has_tiles,
+          challan_status: data.challan_status,
           invoice_date: invoiceDate,
           customer: {
             customer_name: selectedCustomer.customer_name,
@@ -547,7 +554,7 @@ export default function PosPage() {
           sub_total: subTotal,
           discount_amount: discountAmount,
           delivery_charge: deliveryCharge,
-          return_adjustment_amount: 0,
+          return_adjustment_amount: returnAdjustment,
           paid_amount: paidAmount,
           due_amount: dueAmount,
           previous_due_amount: prevDue,
@@ -559,6 +566,10 @@ export default function PosPage() {
             quantity: c.quantity,
             price: c.selling_price,
             total: c.selling_price * c.quantity,
+            tile_size: c.tile_size || null,
+            sqft_per_box: c.sqft_per_box || null,
+            grade: c.grade || null,
+            category: c.category || null,
           })),
         });
 
@@ -858,10 +869,10 @@ export default function PosPage() {
                       {/* Top: Product Title, Category & Stock Status */}
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div className="min-w-0 flex-1">
-                          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-rose-600 transition-colors">
+                          <h4 className="text-[11px] font-bold text-slate-800 dark:text-slate-100 line-clamp-2 leading-tight group-hover:text-rose-600 transition-colors">
                             {p.product_name}
                           </h4>
-                          <p className="text-[11px] text-slate-400 dark:text-slate-400 truncate mt-0.5 font-medium">
+                          <p className="text-[10px] text-slate-400 dark:text-slate-400 truncate mt-0.5 font-medium">
                             {p.category} &bull; {p.brand}
                           </p>
                         </div>
@@ -879,8 +890,8 @@ export default function PosPage() {
                         </span>
                       </div>
 
-                      {/* Marked Product Info in 1 Single Row (at the arrow position) */}
-                      <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden my-2">
+                      {/* Product Tags (Wrapped cleanly to 2nd line) */}
+                      <div className="flex items-center gap-1 flex-wrap my-1.5">
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0 whitespace-nowrap">
                           {p.unit}
                         </span>
@@ -890,7 +901,7 @@ export default function PosPage() {
                           </span>
                         )}
                         {p.sqft_per_box && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-900/60 shrink-0 whitespace-nowrap">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200/60 dark:border-rose-900/60 shrink-0 whitespace-nowrap">
                             {p.sqft_per_box} Sft
                           </span>
                         )}
@@ -929,7 +940,7 @@ export default function PosPage() {
         {/* RIGHT COLUMN: CUSTOMER, CART TABLE & CHECKOUT BAR         */}
         {/* ======================================================== */}
         <section
-          className={`w-full lg:w-[540px] xl:w-[600px] 2xl:w-[640px] shrink-0 min-h-0 min-w-0 flex flex-col overflow-hidden bg-white dark:bg-[#0f172a] rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-sm ${
+          className={`w-full lg:w-[650px] xl:w-[730px] 2xl:w-[780px] shrink-0 min-h-0 min-w-0 flex flex-col overflow-hidden bg-white dark:bg-[#0f172a] rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-sm ${
             mobileTab === "catalog" ? "hidden lg:flex" : "flex"
           }`}
         >
@@ -1030,10 +1041,11 @@ export default function PosPage() {
               </button>
 
               {/* Custom Date Picker - Clicking anywhere opens the calendar */}
-              <div className="w-[140px] shrink-0">
+              <div className="w-[145px] shrink-0">
                 <PosDatePicker
                   value={invoiceDate}
                   onChange={(d) => setInvoiceDate(d)}
+                  hideChevron={true}
                 />
               </div>
             </div>
@@ -1227,23 +1239,35 @@ export default function PosPage() {
               </div>
             </div>
 
-            {/* Note & Transaction ID (if non-cash) */}
-            <div className="grid grid-cols-2 gap-1.5">
-              <input
-                type="text"
-                placeholder={paymentMethod === "Cash" ? "Trx ID (Optional)" : "Trx ID / Ref No."}
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                className="h-[28px] px-2 text-xs rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-600 font-mono"
-              />
-              <input
-                type="text"
-                placeholder="Order Note / Remark"
-                value={orderNote}
-                onChange={(e) => setOrderNote(e.target.value)}
-                className="h-[28px] px-2 text-xs rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-600"
-              />
-            </div>
+            {/* Note & Transaction ID (hidden for Cash) */}
+            {paymentMethod === "Cash" ? (
+              <div className="w-full">
+                <input
+                  type="text"
+                  placeholder="Order Note / Remark"
+                  value={orderNote}
+                  onChange={(e) => setOrderNote(e.target.value)}
+                  className="w-full h-[28px] px-2.5 text-xs rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-600"
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-1.5">
+                <input
+                  type="text"
+                  placeholder="Trx ID / Ref No."
+                  value={transactionId}
+                  onChange={(e) => setTransactionId(e.target.value)}
+                  className="h-[28px] px-2 text-xs rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-600 font-mono"
+                />
+                <input
+                  type="text"
+                  placeholder="Order Note / Remark"
+                  value={orderNote}
+                  onChange={(e) => setOrderNote(e.target.value)}
+                  className="h-[28px] px-2 text-xs rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-600"
+                />
+              </div>
+            )}
 
             {/* Financial Calculations Grid */}
             <div className="bg-white dark:bg-[#0f172a] p-2 rounded-xl border border-[#cbd5e1] dark:border-[#334155] space-y-1.5 text-xs">
@@ -1322,6 +1346,22 @@ export default function PosPage() {
                 />
               </div>
 
+              {/* Exchange Amount */}
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-500 uppercase tracking-wider text-[11px]">
+                  Exchange Amount:
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="0"
+                  value={returnAdjustment || ""}
+                  onChange={(e) => setReturnAdjustment(parseFloat(e.target.value) || 0)}
+                  className="w-18 h-[24px] px-1 text-right font-bold text-xs rounded border border-[#cbd5e1] dark:border-[#334155] bg-slate-50 dark:bg-[#1e293b] text-amber-700 dark:text-amber-400 focus:outline-none focus:ring-1 focus:ring-rose-600"
+                />
+              </div>
+
               {/* Net Payable / Grand Total */}
               <div className="flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-800">
                 <span className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-xs">
@@ -1366,7 +1406,7 @@ export default function PosPage() {
                   <span
                     className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
                       paymentStatus === "PAID"
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                        ? "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-200 border border-rose-200 dark:border-rose-900"
                         : paymentStatus === "PARTIAL PAID"
                         ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
                         : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
@@ -1466,6 +1506,20 @@ export default function PosPage() {
         <ThermalReceiptModal
           receiptData={receiptData}
           onClose={() => setReceiptData(null)}
+          onOpenChallan={(oid) => setChallanOrderId(oid)}
+        />
+      )}
+
+      {/* Challan Modal */}
+      {challanOrderId && (
+        <ChallanModal
+          orderId={challanOrderId}
+          isOpen={!!challanOrderId}
+          onClose={() => setChallanOrderId(null)}
+          onChallanGenerated={() => {
+            loadData();
+            showToast("Challan successfully dispatched", "success");
+          }}
         />
       )}
 

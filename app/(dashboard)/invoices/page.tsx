@@ -17,9 +17,11 @@ import {
   FileText,
   DollarSign,
   ArrowRight,
+  Truck,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { ThermalReceiptModal } from "@/components/pos/thermal-receipt";
+import { ChallanModal } from "@/components/challan/challan-modal";
 import { CustomSelect, Pagination } from "@/components/ui";
 
 interface Invoice {
@@ -43,6 +45,12 @@ interface Invoice {
   payment_status: string;
   total_items: number;
   order_note?: string | null;
+  challan_status?: string;
+  has_pending_tiles?: boolean;
+  has_tiles?: boolean;
+  has_challan?: boolean;
+  challan_id?: number | null;
+  challan_no?: string | null;
   details: Array<{
     id: number;
     product_name: string;
@@ -70,6 +78,10 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+
+  // Challan Modal State
+  const [isChallanModalOpen, setIsChallanModalOpen] = useState(false);
+  const [challanOrderId, setChallanOrderId] = useState<number | null>(null);
 
   // Modals
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -146,7 +158,15 @@ export default function InvoicesPage() {
   // Trigger 80mm receipt
   const triggerThermalReceipt = (inv: Invoice) => {
     setThermalReceiptData({
+      id: inv.id,
       order_no: inv.order_no,
+      has_tiles: Boolean(
+        inv.has_tiles ||
+        inv.has_pending_tiles ||
+        inv.has_challan ||
+        (inv.challan_status && inv.challan_status !== "NOT_REQUIRED")
+      ),
+      challan_status: inv.challan_status,
       invoice_date: inv.invoice_date || new Date().toISOString().split("T")[0],
       customer: {
         customer_name: inv.customer_name,
@@ -194,7 +214,7 @@ export default function InvoicesPage() {
       {/* 1. Header & Summary Statistics (Strict Marss Corp Rule) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 dark:bg-emerald-950/50 dark:text-emerald-400 border border-rose-100 dark:border-slate-800 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 flex items-center justify-center shrink-0">
             <Receipt className="w-5 h-5" />
           </div>
           <div>
@@ -260,10 +280,10 @@ export default function InvoicesPage() {
                 setStatusFilter(tab.value);
                 setCurrentPage(1);
               }}
-              className={`h-[32px] px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+              className={`h-[32px] px-3.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 statusFilter === tab.value
-                  ? "bg-emerald-700 text-white shadow-xs"
-                  : "bg-slate-100 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                  ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                  : "bg-slate-100 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
               }`}
             >
               {tab.label}
@@ -292,7 +312,7 @@ export default function InvoicesPage() {
               {loading ? (
                 <tr>
                   <td colSpan={8} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-rose-600" />
                     <span>Loading invoices...</span>
                   </td>
                 </tr>
@@ -380,6 +400,33 @@ export default function InvoicesPage() {
                         >
                           <Printer className="w-3.5 h-3.5" />
                         </button>
+
+                        {/* Delivery Challan Action - Strictly only if invoice has Tiles */}
+                        {Boolean(inv.has_tiles || inv.has_pending_tiles || inv.has_challan || (inv.challan_status && inv.challan_status !== "NOT_REQUIRED")) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setChallanOrderId(inv.id);
+                              setIsChallanModalOpen(true);
+                            }}
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
+                              inv.has_challan
+                                ? "bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300"
+                                : inv.has_pending_tiles
+                                ? "bg-amber-100 hover:bg-amber-200 dark:bg-amber-950 text-amber-800 dark:text-amber-300 animate-pulse"
+                                : "bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
+                            }`}
+                            title={
+                              inv.has_challan
+                                ? `View Challan (${inv.challan_no})`
+                                : inv.has_pending_tiles
+                                ? "Generate Delivery Challan for Tiles"
+                                : "View Challan"
+                            }
+                          >
+                            <Truck className="w-3.5 h-3.5" />
+                          </button>
+                        )}
 
                         {/* Collect Due */}
                         {inv.due_amount > 0 && (
@@ -471,6 +518,26 @@ export default function InvoicesPage() {
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-1">
+              {/* Challan Button - Strictly only if invoice has Tiles */}
+              {Boolean(inv.has_tiles || inv.has_pending_tiles || inv.has_challan || (inv.challan_status && inv.challan_status !== "NOT_REQUIRED")) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChallanOrderId(inv.id);
+                    setIsChallanModalOpen(true);
+                  }}
+                  className={`h-[30px] px-2.5 rounded-lg text-xs font-bold flex items-center gap-1 ${
+                    inv.has_challan
+                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                      : inv.has_pending_tiles
+                      ? "bg-amber-600 text-white animate-pulse"
+                      : "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
+                  }`}
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>{inv.has_challan ? "Challan" : inv.has_pending_tiles ? "Dispatch Tiles" : "Challan"}</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => triggerThermalReceipt(inv)}
@@ -521,6 +588,20 @@ export default function InvoicesPage() {
                 </h3>
               </div>
               <div className="flex items-center gap-2">
+                {Boolean(selectedInvoice.has_tiles || selectedInvoice.has_pending_tiles || selectedInvoice.has_challan || (selectedInvoice.challan_status && selectedInvoice.challan_status !== "NOT_REQUIRED")) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChallanOrderId(selectedInvoice.id);
+                      setIsChallanModalOpen(true);
+                    }}
+                    className="h-[30px] px-3 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                    title="Manage Delivery Challan"
+                  >
+                    <Truck className="w-3.5 h-3.5" />
+                    <span>Delivery Challan</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => triggerThermalReceipt(selectedInvoice)}
@@ -780,6 +861,23 @@ export default function InvoicesPage() {
         <ThermalReceiptModal
           receiptData={thermalReceiptData}
           onClose={() => setThermalReceiptData(null)}
+          onOpenChallan={(oid) => {
+            setChallanOrderId(oid);
+            setIsChallanModalOpen(true);
+          }}
+        />
+      )}
+
+      {/* 8. DELIVERY CHALLAN MODAL */}
+      {challanOrderId && (
+        <ChallanModal
+          orderId={challanOrderId}
+          isOpen={isChallanModalOpen}
+          onClose={() => {
+            setIsChallanModalOpen(false);
+            setChallanOrderId(null);
+          }}
+          onChallanGenerated={() => loadInvoices()}
         />
       )}
     </div>

@@ -126,14 +126,16 @@ export async function POST(req: NextRequest) {
 
       // 2. Restore stock back to products if product_id is provided
       if (product_id) {
-        const prod = await tx.products.findUnique({
-          where: { id: BigInt(product_id) },
-        });
+        const prodId = BigInt(product_id);
+        const [prod]: any = await tx.$queryRawUnsafe(
+          "SELECT id, quantity FROM products WHERE id = ? FOR UPDATE",
+          prodId
+        );
 
         if (prod) {
           const currentStock = parseFloat(String(prod.quantity || 0));
           await tx.products.update({
-            where: { id: BigInt(product_id) },
+            where: { id: prodId },
             data: {
               quantity: String(currentStock + returnQty),
             },

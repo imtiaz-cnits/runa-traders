@@ -8,7 +8,7 @@ import {
   Layers,
   PlusCircle,
 } from "lucide-react";
-import { POPULAR_TILE_SIZES, TILE_GRADES, SURFACE_FINISHES } from "@/lib/tiles-calculator";
+import { POPULAR_TILE_SIZES, TILE_GRADES, SURFACE_FINISHES, autoCalculateSqftPerBox } from "@/lib/tiles-calculator";
 import { CustomSelect } from "@/components/ui/custom-select";
 
 interface QuickProductModalProps {
@@ -385,8 +385,17 @@ export function QuickProductModal({
                   <input
                     type="text"
                     value={formData.tile_size}
-                    onChange={(e) => setFormData({ ...formData, tile_size: e.target.value })}
-                    placeholder="Or enter custom size (e.g. 24x24 or 60x60 cm)"
+                    onChange={(e) => {
+                      const newSize = e.target.value;
+                      const pcs = parseFloat(formData.pcs_per_box || "0");
+                      const autoSqft = autoCalculateSqftPerBox(newSize, pcs);
+                      setFormData({
+                        ...formData,
+                        tile_size: newSize,
+                        ...(autoSqft !== null ? { sqft_per_box: String(autoSqft) } : {}),
+                      });
+                    }}
+                    placeholder="Or enter custom size (e.g. 8/12, 12x24, 10.5/24)"
                     className="w-full h-[38px] px-3 rounded-xl bg-white dark:bg-slate-800/90 text-xs text-slate-800 dark:text-white border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600 font-medium"
                   />
                 </div>
@@ -399,11 +408,11 @@ export function QuickProductModal({
                     </label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="0.001"
                       min="0"
                       value={formData.sqft_per_box}
                       onChange={(e) => setFormData({ ...formData, sqft_per_box: e.target.value })}
-                      placeholder="e.g. 16.0 or 14.4"
+                      placeholder="e.g. 16.66 or 16.0"
                       className="w-full h-[40px] px-3.5 rounded-xl bg-white dark:bg-slate-800/90 text-xs font-bold text-rose-700 dark:text-rose-400 border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600"
                     />
                     <p className="text-[10px] text-slate-400 mt-0.5">
@@ -419,8 +428,17 @@ export function QuickProductModal({
                       type="number"
                       min="1"
                       value={formData.pcs_per_box}
-                      onChange={(e) => setFormData({ ...formData, pcs_per_box: e.target.value })}
-                      placeholder="e.g. 4 or 6"
+                      onChange={(e) => {
+                        const newPcs = e.target.value;
+                        const pcsNum = parseFloat(newPcs || "0");
+                        const autoSqft = autoCalculateSqftPerBox(formData.tile_size, pcsNum);
+                        setFormData({
+                          ...formData,
+                          pcs_per_box: newPcs,
+                          ...(autoSqft !== null ? { sqft_per_box: String(autoSqft) } : {}),
+                        });
+                      }}
+                      placeholder="e.g. 25, 11, 10, 8, 4"
                       className="w-full h-[40px] px-3.5 rounded-xl bg-white dark:bg-slate-800/90 text-xs font-bold text-slate-800 dark:text-white border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600"
                     />
                     <p className="text-[10px] text-slate-400 mt-0.5">
@@ -443,8 +461,8 @@ export function QuickProductModal({
                           onClick={() => setFormData({ ...formData, grade: formData.grade === g.value ? "" : g.value })}
                           className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
                             formData.grade === g.value
-                              ? "bg-emerald-600 text-white border-emerald-700 shadow-xs"
-                              : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-[#cbd5e1] dark:border-[#334155] hover:border-emerald-400"
+                              ? "bg-rose-600 text-white border-rose-700 shadow-xs"
+                              : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-[#cbd5e1] dark:border-[#334155] hover:border-rose-400"
                           }`}
                         >
                           {g.label}
@@ -468,7 +486,7 @@ export function QuickProductModal({
 
                 {/* Live Packaging Badge */}
                 {formData.sqft_per_box && (
-                  <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center justify-between">
+                  <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-300 text-xs font-bold flex items-center justify-between">
                     <span>📦 1 Box = {formData.sqft_per_box} Sq.Ft {formData.pcs_per_box ? `(${formData.pcs_per_box} Pcs)` : ""}</span>
                     {formData.sell_price && Number(formData.sqft_per_box) > 0 && (
                       <span className="text-[11px] font-black">

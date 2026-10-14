@@ -31,20 +31,33 @@ export async function GET(req: NextRequest) {
     let lowStockCount = 0;
     let outOfStockCount = 0;
 
+    const pendingChallanItems = await prisma.order_details.findMany({
+      where: { stock_lifecycle_state: "PENDING_CHALLAN" },
+      select: { product_id: true, quantity: true },
+    });
+    const reservedMap = new Map<string, number>();
+    for (const item of pendingChallanItems) {
+      const pid = item.product_id.toString();
+      const q = parseFloat(item.quantity || "0");
+      reservedMap.set(pid, (reservedMap.get(pid) || 0) + q);
+    }
+
     const formatted = products.map((p) => {
       const qty = parseFloat(p.quantity || "0");
       const cost = parseFloat(p.cost_price || "0");
       const sell = parseFloat(p.sell_price || "0");
       const totalCost = qty * cost;
       const totalRetail = qty * sell;
+      const reservedQty = reservedMap.get(p.id.toString()) || 0;
+      const availableQty = Math.max(0, qty - reservedQty);
 
       totalStockUnits += qty;
       totalCostValuation += totalCost;
       totalRetailValuation += totalRetail;
 
-      if (qty <= 0) {
+      if (availableQty <= 0) {
         outOfStockCount++;
-      } else if (qty <= 5) {
+      } else if (availableQty <= 5) {
         lowStockCount++;
       }
 
@@ -67,6 +80,8 @@ export async function GET(req: NextRequest) {
         brand: p.brands?.name || "N/A",
         unit: p.units?.unit_name || "Pcs",
         quantity: qty,
+        reserved_quantity: reservedQty,
+        available_quantity: availableQty,
         cost_price: cost,
         sell_price: sell,
         total_cost_value: totalCost,
@@ -76,7 +91,7 @@ export async function GET(req: NextRequest) {
         pcs_per_box: p.pcs_per_box ? parseInt(p.pcs_per_box) : null,
         grade: p.grade || null,
         surface_finish: p.surface_finish || null,
-        stock_status: qty <= 0 ? "Out of Stock" : qty <= 5 ? "Low Stock" : "In Stock",
+        stock_status: availableQty <= 0 ? "Out of Stock" : availableQty <= 5 ? "Low Stock" : "In Stock",
       };
     });
 

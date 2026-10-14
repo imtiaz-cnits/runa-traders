@@ -137,7 +137,7 @@ export function TileCalculatorModal({
                     </span>
                   )}
                   {product.grade && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">
                       ★ {product.grade}
                     </span>
                   )}
@@ -211,7 +211,7 @@ export function TileCalculatorModal({
 
               {/* Conversion Result Card */}
               {sqftNum > 0 && (
-                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-rose-50 to-emerald-50 dark:from-rose-950/30 dark:to-emerald-950/30 border border-rose-200 dark:border-rose-900 space-y-2.5">
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-rose-50 to-red-50/50 dark:from-rose-950/30 dark:to-red-950/30 border border-rose-200 dark:border-rose-900 space-y-2.5">
                   {/* Mode Selector Toggle: Exact (ভাংতি হিসাব) vs Full Boxes (পূর্ণ বক্স) */}
                   <div className="grid grid-cols-2 gap-2">
                     <button
@@ -231,7 +231,7 @@ export function TileCalculatorModal({
                           <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
                         )}
                       </div>
-                      <div className="text-base font-black text-slate-900 dark:text-white mt-0.5">
+                      <div className="text-base font-black text-slate-900 dark:white mt-0.5">
                         {coverage.boxesExact} <span className="text-xs font-normal">Boxes</span>
                       </div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">
@@ -244,16 +244,16 @@ export function TileCalculatorModal({
                       onClick={() => setSelectedBoxMode("full")}
                       className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                         selectedBoxMode === "full"
-                          ? "bg-white dark:bg-slate-800 border-emerald-600 dark:border-emerald-500 shadow-xs ring-2 ring-emerald-500/20"
+                          ? "bg-white dark:bg-slate-800 border-rose-600 dark:border-rose-500 shadow-xs ring-2 ring-rose-500/20"
                           : "bg-white/60 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-slate-300"
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">
                           পূর্ণ বক্স (Round Up)
                         </span>
                         {selectedBoxMode === "full" && (
-                          <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                          <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
                         )}
                       </div>
                       <div className="text-base font-black text-slate-900 dark:text-white mt-0.5">
@@ -397,7 +397,7 @@ export function TileCalculatorModal({
                   step="0.01"
                   value={sqftPriceInput}
                   onChange={(e) => handleSqftPriceChange(e.target.value)}
-                  className="w-full h-[38px] px-3 rounded-xl bg-white dark:bg-slate-800 text-xs font-black text-emerald-600 dark:text-emerald-400 border border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-emerald-600"
+                  className="w-full h-[38px] px-3 rounded-xl bg-white dark:bg-slate-800 text-xs font-black text-rose-700 dark:text-rose-400 border border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600"
                 />
               </div>
             </div>

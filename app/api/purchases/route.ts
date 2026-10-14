@@ -173,7 +173,19 @@ export async function POST(req: NextRequest) {
     const paidNum = parseFloat(String(paid_amount || "0"));
     const dueNum = parseFloat(String(due_amount || "0"));
 
+    const productIds = items
+      .map((item: any) => item && item.product_id ? Number(item.product_id) : null)
+      .filter((id): id is number => id !== null);
+
     const result = await prisma.$transaction(async (tx) => {
+      // Lock affected product rows in ascending order
+      if (productIds.length > 0) {
+        const sortedIds = Array.from(new Set(productIds)).sort((a, b) => a - b);
+        for (const pid of sortedIds) {
+          await tx.$queryRawUnsafe("SELECT id, quantity FROM products WHERE id = ? FOR UPDATE", BigInt(pid));
+        }
+      }
+
       // 1. Get supplier to check current balance
       const supplier = await tx.suppliers.findUnique({
         where: { id: suppId },
@@ -223,10 +235,10 @@ export async function POST(req: NextRequest) {
         });
 
         // INCREMENT PRODUCT STOCK (Stock Inward)
-        const currentProd = await tx.products.findUnique({
-          where: { id: prodId },
-          select: { quantity: true },
-        });
+        const [currentProd]: any = await tx.$queryRawUnsafe(
+          "SELECT quantity FROM products WHERE id = ?",
+          prodId
+        );
 
         if (currentProd) {
           const currentStock = parseFloat(currentProd.quantity || "0");

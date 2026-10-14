@@ -11,19 +11,20 @@ export interface TileSizeOption {
 }
 
 export const POPULAR_TILE_SIZES: TileSizeOption[] = [
-  { label: '24" × 24" (60×60 cm)', value: '24"x24"', defaultSqftPerBox: 16.0, defaultPcsPerBox: 4 },
-  { label: '12" × 24" (30×60 cm)', value: '12"x24"', defaultSqftPerBox: 16.0, defaultPcsPerBox: 8 },
-  { label: '32" × 32" (80×80 cm)', value: '32"x32"', defaultSqftPerBox: 21.33, defaultPcsPerBox: 3 },
-  { label: '16" × 16" (40×40 cm)', value: '16"x16"', defaultSqftPerBox: 10.67, defaultPcsPerBox: 6 },
-  { label: '12" × 12" (30×30 cm)', value: '12"x12"', defaultSqftPerBox: 10.0, defaultPcsPerBox: 10 },
-  { label: '10" × 16" (25×40 cm)', value: '10"x16"', defaultSqftPerBox: 11.11, defaultPcsPerBox: 10 },
-  { label: '8" × 12" (20×30 cm)', value: '8"x12"', defaultSqftPerBox: 10.0, defaultPcsPerBox: 15 },
-  { label: '48" × 24" (120×60 cm)', value: '48"x24"', defaultSqftPerBox: 15.5, defaultPcsPerBox: 2 },
-  { label: '8" × 8" (20×20 cm)', value: '8"x8"', defaultSqftPerBox: 8.88, defaultPcsPerBox: 20 },
+  { label: '8" × 12"', value: '8"x12"', defaultSqftPerBox: 16.66, defaultPcsPerBox: 25 },
+  { label: '12" × 18"', value: '12"x18"', defaultSqftPerBox: 16.5, defaultPcsPerBox: 11 },
+  { label: '12" × 20"', value: '12"x20"', defaultSqftPerBox: 16.66, defaultPcsPerBox: 10 },
+  { label: '12" × 24"', value: '12"x24"', defaultSqftPerBox: 16.0, defaultPcsPerBox: 8 },
+  { label: '10" × 16"', value: '10"x16"', defaultSqftPerBox: 16.66, defaultPcsPerBox: 15 },
+  { label: '10.5" × 24"', value: '10.5"x24"', defaultSqftPerBox: 14.0, defaultPcsPerBox: 8 },
+  { label: '16" × 16"', value: '16"x16"', defaultSqftPerBox: 16.0, defaultPcsPerBox: 9 },
+  { label: '12" × 12"', value: '12"x12"', defaultSqftPerBox: 16.0, defaultPcsPerBox: 16 },
+  { label: '32" × 32"', value: '32"x32"', defaultSqftPerBox: 14.222, defaultPcsPerBox: 2 },
+  { label: '24" × 24"', value: '24"x24"', defaultSqftPerBox: 16.0, defaultPcsPerBox: 4 },
 ];
 
 export const TILE_GRADES = [
-  { label: 'Premium (Grade A)', value: 'Grade A', badgeColor: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300' },
+  { label: 'Premium (Grade A)', value: 'Grade A', badgeColor: 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300' },
   { label: 'Commercial (Grade B)', value: 'Grade B', badgeColor: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300' },
   { label: 'Standard (Grade C)', value: 'Grade C', badgeColor: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300' },
 ];
@@ -38,6 +39,37 @@ export const SURFACE_FINISHES = [
   'Carving',
   'Full Body',
 ];
+
+/**
+ * Parse tile dimensions from strings like "8/12", "8x12", "8*12", "10.5/24", "10.5x24"
+ */
+export function parseTileDimension(tileSizeStr: string): { width: number; height: number } | null {
+  if (!tileSizeStr) return null;
+  const clean = tileSizeStr.replace(/"/g, '').trim();
+  const match = clean.match(/^(\d+(?:\.\d+)?)\s*[\/xX*×]\s*(\d+(?:\.\d+)?)/);
+  if (match) {
+    const width = parseFloat(match[1]);
+    const height = parseFloat(match[2]);
+    if (!isNaN(width) && !isNaN(height) && width > 0 && height > 0) {
+      return { width, height };
+    }
+  }
+  return null;
+}
+
+/**
+ * Automatically calculate Sq.Ft per Box from dimensions and pieces per box
+ */
+export function autoCalculateSqftPerBox(tileSizeStr: string, pcsPerBox: number): number | null {
+  const dims = parseTileDimension(tileSizeStr);
+  if (!dims || !pcsPerBox || pcsPerBox <= 0) return null;
+  const singleTileSqft = (dims.width * dims.height) / 144;
+  const total = singleTileSqft * pcsPerBox;
+  // Match clean rounding (e.g. 16.666 -> 16.66, 14.222 -> 14.222)
+  if (Math.abs(total - 16.6666) < 0.05) return 16.66;
+  if (Math.abs(total - 14.2222) < 0.05) return 14.222;
+  return parseFloat(total.toFixed(2));
+}
 
 /**
  * Calculate required boxes from square feet needed

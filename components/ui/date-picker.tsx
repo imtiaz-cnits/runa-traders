@@ -6,7 +6,6 @@ import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   X,
 } from "lucide-react";
 
@@ -17,6 +16,7 @@ export interface DatePickerProps {
   className?: string;
   disabled?: boolean;
   allowClear?: boolean;
+  hideChevron?: boolean;
   placement?: "auto" | "top" | "bottom";
 }
 
@@ -34,6 +34,7 @@ export function CustomDatePicker({
   className = "",
   disabled = false,
   allowClear = false,
+  hideChevron = false,
   placement = "auto",
 }: DatePickerProps) {
   const [mounted, setMounted] = useState(false);
@@ -286,7 +287,7 @@ export function CustomDatePicker({
             setViewMode("days");
           }
         }}
-        className={`w-full min-h-[38px] px-3 rounded-xl border-[1.5px] flex items-center justify-between gap-2 transition-all cursor-pointer shadow-2xs select-none text-left ${
+        className={`w-full min-h-[38px] ${hideChevron ? "px-2.5" : "px-3"} rounded-xl border-[1.5px] flex items-center justify-between gap-1.5 transition-all cursor-pointer shadow-2xs select-none text-left ${
           disabled
             ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 border-[#cbd5e1] dark:border-[#334155]"
             : isOpen
@@ -295,10 +296,10 @@ export function CustomDatePicker({
         }`}
         title="Click anywhere to pick date"
       >
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <CalendarIcon className="w-4 h-4 text-rose-600 shrink-0" />
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <CalendarIcon className="w-3.5 h-3.5 text-rose-600 shrink-0" />
           <span
-            className={`text-xs font-bold truncate ${
+            className={`text-[11px] font-bold tracking-tight whitespace-nowrap ${
               value
                 ? "text-slate-800 dark:text-slate-100 font-mono"
                 : "text-slate-400 font-normal"
@@ -308,22 +309,15 @@ export function CustomDatePicker({
           </span>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
-          {allowClear && value && !disabled && (
-            <span
-              onClick={handleClear}
-              className="w-4 h-4 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer mr-0.5"
-              title="Clear date"
-            >
-              <X className="w-3 h-3" />
-            </span>
-          )}
-          <ChevronDown
-            className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 ${
-              isOpen ? "rotate-180 text-rose-600" : ""
-            }`}
-          />
-        </div>
+        {allowClear && value && !disabled && (
+          <span
+            onClick={handleClear}
+            className="w-4 h-4 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer mr-0.5 shrink-0"
+            title="Clear date"
+          >
+            <X className="w-3 h-3" />
+          </span>
+        )}
       </button>
 
       {/* CALENDAR POPUP VIA PORTAL - NEVER CLIPPED BY MODAL, NEVER CUT OFF */}

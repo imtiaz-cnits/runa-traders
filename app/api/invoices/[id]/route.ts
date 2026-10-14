@@ -20,11 +20,20 @@ export async function GET(
             products: {
               include: {
                 units: true,
+                categories: true,
               },
             },
           },
         },
         order_payment_details: true,
+        challans: {
+          select: {
+            id: true,
+            challan_no: true,
+            challan_date: true,
+            status: true,
+          },
+        },
         users: {
           select: {
             name: true,
@@ -62,6 +71,32 @@ export async function GET(
         paid_amount: paid,
         due_amount: due,
         previous_due_amount: Number(order.previous_due_amount || 0),
+        challan_status: order.challan_status || "NOT_REQUIRED",
+        has_pending_tiles: order.order_details.some(
+          (d) => d.stock_lifecycle_state === "PENDING_CHALLAN"
+        ),
+        has_challan: !!order.challans,
+        has_tiles:
+          order.challan_status !== "NOT_REQUIRED" ||
+          !!order.challans ||
+          order.order_details.some(
+            (d) =>
+              d.stock_lifecycle_state === "PENDING_CHALLAN" ||
+              d.stock_lifecycle_state === "DEDUCTED_AT_CHALLAN" ||
+              Boolean(d.products?.tile_size) ||
+              Boolean(d.products?.sqft_per_box) ||
+              (d.products?.product_name && d.products.product_name.toLowerCase().includes("tile")) ||
+              (d.products?.categories?.category_name &&
+                d.products.categories.category_name.toLowerCase().includes("tile"))
+          ),
+        challan: order.challans
+          ? {
+              id: Number(order.challans.id),
+              challan_no: order.challans.challan_no,
+              challan_date: order.challans.challan_date,
+              status: order.challans.status,
+            }
+          : null,
         cashier: order.users?.name || "Admin",
         customer: order.customers
           ? {

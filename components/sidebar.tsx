@@ -31,7 +31,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const isProductActive = pathname.startsWith("/products") || pathname.startsWith("/categories") || pathname.startsWith("/brands") || pathname.startsWith("/units") || pathname.startsWith("/inventory") || pathname.startsWith("/barcode");
   const isPurchaseActive = pathname.startsWith("/purchase") || pathname.startsWith("/supplier");
-  const isSalesActive = pathname.startsWith("/invoices") || pathname.startsWith("/customer-dues") || pathname.startsWith("/returns");
+  const isSalesActive = pathname.startsWith("/invoices") || pathname.startsWith("/customer-dues") || pathname.startsWith("/returns") || pathname.startsWith("/challans");
   const isExpenseActive = pathname.startsWith("/expense") || pathname.startsWith("/staff");
   const isReportActive = pathname.startsWith("/report");
 
@@ -224,6 +224,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   }`}
                 >
                   Invoices List
+                </Link>
+                <Link
+                  href="/challans"
+                  className={`block px-2.5 py-1.5 rounded-lg transition-colors ${
+                    isActive("/challans")
+                      ? "text-white font-bold bg-white/15"
+                      : "text-rose-100/80 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  Challan List
                 </Link>
                 <Link
                   href="/customer-dues"
