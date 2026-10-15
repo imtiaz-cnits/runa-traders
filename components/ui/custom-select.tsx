@@ -22,6 +22,8 @@ export interface CustomSelectProps {
   searchThreshold?: number; // default 5: if options > 5, show search; else hide
   name?: string;
   placement?: "auto" | "top" | "bottom"; // auto flips upwards near bottom
+  matchTriggerWidth?: boolean; // match exact trigger width
+  minPopoverWidth?: number;
 }
 
 export function CustomSelect({
@@ -35,6 +37,8 @@ export function CustomSelect({
   searchThreshold = 8,
   name,
   placement = "auto",
+  matchTriggerWidth = false,
+  minPopoverWidth,
 }: CustomSelectProps) {
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -90,10 +94,13 @@ export function CustomSelect({
         ? Math.min(spaceAbove - 14, maxPopoverHeight)
         : Math.min(spaceBelow - 14, maxPopoverHeight);
 
-    // Keep popover comfortably wide so long labels aren't cut off
-    const popoverWidth = Math.max(rect.width, 210);
+    // Calculate popover width
+    const minW = matchTriggerWidth ? 116 : (minPopoverWidth ?? 210);
+    const popoverWidth = matchTriggerWidth ? Math.max(rect.width, 116) : Math.max(rect.width, minW);
     // Keep horizontally within viewport boundaries with 8px margin
-    const safeLeft = Math.max(8, Math.min(rect.left, viewportWidth - popoverWidth - 8));
+    const safeLeft = matchTriggerWidth
+      ? rect.left
+      : Math.max(8, Math.min(rect.left, viewportWidth - popoverWidth - 8));
 
     setCoords({
       top: rect.bottom + 6,
@@ -360,7 +367,7 @@ export function CustomSelect({
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="whitespace-nowrap overflow-hidden text-ellipsis font-medium">
+                        <span className="whitespace-nowrap font-medium">
                           {opt.label}
                         </span>
                         {opt.subLabel && (

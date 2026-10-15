@@ -1,9 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Calculator, Check, Boxes, Sparkles, ArrowRight } from "lucide-react";
+import { X, Calculator, Check, Boxes, Sparkles, ArrowRight, Layers } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
-import { calculateTileCoverage, calculateSqftFromBoxes, calculateRatePerSqft, calculateBoxPrice } from "@/lib/tiles-calculator";
+import {
+  calculateTileCoverage,
+  calculateSqftFromBoxes,
+  calculateRatePerSqft,
+  calculateBoxPrice,
+  formatBoxAndPcs,
+  calculateFromPcs,
+} from "@/lib/tiles-calculator";
 
 interface TileCalculatorModalProps {
   isOpen: boolean;
@@ -28,9 +35,10 @@ export function TileCalculatorModal({
   product,
   onApply,
 }: TileCalculatorModalProps) {
-  const [calcMode, setCalcMode] = useState<"sqft" | "box">("sqft");
+  const [calcMode, setCalcMode] = useState<"sqft" | "pcs" | "box">("sqft");
   const [selectedBoxMode, setSelectedBoxMode] = useState<"exact" | "full">("exact");
   const [sqftInput, setSqftInput] = useState<string>("");
+  const [pcsInput, setPcsInput] = useState<string>("");
   const [boxesInput, setBoxesInput] = useState<string>("1");
   const [boxPriceInput, setBoxPriceInput] = useState<string>("");
   const [sqftPriceInput, setSqftPriceInput] = useState<string>("");
@@ -43,11 +51,12 @@ export function TileCalculatorModal({
       const initialBoxes = product.quantity || 1;
       setBoxesInput(String(initialBoxes));
       setSqftInput(String((initialBoxes * sqftPerBox).toFixed(1)));
+      setPcsInput(String(Math.round(initialBoxes * pcsPerBox)));
       setBoxPriceInput(String(product.selling_price));
       setSqftPriceInput(String(calculateRatePerSqft(product.selling_price, sqftPerBox)));
       setSelectedBoxMode("exact");
     }
-  }, [product, sqftPerBox]);
+  }, [product, sqftPerBox, pcsPerBox]);
 
   if (!isOpen || !product) return null;
 
@@ -77,6 +86,10 @@ export function TileCalculatorModal({
   const activeBoxes = selectedBoxMode === "exact" ? coverage.boxesExact : coverage.recommendedBoxes;
   const activeSqft = selectedBoxMode === "exact" ? sqftNum : coverage.totalSqftSupplied;
 
+  // Pcs calculations for Tab 2
+  const pcsNum = parseInt(pcsInput, 10) || 0;
+  const pcsCalc = calculateFromPcs(pcsNum, pcsPerBox, sqftPerBox);
+
   const boxesNum = parseFloat(boxesInput) || 0;
   const totalSqftFromBoxes = calculateSqftFromBoxes(boxesNum, sqftPerBox);
   const totalPcs = Math.round(boxesNum * pcsPerBox);
@@ -92,6 +105,15 @@ export function TileCalculatorModal({
     onClose();
   };
 
+  const handleApplyPcs = () => {
+    onApply({
+      quantity: Math.max(0.01, pcsCalc.totalBoxes),
+      price: currentBoxPrice,
+      custom_sqft: pcsCalc.totalSqft,
+    });
+    onClose();
+  };
+
   const handleApplyBoxes = () => {
     onApply({
       quantity: Math.max(0.01, boxesNum),
@@ -103,7 +125,7 @@ export function TileCalculatorModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-lg bg-white dark:bg-[#0f172a] rounded-[16px] shadow-2xl overflow-hidden border border-[#cbd5e1] dark:border-[#334155] max-h-[92vh] flex flex-col">
+      <div className="w-full max-w-2xl sm:max-w-3xl bg-white dark:bg-[#0f172a] rounded-[16px] shadow-2xl overflow-hidden border border-[#cbd5e1] dark:border-[#334155] max-h-[92vh] flex flex-col">
         {/* Header (Rule 6.2) */}
         <div className="modal-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-5 py-3.5 flex items-center justify-between text-white shrink-0">
           <div className="flex items-center gap-2">
@@ -161,25 +183,36 @@ export function TileCalculatorModal({
           </div>
 
           {/* Mode Selector Tabs */}
-          <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+          <div className="grid grid-cols-3 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 gap-1">
             <button
               type="button"
               onClick={() => setCalcMode("sqft")}
-              className={`py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
                 calcMode === "sqft"
                   ? "bg-rose-600 text-white shadow-xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               📐 Calculate by Sq.Ft Needed
             </button>
             <button
               type="button"
+              onClick={() => setCalcMode("pcs")}
+              className={`py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
+                calcMode === "pcs"
+                  ? "bg-rose-600 text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              🧩 Calculate by Pcs
+            </button>
+            <button
+              type="button"
               onClick={() => setCalcMode("box")}
-              className={`py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
                 calcMode === "box"
                   ? "bg-rose-600 text-white shadow-xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               📦 Calculate by Box Quantity
@@ -231,8 +264,8 @@ export function TileCalculatorModal({
                           <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
                         )}
                       </div>
-                      <div className="text-base font-black text-slate-900 dark:white mt-0.5">
-                        {coverage.boxesExact} <span className="text-xs font-normal">Boxes</span>
+                      <div className="text-base font-black text-slate-900 dark:text-white mt-0.5">
+                        {formatBoxAndPcs(coverage.boxesExact, pcsPerBox)}
                       </div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">
                         Covering {sqftNum} Sq.Ft
@@ -272,7 +305,9 @@ export function TileCalculatorModal({
                         {selectedBoxMode === "exact" ? "Selected (ভাংতি হিসাব):" : "Selected (পূর্ণ বক্স):"}
                       </span>
                       <span className="text-lg font-black text-slate-900 dark:text-white">
-                        {activeBoxes} Boxes
+                        {selectedBoxMode === "exact"
+                          ? formatBoxAndPcs(coverage.boxesExact, pcsPerBox)
+                          : `${coverage.recommendedBoxes} Boxes`}
                       </span>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
                         Covering {activeSqft} Sq.Ft {selectedBoxMode === "full" && coverage.extraSqft > 0 ? `(+${coverage.extraSqft} Sft margin)` : ""}
@@ -299,14 +334,103 @@ export function TileCalculatorModal({
                     className="w-full h-[40px] rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all"
                   >
                     <Check className="w-4 h-4" />
-                    <span>Apply {activeBoxes} Boxes ({activeSqft} Sq.Ft) to Cart</span>
+                    <span>
+                      Apply{" "}
+                      {selectedBoxMode === "exact"
+                        ? formatBoxAndPcs(coverage.boxesExact, pcsPerBox)
+                        : `${coverage.recommendedBoxes} Boxes`}{" "}
+                      ({activeSqft} Sq.Ft) to Cart
+                    </span>
                   </button>
                 </div>
               )}
             </div>
           )}
 
-          {/* Tab 2: Calculate by Box Quantity */}
+          {/* Tab 2: Calculate by Pcs */}
+          {calcMode === "pcs" && (
+            <div className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Total Pieces Needed (প্রয়োজনীয় টাইলসের পিস সংখ্যা)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="1"
+                    min="1"
+                    value={pcsInput}
+                    onChange={(e) => setPcsInput(e.target.value)}
+                    placeholder="e.g. 15 or 50 Pieces"
+                    className="w-full h-[44px] pl-3.5 pr-14 rounded-xl bg-white dark:bg-slate-800/90 text-sm font-extrabold text-slate-900 dark:text-white border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600"
+                  />
+                  <span className="absolute right-3.5 top-3 text-xs font-bold text-slate-400">
+                    Pieces
+                  </span>
+                </div>
+              </div>
+
+              {pcsNum > 0 && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-rose-50 to-red-50/50 dark:from-rose-950/30 dark:to-red-950/30 border border-rose-200 dark:border-rose-900 space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-400 block">Box Breakdown:</span>
+                      <strong className="text-sm font-black text-slate-800 dark:text-white">
+                        {pcsCalc.formattedText}
+                      </strong>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-400 block">Total Coverage:</span>
+                      <strong className="text-sm font-black text-slate-800 dark:text-white">
+                        {pcsCalc.totalSqft} Sq.Ft
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Financial & Coverage Summary Card */}
+                  <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block">
+                        Calculated Quantity:
+                      </span>
+                      <span className="text-lg font-black text-slate-900 dark:text-white">
+                        {pcsCalc.formattedText}
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                        Covering {pcsCalc.totalSqft} Sq.Ft ({pcsNum} Pcs total)
+                      </span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">
+                        Total Price:
+                      </span>
+                      <span className="text-base font-black text-rose-700 dark:text-rose-400">
+                        {formatBdCurrency(pcsCalc.totalBoxes * currentBoxPrice)}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block">
+                        @ {formatBdCurrency(currentBoxPrice)}/Box
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Apply Action Button */}
+                  <button
+                    type="button"
+                    onClick={handleApplyPcs}
+                    className="w-full h-[40px] rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>
+                      Apply {pcsCalc.formattedText} ({pcsCalc.totalSqft} Sq.Ft) to Cart
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab 3: Calculate by Box Quantity */}
           {calcMode === "box" && (
             <div className="space-y-3.5">
               <div>
@@ -320,7 +444,7 @@ export function TileCalculatorModal({
                     min="0.01"
                     value={boxesInput}
                     onChange={(e) => setBoxesInput(e.target.value)}
-                    placeholder="e.g. 10 or 75.25 Boxes"
+                    placeholder="e.g. 10 or 75 Boxes"
                     className="w-full h-[44px] pl-3.5 pr-14 rounded-xl bg-white dark:bg-slate-800/90 text-sm font-extrabold text-slate-900 dark:text-white border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600"
                   />
                   <span className="absolute right-3.5 top-3 text-xs font-bold text-slate-400">
@@ -361,7 +485,9 @@ export function TileCalculatorModal({
                   className="w-full h-[40px] rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm mt-2 transition-all"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Apply {boxesNum} Boxes ({totalSqftFromBoxes} Sq.Ft) to Cart</span>
+                  <span>
+                    Apply {formatBoxAndPcs(boxesNum, pcsPerBox)} ({totalSqftFromBoxes} Sq.Ft) to Cart
+                  </span>
                 </button>
               </div>
             </div>

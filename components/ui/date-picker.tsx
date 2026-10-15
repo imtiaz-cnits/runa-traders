@@ -6,7 +6,6 @@ import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   X,
 } from "lucide-react";
 
@@ -310,24 +309,15 @@ export function CustomDatePicker({
           </span>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
-          {allowClear && value && !disabled && (
-            <span
-              onClick={handleClear}
-              className="w-4 h-4 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer mr-0.5 shrink-0"
-              title="Clear date"
-            >
-              <X className="w-3 h-3" />
-            </span>
-          )}
-          {!hideChevron && (
-            <ChevronDown
-              className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 ${
-                isOpen ? "rotate-180 text-rose-600" : ""
-              }`}
-            />
-          )}
-        </div>
+        {allowClear && value && !disabled && (
+          <span
+            onClick={handleClear}
+            className="w-4 h-4 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer mr-0.5 shrink-0"
+            title="Clear date"
+          >
+            <X className="w-3 h-3" />
+          </span>
+        )}
       </button>
 
       {/* CALENDAR POPUP VIA PORTAL - NEVER CLIPPED BY MODAL, NEVER CUT OFF */}

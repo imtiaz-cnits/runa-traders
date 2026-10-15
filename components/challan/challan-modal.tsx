@@ -38,8 +38,8 @@ export function ChallanModal({
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [driverName, setDriverName] = useState("");
   const [driverPhone, setDriverPhone] = useState("");
-  const [vehicleNo, setVehicleNo] = useState("");
   const [note, setNote] = useState("");
+  const [itemQuantities, setItemQuantities] = useState<Record<number, string | number>>({});
 
   // Printable Challan State
   const [printChallanData, setPrintChallanData] = useState<ChallanPrintData | null>(null);
@@ -61,6 +61,12 @@ export function ChallanModal({
         if (result.data.customer?.address) {
           setDeliveryAddress(result.data.customer.address);
         }
+        // Initialize editable quantities from invoice items
+        const initialQty: Record<number, string | number> = {};
+        result.data.tiles_items?.forEach((it: any) => {
+          initialQty[it.order_detail_id] = it.quantity;
+        });
+        setItemQuantities(initialQty);
       } else {
         setError(result.message || "Failed to check invoice eligibility");
       }
@@ -79,6 +85,11 @@ export function ChallanModal({
     setError(null);
 
     try {
+      const customItems = Object.entries(itemQuantities).map(([order_detail_id, quantity]) => ({
+        order_detail_id: Number(order_detail_id),
+        quantity: parseFloat(String(quantity)),
+      }));
+
       const res = await fetch("/api/challans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -87,8 +98,8 @@ export function ChallanModal({
           delivery_address: deliveryAddress,
           driver_name: driverName,
           driver_phone: driverPhone,
-          vehicle_no: vehicleNo,
           note: note,
+          items: customItems,
         }),
       });
 
@@ -273,22 +284,38 @@ export function ChallanModal({
                         {invoiceData?.tiles_items?.map((item: any) => (
                           <div
                             key={item.order_detail_id}
-                            className="p-2.5 flex items-center justify-between bg-white dark:bg-slate-900"
+                            className="p-3 flex items-center justify-between gap-3 bg-white dark:bg-slate-900"
                           >
-                            <div>
-                              <p className="font-bold text-slate-900 dark:text-white">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-slate-900 dark:text-white truncate">
                                 {item.product_name}
                               </p>
                               <p className="text-[10px] text-slate-500">
                                 Size: {item.tile_size || "Standard"} {item.grade ? `• Grade: ${item.grade}` : ""}
                               </p>
-                            </div>
-                            <div className="text-right">
-                              <span className="font-mono font-bold text-rose-700 dark:text-rose-400 text-sm">
-                                {item.quantity} {item.unit || "Box"}
+                              <span className="inline-block text-[9px] text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
+                                Ordered: {item.quantity} {item.unit || "Box"}
                               </span>
-                              <span className="block text-[9px] text-amber-600 dark:text-amber-400 font-semibold">
-                                Pending Dispatch
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">
+                                Dispatch Qty:
+                              </label>
+                              <input
+                                type="number"
+                                step="any"
+                                min="0.01"
+                                value={itemQuantities[item.order_detail_id] ?? item.quantity}
+                                onChange={(e) =>
+                                  setItemQuantities((prev) => ({
+                                    ...prev,
+                                    [item.order_detail_id]: e.target.value,
+                                  }))
+                                }
+                                className="w-20 sm:w-24 h-[36px] px-2 text-right font-mono font-bold text-rose-700 dark:text-rose-400 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+                              />
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                {item.unit || "Box"}
                               </span>
                             </div>
                           </div>
@@ -314,19 +341,7 @@ export function ChallanModal({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Transport / Vehicle No
-                          </label>
-                          <input
-                            type="text"
-                            value={vehicleNo}
-                            onChange={(e) => setVehicleNo(e.target.value)}
-                            placeholder="e.g. Dhaka Metro-Ta 11-2345"
-                            className="h-[42px] w-full px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-600 focus:border-rose-600"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Driver Name
+                            Driver Name <span className="text-slate-400 font-normal">(Optional)</span>
                           </label>
                           <input
                             type="text"
@@ -336,12 +351,9 @@ export function ChallanModal({
                             className="h-[42px] w-full px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-600 focus:border-rose-600"
                           />
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Driver Phone No
+                            Driver Phone No <span className="text-slate-400 font-normal">(Optional)</span>
                           </label>
                           <input
                             type="text"
@@ -351,18 +363,19 @@ export function ChallanModal({
                             className="h-[42px] w-full px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-600 focus:border-rose-600"
                           />
                         </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Dispatch Note
-                          </label>
-                          <input
-                            type="text"
-                            value={note}
-                            onChange={(e) => setNote(e.target.value)}
-                            placeholder="e.g. Handle with care, offload ground floor"
-                            className="h-[42px] w-full px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-600 focus:border-rose-600"
-                          />
-                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          Dispatch Note <span className="text-slate-400 font-normal">(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          placeholder="e.g. Handle with care, offload ground floor"
+                          className="h-[42px] w-full px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-600 focus:border-rose-600"
+                        />
                       </div>
                     </div>
 

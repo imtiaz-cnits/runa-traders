@@ -116,17 +116,17 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
                 visibility: visible;
               }
               #printable-challan {
-                position: relative !important;
-                left: auto !important;
-                top: auto !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                min-height: calc(100vh - 20mm) !important;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 80mm !important;
+                max-width: 80mm !important;
+                min-height: calc(100vh - 20px) !important;
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: space-between !important;
                 margin: 0 !important;
-                padding: 0 !important;
+                padding: 10px !important;
                 background: white !important;
                 color: black !important;
                 box-sizing: border-box !important;
@@ -134,7 +134,7 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
               }
               .challan-footer-wrapper {
                 margin-top: auto !important;
-                padding-top: 24px !important;
+                padding-top: 20px !important;
                 break-inside: avoid !important;
                 page-break-inside: avoid !important;
               }

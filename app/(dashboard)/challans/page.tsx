@@ -130,9 +130,9 @@ export default function ChallansPage() {
           </div>
         </div>
 
-        {/* Custom Beautiful Show Entries Dropdown */}
+        {/* Compact Auto-Width Show Entries Dropdown */}
         <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
-          <div className="w-[125px]">
+          <div className="w-[116px]">
             <CustomSelect
               value={String(limit)}
               onChange={(val) => {
@@ -145,7 +145,9 @@ export default function ChallansPage() {
                 { value: "100", label: "Show: 100" },
                 { value: "200", label: "Show: 200" },
               ]}
-              className="[&_button]:!min-h-[38px] [&_button]:!h-[38px] [&_button]:!py-1"
+              matchTriggerWidth={true}
+              searchThreshold={99}
+              className="[&_button]:!min-h-[38px] [&_button]:!h-[38px] [&_button]:!py-1 [&_button]:!px-3 whitespace-nowrap"
             />
           </div>
         </div>

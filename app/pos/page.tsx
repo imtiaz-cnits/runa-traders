@@ -43,6 +43,7 @@ import { ChallanModal } from "@/components/challan/challan-modal";
 import { PosDatePicker } from "@/components/pos/date-picker";
 import { getInitialTheme, applyTheme } from "@/lib/theme";
 import { useToast } from "@/components/ui/toast";
+import { formatBoxAndPcs } from "@/lib/tiles-calculator";
 
 interface Product {
   id: number;
@@ -1092,115 +1093,138 @@ export default function PosPage() {
                 </p>
               </div>
             ) : (
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                  <tr>
-                    <th className="py-2 pl-3">Item</th>
-                    <th className="py-2 text-center w-24">Qty</th>
-                    <th className="py-2 text-right w-20">Price</th>
-                    <th className="py-2 text-right w-20">Total</th>
-                    <th className="py-2 pr-3 text-center w-10"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {cart.map((item, idx) => (
-                    <tr
-                      key={item.product_id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
-                    >
-                      <td className="py-2 pl-3">
-                        <div className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">
-                          {item.product_name}
-                        </div>
-                        {(item.tile_size || item.sqft_per_box) && (
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            {item.tile_size && (
-                              <span className="text-[9px] font-bold px-1 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300">
-                                📐 {item.tile_size}
-                              </span>
+              (() => {
+                const hasTilesInCart = cart.some((it) => !!(it.tile_size || it.sqft_per_box));
+                return (
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                      <tr>
+                        <th className="py-2 pl-3">Item</th>
+                        <th className="py-2 text-center w-28">Qty</th>
+                        <th className="py-2 text-right w-20">Price</th>
+                        {hasTilesInCart && (
+                          <th className="py-2 text-right w-24">Sqft. Price</th>
+                        )}
+                        <th className="py-2 text-right w-20">Total</th>
+                        <th className="py-2 pr-3 text-center w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {cart.map((item, idx) => (
+                        <tr
+                          key={item.product_id}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                        >
+                          <td className="py-2 pl-3">
+                            <div className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">
+                              {item.product_name}
+                            </div>
+                            {(item.tile_size || item.sqft_per_box) && (
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                {item.tile_size && (
+                                  <span className="text-[9px] font-bold px-1 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300">
+                                    📐 {item.tile_size}
+                                  </span>
+                                )}
+                                {item.sqft_per_box && (
+                                  <span className="text-[9px] font-semibold text-slate-500">
+                                    ({(item.quantity * item.sqft_per_box).toFixed(1)} Sft)
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTileCalcProduct(item);
+                                    setIsTileCalcOpen(true);
+                                  }}
+                                  className="text-[9px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/80 px-1.5 py-0.5 rounded cursor-pointer transition-colors border border-rose-200/60 dark:border-rose-900/60 flex items-center gap-0.5"
+                                  title="Open Sft & Box Calculator"
+                                >
+                                  📐 Sft Calc
+                                </button>
+                              </div>
                             )}
-                            {item.sqft_per_box && (
-                              <span className="text-[9px] font-semibold text-slate-500">
-                                ({(item.quantity * item.sqft_per_box).toFixed(1)} Sft)
-                              </span>
+                          </td>
+
+                          {/* QTY Controller */}
+                          <td className="py-2 text-center">
+                            <div className="inline-flex items-center rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#1e293b] overflow-hidden shadow-2xs">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = Math.max(0.01, parseFloat((item.quantity - 1).toFixed(2)));
+                                  updateQty(item.product_id, next);
+                                }}
+                                className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <input
+                                type="number"
+                                step="any"
+                                min="0.01"
+                                value={item.quantity}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value);
+                                  updateQty(item.product_id, isNaN(val) ? 0 : val);
+                                }}
+                                className="w-14 h-6 text-center text-xs font-bold bg-transparent border-x border-[#cbd5e1] dark:border-[#334155] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none px-1"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = parseFloat((item.quantity + 1).toFixed(2));
+                                  updateQty(item.product_id, next);
+                                }}
+                                className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                            {/* If fractional tile quantity, show clean dynamic breakdown */}
+                            {item.pcs_per_box && item.quantity % 1 !== 0 && (
+                              <div className="text-[9px] font-bold text-rose-600 dark:text-rose-400 mt-0.5 whitespace-nowrap">
+                                {formatBoxAndPcs(item.quantity, item.pcs_per_box)}
+                              </div>
                             )}
+                          </td>
+
+                          {/* Price */}
+                          <td className="py-2 text-right text-slate-600 dark:text-slate-400 font-medium">
+                            {item.selling_price.toFixed(2)}
+                          </td>
+
+                          {/* Sqft. PRICE (Dynamic - only shown when tiles present in cart) */}
+                          {hasTilesInCart && (
+                            <td className="py-2 text-right text-slate-600 dark:text-slate-400 font-medium">
+                              {item.sqft_per_box && item.sqft_per_box > 0
+                                ? `৳${(item.selling_price / item.sqft_per_box).toFixed(2)}`
+                                : "-"}
+                            </td>
+                          )}
+
+                          {/* Line Total */}
+                          <td className="py-2 text-right font-bold text-slate-900 dark:text-white">
+                            {(item.selling_price * item.quantity).toFixed(2)}
+                          </td>
+
+                          {/* Delete */}
+                          <td className="py-2 pr-3 text-center">
                             <button
                               type="button"
-                              onClick={() => {
-                                setTileCalcProduct(item);
-                                setIsTileCalcOpen(true);
-                              }}
-                              className="text-[9px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/80 px-1.5 py-0.5 rounded cursor-pointer transition-colors border border-rose-200/60 dark:border-rose-900/60 flex items-center gap-0.5"
-                              title="Open Sft & Box Calculator"
+                              onClick={() => removeItem(item.product_id)}
+                              className="w-6 h-6 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
+                              title="Remove from cart"
                             >
-                              📐 Sft Calc
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* QTY Controller */}
-                      <td className="py-2 text-center">
-                        <div className="inline-flex items-center rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#1e293b] overflow-hidden shadow-2xs">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = Math.max(0.01, parseFloat((item.quantity - 1).toFixed(2)));
-                              updateQty(item.product_id, next);
-                            }}
-                            className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <input
-                            type="number"
-                            step="any"
-                            min="0.01"
-                            value={item.quantity}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value);
-                              updateQty(item.product_id, isNaN(val) ? 0 : val);
-                            }}
-                            className="w-14 h-6 text-center text-xs font-bold bg-transparent border-x border-[#cbd5e1] dark:border-[#334155] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none px-1"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = parseFloat((item.quantity + 1).toFixed(2));
-                              updateQty(item.product_id, next);
-                            }}
-                            className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </td>
-
-                      {/* Price */}
-                      <td className="py-2 text-right text-slate-600 dark:text-slate-400 font-medium">
-                        {item.selling_price.toFixed(2)}
-                      </td>
-
-                      {/* Line Total */}
-                      <td className="py-2 text-right font-bold text-slate-900 dark:text-white">
-                        {(item.selling_price * item.quantity).toFixed(2)}
-                      </td>
-
-                      {/* Delete */}
-                      <td className="py-2 pr-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => removeItem(item.product_id)}
-                          className="w-6 h-6 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
-                          title="Remove from cart"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                );
+              })()
             )}
           </div>
 

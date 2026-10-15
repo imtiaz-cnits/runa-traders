@@ -18,8 +18,16 @@ import {
   Layers,
   Sparkles,
   RotateCcw,
+  Eye,
+  Percent,
 } from "lucide-react";
-import { POPULAR_TILE_SIZES, TILE_GRADES, SURFACE_FINISHES, autoCalculateSqftPerBox } from "@/lib/tiles-calculator";
+import {
+  POPULAR_TILE_SIZES,
+  TILE_GRADES,
+  SURFACE_FINISHES,
+  autoCalculateSqftPerBox,
+  formatBoxAndPcs,
+} from "@/lib/tiles-calculator";
 import { CustomSelect, Pagination } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
@@ -75,8 +83,21 @@ export default function ProductsPage() {
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null);
+  const [viewingProduct, setViewingProduct] = useState<ProductItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // Custom Delete Modal State
+  const [productToDelete, setProductToDelete] = useState<ProductItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Bulk Price Update Modal State
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [bulkBrandId, setBulkBrandId] = useState<string>("all");
+  const [bulkPercentage, setBulkPercentage] = useState<string>("");
+  const [bulkTargetField, setBulkTargetField] = useState<"sell_price" | "cost_price" | "both">("sell_price");
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     product_name: "",
@@ -185,7 +206,7 @@ export default function ProductsPage() {
       const isTile = Boolean(
         selectedCat?.category_name &&
         (selectedCat.category_name.toLowerCase().includes("tile") ||
-         selectedCat.category_name.toLowerCase().includes("টাইল"))
+          selectedCat.category_name.toLowerCase().includes("টাইল"))
       );
 
       const payload = {
@@ -234,13 +255,15 @@ export default function ProductsPage() {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("Are you sure you want to delete this product?")) return;
+  async function confirmDelete() {
+    if (!productToDelete) return;
+    setDeleting(true);
     try {
-      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/products/${productToDelete.id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.status === "success") {
         toast.success("Product deleted successfully!");
+        setProductToDelete(null);
         setCurrentPage(1);
         loadData();
       } else {
@@ -248,14 +271,77 @@ export default function ProductsPage() {
       }
     } catch {
       toast.error("Failed to delete product");
+    } finally {
+      setDeleting(false);
     }
   }
+
+  // Filter products for bulk price update modal
+  const bulkMatchingProducts = products.filter((p) => {
+    if (bulkBrandId === "all") return true;
+    return String(p.brand_id) === String(bulkBrandId);
+  });
+
+  // When bulkBrandId changes, select all matching products by default
+  useEffect(() => {
+    if (bulkModalOpen) {
+      if (bulkBrandId === "all") {
+        setBulkSelectedIds(new Set(products.map((p) => p.id)));
+      } else {
+        setBulkSelectedIds(
+          new Set(
+            products.filter((p) => String(p.brand_id) === String(bulkBrandId)).map((p) => p.id)
+          )
+        );
+      }
+    }
+  }, [bulkBrandId, bulkModalOpen, products]);
+
+  const handleBulkUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const pct = parseFloat(bulkPercentage);
+    if (isNaN(pct) || pct === 0) {
+      toast.error("Please enter a valid non-zero percentage");
+      return;
+    }
+    if (bulkSelectedIds.size === 0) {
+      toast.error("Please select at least one product to update");
+      return;
+    }
+
+    setBulkSubmitting(true);
+    try {
+      const res = await fetch("/api/products/bulk-price-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_ids: Array.from(bulkSelectedIds),
+          percentage: pct,
+          target_field: bulkTargetField,
+        }),
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        toast.success(data.message || "Bulk prices updated successfully!");
+        setBulkModalOpen(false);
+        setBulkPercentage("");
+        setBulkSelectedIds(new Set());
+        loadData();
+      } else {
+        toast.error(data.message || "Failed to bulk update prices");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Communication error");
+    } finally {
+      setBulkSubmitting(false);
+    }
+  };
 
   const selectedCatObj = categories.find((c) => String(c.id) === String(selectedCategory));
   const isTilesSelected = Boolean(
     selectedCatObj?.category_name &&
     (selectedCatObj.category_name.toLowerCase().includes("tile") ||
-     selectedCatObj.category_name.toLowerCase().includes("টাইল"))
+      selectedCatObj.category_name.toLowerCase().includes("টাইল"))
   );
 
   const categoryOptions = [
@@ -478,6 +564,15 @@ export default function ProductsPage() {
             <Printer className="w-4 h-4" />
           </button>
 
+          <button
+            onClick={() => setBulkModalOpen(true)}
+            className="h-[38px] px-3.5 rounded-xl border-[1.5px] border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+            title="Bulk percentage price update by brand"
+          >
+            <Percent className="w-3.5 h-3.5" />
+            <span>Bulk Price</span>
+          </button>
+
           {/* Add Product Button */}
           <button
             onClick={handleOpenCreate}
@@ -494,9 +589,9 @@ export default function ProductsPage() {
         {/* Controls & Filter Bar (Rule 5.3) */}
         <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col xl:flex-row items-center justify-between gap-3">
           {/* Left Side: Search Bar + Category, Brand, Stock Status & Unit Filters */}
-          <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto flex-1">
-            {/* Search Bar */}
-            <div className="w-full sm:w-60 md:w-64 h-[38px] flex items-center px-3 bg-white dark:bg-slate-800/90 rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus-within:border-rose-600 focus-within:ring-2 focus-within:ring-rose-600/20 transition-all shadow-xs">
+          <div className="grid grid-cols-2 md:flex md:flex-wrap items-center gap-2 md:gap-2.5 w-full xl:w-auto flex-1">
+            {/* Search Bar - 2 cols on mobile */}
+            <div className="col-span-2 md:w-64 h-[38px] flex items-center px-3 bg-white dark:bg-slate-800/90 rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus-within:border-rose-600 focus-within:ring-2 focus-within:ring-rose-600/20 transition-all shadow-xs">
               <Search className="w-4 h-4 text-slate-400 mr-2.5 shrink-0" />
               <input
                 type="text"
@@ -523,7 +618,7 @@ export default function ProductsPage() {
             </div>
 
             {/* 1. Category Filter */}
-            <div className="w-full sm:w-[150px]">
+            <div className="w-full md:w-[150px]">
               <CustomSelect
                 value={selectedCategory}
                 onChange={handleCategoryChange}
@@ -533,11 +628,11 @@ export default function ProductsPage() {
               />
             </div>
 
-            {/* Conditional Filters: If Tiles category selected -> Size, Grade, Finish (Brand excluded); Otherwise -> Brand */}
+            {/* Conditional Filters: If Tiles category selected -> Size, Grade, Finish; Otherwise -> Brand */}
             {isTilesSelected ? (
               <>
                 {/* Tile Size Filter */}
-                <div className="w-full sm:w-[135px]">
+                <div className="w-full md:w-[135px]">
                   <CustomSelect
                     value={selectedTileSize}
                     onChange={(val) => {
@@ -551,7 +646,7 @@ export default function ProductsPage() {
                 </div>
 
                 {/* Tile Grade Filter */}
-                <div className="w-full sm:w-[130px]">
+                <div className="w-full md:w-[130px]">
                   <CustomSelect
                     value={selectedGrade}
                     onChange={(val) => {
@@ -565,7 +660,7 @@ export default function ProductsPage() {
                 </div>
 
                 {/* Tile Surface Finish Filter */}
-                <div className="w-full sm:w-[140px]">
+                <div className="w-full md:w-[140px]">
                   <CustomSelect
                     value={selectedSurfaceFinish}
                     onChange={(val) => {
@@ -580,7 +675,7 @@ export default function ProductsPage() {
               </>
             ) : (
               /* Brand Filter (shown when NOT Tiles category) */
-              <div className="w-full sm:w-[150px]">
+              <div className="w-full md:w-[150px]">
                 <CustomSelect
                   value={selectedBrand}
                   onChange={(val) => {
@@ -594,8 +689,8 @@ export default function ProductsPage() {
               </div>
             )}
 
-            {/* Stock Status Filter (Present in both) */}
-            <div className="w-full sm:w-[155px]">
+            {/* Stock Status Filter */}
+            <div className="w-full md:w-[155px]">
               <CustomSelect
                 value={selectedStockStatus}
                 onChange={(val) => {
@@ -608,8 +703,8 @@ export default function ProductsPage() {
               />
             </div>
 
-            {/* Unit Filter (Present in both) */}
-            <div className="w-full sm:w-[120px]">
+            {/* Unit Filter */}
+            <div className="w-full md:w-[120px]">
               <CustomSelect
                 value={selectedUnit}
                 onChange={(val) => {
@@ -628,7 +723,7 @@ export default function ProductsPage() {
                 type="button"
                 onClick={handleResetFilters}
                 title="Reset All Filters"
-                className="h-[38px] px-3 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
+                className="h-[38px] px-3 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs col-span-2 md:col-span-1"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Reset</span>
@@ -636,8 +731,8 @@ export default function ProductsPage() {
             )}
           </div>
 
-          {/* Right Side: Show Entries Selector (Rule 5.3) & Total Count */}
-          <div className="flex items-center gap-2.5 self-start xl:self-auto shrink-0">
+          {/* Right Side: Show Entries Selector (Rule 5.3) */}
+          <div className="flex items-center gap-2.5 self-start xl:self-auto shrink-0 w-full md:w-auto">
             <div className="w-[125px]">
               <CustomSelect
                 value={String(pageSize)}
@@ -652,13 +747,11 @@ export default function ProductsPage() {
                   { value: "200", label: "Show: 200" },
                   { value: "500", label: "Show: 500" },
                 ]}
+                matchTriggerWidth={true}
+                minPopoverWidth={125}
                 className="[&_button]:!min-h-[38px] [&_button]:!h-[38px] [&_button]:!py-1"
               />
             </div>
-
-            <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
-              Total <strong>{filteredProducts.length}</strong> Products
-            </span>
           </div>
         </div>
 
@@ -760,24 +853,22 @@ export default function ProductsPage() {
                     </td>
                     <td className="p-[10px] text-center font-bold">
                       <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${
-                          p.quantity <= 0
+                        className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${p.quantity <= 0
                             ? "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 font-bold"
                             : p.quantity <= 5
-                            ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 font-bold"
-                            : "bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
-                        }`}
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 font-bold"
+                              : "bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                          }`}
                       >
-                        {p.quantity} {p.unit}
+                        {p.tile_size || p.pcs_per_box ? formatBoxAndPcs(p.quantity, p.pcs_per_box) : `${p.quantity} ${p.unit}`}
                       </span>
                     </td>
                     <td className="p-[10px] text-center">
                       <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                          p.status?.toLowerCase() === "inactive"
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${p.status?.toLowerCase() === "inactive"
                             ? "bg-rose-500 text-white"
                             : "bg-slate-400 text-white"
-                        }`}
+                          }`}
                       >
                         {p.status}
                       </span>
@@ -786,6 +877,13 @@ export default function ProductsPage() {
                     <td className="p-[10px] text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         <button
+                          onClick={() => setViewingProduct(p)}
+                          title="Quick View Details"
+                          className="w-7 h-7 rounded-lg border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => handleOpenEdit(p)}
                           title="Edit"
                           className="w-7 h-7 rounded-lg border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 text-purple-600 hover:bg-purple-50 flex items-center justify-center transition-colors cursor-pointer"
@@ -793,7 +891,7 @@ export default function ProductsPage() {
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => handleDelete(p.id)}
+                          onClick={() => setProductToDelete(p)}
                           title="Delete"
                           className="w-7 h-7 rounded-lg border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
                         >
@@ -825,7 +923,7 @@ export default function ProductsPage() {
                     <span>{p.product_name}</span>
                   </div>
                   <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-rose-50 text-rose-700">
-                    Stock: {p.quantity} {p.unit}
+                    Stock: {p.tile_size || p.pcs_per_box ? formatBoxAndPcs(p.quantity, p.pcs_per_box) : `${p.quantity} ${p.unit}`}
                   </span>
                 </div>
 
@@ -872,13 +970,20 @@ export default function ProductsPage() {
                 {/* Actions */}
                 <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/60">
                   <button
+                    onClick={() => setViewingProduct(p)}
+                    className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold flex items-center gap-1 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    <Eye className="w-3 h-3" />
+                    <span>View</span>
+                  </button>
+                  <button
                     onClick={() => handleOpenEdit(p)}
                     className="px-3 py-1 rounded-lg border border-purple-200 text-purple-600 text-xs font-semibold"
                   >
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(p.id)}
+                    onClick={() => setProductToDelete(p)}
                     className="px-3 py-1 rounded-lg border border-rose-200 text-rose-600 text-xs font-semibold"
                   >
                     Delete
@@ -909,7 +1014,7 @@ export default function ProductsPage() {
         const isTilesCategory = Boolean(
           selectedCategory?.category_name &&
           (selectedCategory.category_name.toLowerCase().includes("tile") ||
-           selectedCategory.category_name.toLowerCase().includes("টাইল"))
+            selectedCategory.category_name.toLowerCase().includes("টাইল"))
         );
 
         return (
@@ -970,7 +1075,7 @@ export default function ProductsPage() {
                           const isTile = Boolean(
                             catObj?.category_name &&
                             (catObj.category_name.toLowerCase().includes("tile") ||
-                             catObj.category_name.toLowerCase().includes("টাইল"))
+                              catObj.category_name.toLowerCase().includes("টাইল"))
                           );
 
                           let newUnitId = formData.unit_id;
@@ -1006,11 +1111,12 @@ export default function ProductsPage() {
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Cost Price (৳)
+                        Cost Price (৳) *
                       </label>
                       <input
                         type="number"
                         step="0.01"
+                        required
                         value={formData.cost_price}
                         onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
                         placeholder="0.00"
@@ -1020,12 +1126,11 @@ export default function ProductsPage() {
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Selling Price (৳) *
+                        Selling Price (৳)
                       </label>
                       <input
                         type="number"
                         step="0.01"
-                        required
                         value={formData.sell_price}
                         onChange={(e) => setFormData({ ...formData, sell_price: e.target.value })}
                         placeholder="0.00"
@@ -1123,11 +1228,10 @@ export default function ProductsPage() {
                                   pcs_per_box: size.defaultPcsPerBox ? String(size.defaultPcsPerBox) : formData.pcs_per_box,
                                 });
                               }}
-                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
-                                formData.tile_size === size.value
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${formData.tile_size === size.value
                                   ? "bg-rose-600 text-white border-rose-700 shadow-xs"
                                   : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-[#cbd5e1] dark:border-[#334155] hover:border-rose-400"
-                              }`}
+                                }`}
                             >
                               {size.label}
                             </button>
@@ -1211,11 +1315,10 @@ export default function ProductsPage() {
                                 key={g.value}
                                 type="button"
                                 onClick={() => setFormData({ ...formData, grade: formData.grade === g.value ? "" : g.value })}
-                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
-                                  formData.grade === g.value
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${formData.grade === g.value
                                     ? "bg-emerald-600 text-white border-emerald-700 shadow-xs"
                                     : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-[#cbd5e1] dark:border-[#334155] hover:border-emerald-400"
-                                }`}
+                                  }`}
                               >
                                 {g.label}
                               </button>
@@ -1274,6 +1377,537 @@ export default function ProductsPage() {
           </div>
         );
       })()}
+
+      {/* 2. Quick View Product Details Modal */}
+      {viewingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[16px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-150">
+            {/* Sticky Header: Ruby Red / Crimson Gradient */}
+            <div className="modal-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-5 py-3.5 flex items-center justify-between shrink-0 shadow-xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                  <Package className="w-4 h-4 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-white tracking-tight m-0 truncate">
+                    Product Details
+                  </h3>
+                  <p className="text-[10px] text-rose-100/80 leading-none mt-0.5 truncate">
+                    ID: #{viewingProduct.id} &bull; Code: {viewingProduct.primary_code || "N/A"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingProduct(null)}
+                className="w-7 h-7 rounded-full bg-[#dc2626] hover:bg-red-700 text-white flex items-center justify-center shadow-xs cursor-pointer transition-colors shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+              {/* Product Title & Badges */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-sm font-black text-slate-800 dark:text-white leading-tight">
+                      {viewingProduct.product_name || viewingProduct.name}
+                    </h4>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600">
+                        {viewingProduct.category || "General"}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600">
+                        {viewingProduct.brand || "N/A"}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-900/60">
+                        Unit: {viewingProduct.unit || "Pcs"}
+                      </span>
+                    </div>
+                  </div>
+                  <span
+                    className={`shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${viewingProduct.status?.toLowerCase() === "inactive"
+                        ? "bg-rose-500 text-white"
+                        : "bg-emerald-600 text-white"
+                      }`}
+                  >
+                    {viewingProduct.status || "Active"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Barcodes */}
+              {viewingProduct.all_codes && viewingProduct.all_codes.length > 0 && (
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                    Barcode(s)
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewingProduct.all_codes.map((code, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-mono font-bold border border-slate-200 dark:border-slate-700"
+                      >
+                        <Barcode className="w-3.5 h-3.5 text-slate-400" />
+                        {code}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Financial & Stock 3-Card Grid */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Cost Price
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mt-0.5 block">
+                    {formatBdCurrency(viewingProduct.cost_price)}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 text-center">
+                  <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider block">
+                    Sell Price
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-rose-700 dark:text-rose-300 mt-0.5 block">
+                    {formatBdCurrency(viewingProduct.sell_price)}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Current Stock
+                  </span>
+                  <span
+                    className={`text-xs sm:text-sm font-black mt-0.5 block ${viewingProduct.quantity <= 0
+                        ? "text-rose-600"
+                        : viewingProduct.quantity <= 5
+                          ? "text-amber-600"
+                          : "text-emerald-600"
+                      }`}
+                  >
+                    {viewingProduct.tile_size || viewingProduct.pcs_per_box ? formatBoxAndPcs(viewingProduct.quantity, viewingProduct.pcs_per_box) : `${viewingProduct.quantity} ${viewingProduct.unit}`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Tiles Specific Information (if applicable) */}
+              {(viewingProduct.tile_size || viewingProduct.sqft_per_box || viewingProduct.grade || viewingProduct.surface_finish) && (
+                <div className="p-3.5 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-gradient-to-br from-rose-50/30 via-white to-slate-50/50 dark:from-rose-950/20 dark:via-slate-900 dark:to-slate-900 space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800 dark:text-rose-300 border-b border-rose-100 dark:border-slate-800 pb-1.5">
+                    <Layers className="w-4 h-4 text-rose-600" />
+                    <span>Tiles Packaging & Specification</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {viewingProduct.tile_size && (
+                      <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+                        <span className="text-slate-400">Tile Size:</span>
+                        <span className="font-bold text-slate-800 dark:text-white">
+                          📐 {viewingProduct.tile_size}
+                        </span>
+                      </div>
+                    )}
+                    {viewingProduct.sqft_per_box && (
+                      <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+                        <span className="text-slate-400">Sq.Ft / Box:</span>
+                        <span className="font-bold text-slate-800 dark:text-white">
+                          📦 {viewingProduct.sqft_per_box} Sft
+                        </span>
+                      </div>
+                    )}
+                    {viewingProduct.pcs_per_box && (
+                      <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+                        <span className="text-slate-400">Pieces / Box:</span>
+                        <span className="font-bold text-slate-800 dark:text-white">
+                          {viewingProduct.pcs_per_box} Pcs
+                        </span>
+                      </div>
+                    )}
+                    {viewingProduct.grade && (
+                      <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+                        <span className="text-slate-400">Grade:</span>
+                        <span className="font-bold text-amber-600">
+                          ★ {viewingProduct.grade}
+                        </span>
+                      </div>
+                    )}
+                    {viewingProduct.surface_finish && (
+                      <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800 col-span-2">
+                        <span className="text-slate-400">Surface Finish:</span>
+                        <span className="font-bold text-purple-600">
+                          ✨ {viewingProduct.surface_finish}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {viewingProduct.sqft_per_box && viewingProduct.sell_price && Number(viewingProduct.sqft_per_box) > 0 && (
+                    <div className="pt-1 text-[11px] font-bold text-rose-700 dark:text-rose-400 flex justify-between">
+                      <span>Rate per Sq.Ft:</span>
+                      <span>৳{(Number(viewingProduct.sell_price) / Number(viewingProduct.sqft_per_box)).toFixed(2)} / Sft</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Sticky Footer */}
+            <div className="shrink-0 bg-slate-50 dark:bg-slate-900/95 px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setViewingProduct(null)}
+                className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const toEdit = viewingProduct;
+                  setViewingProduct(null);
+                  handleOpenEdit(toEdit);
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                <span>Edit Product</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Delete Confirmation Modal */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[16px] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-5 py-3.5 flex items-center justify-between shadow-xs">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <Trash2 className="w-4 h-4 text-rose-200" />
+                <span>পণ্য ডিলিট নিশ্চিতকরণ (Confirm Delete)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                className="w-7 h-7 rounded-full bg-[#dc2626] hover:bg-red-700 text-white flex items-center justify-center shadow-xs cursor-pointer transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-3.5">
+              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50">
+                <h4 className="text-xs font-bold text-rose-900 dark:text-rose-200">
+                  {productToDelete.product_name || productToDelete.name}
+                </h4>
+                <p className="text-[11px] text-rose-700 dark:text-rose-300 mt-1">
+                  Brand: {productToDelete.brand} &bull; Barcode: {productToDelete.primary_code} &bull; Stock: {productToDelete.tile_size || productToDelete.pcs_per_box ? formatBoxAndPcs(productToDelete.quantity, productToDelete.pcs_per_box) : `${productToDelete.quantity} ${productToDelete.unit}`}
+                </p>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                আপনি কি নিশ্চিতভাবে এই পণ্যটি ডিলিট করতে চান? এই প্রক্রিয়াটি পরবর্তীতে ফিরিয়ে আনা সম্ভব নয়।
+              </p>
+            </div>
+
+            {/* Sticky Footer */}
+            <div className="bg-slate-50 dark:bg-slate-900/95 px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-colors cursor-pointer"
+              >
+                না, বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>ডিলিট হচ্ছে...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>হ্যাঁ, ডিলিট করুন</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Percentage Price Update Modal */}
+      {bulkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-[16px] shadow-2xl overflow-hidden max-h-[92vh] flex flex-col border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-6 py-4 flex items-center justify-between shrink-0 shadow-xs">
+              <div className="flex items-center gap-2 text-white">
+                <Percent className="w-5 h-5 text-rose-200" />
+                <h3 className="text-base font-bold text-white tracking-tight m-0">
+                  Bulk Percentage Price Update (% বাল্ক প্রাইস পরিবর্তন)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBulkModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-[#dc2626] hover:bg-red-700 text-white flex items-center justify-center shadow-xs cursor-pointer transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleBulkUpdate} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 space-y-4">
+                {/* Brand & Target Field Selector */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Select Brand (ব্র্যান্ড নির্বাচন করুন)
+                    </label>
+                    <CustomSelect
+                      value={bulkBrandId}
+                      onChange={(val) => setBulkBrandId(String(val))}
+                      options={[
+                        { value: "all", label: "All Brands (সকল ব্র্যান্ড)" },
+                        ...brands.map((b) => ({ value: String(b.id), label: b.name || "" })),
+                      ]}
+                      placeholder="Select Brand"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Target Price (কোন মূল্য আপডেট করবেন)
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5 h-[42px] p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => setBulkTargetField("sell_price")}
+                        className={`text-xs font-bold rounded-lg transition-all ${bulkTargetField === "sell_price"
+                            ? "bg-rose-700 text-white shadow-xs"
+                            : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
+                          }`}
+                      >
+                        Sell Price
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBulkTargetField("cost_price")}
+                        className={`text-xs font-bold rounded-lg transition-all ${bulkTargetField === "cost_price"
+                            ? "bg-rose-700 text-white shadow-xs"
+                            : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
+                          }`}
+                      >
+                        Cost Price
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBulkTargetField("both")}
+                        className={`text-xs font-bold rounded-lg transition-all ${bulkTargetField === "both"
+                            ? "bg-rose-700 text-white shadow-xs"
+                            : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
+                          }`}
+                      >
+                        Both Prices
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Percentage Input & Quick Buttons */}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Percentage Adjustment (% হারে বৃদ্ধি বা হ্রাস)
+                    </label>
+                    <span className="text-[11px] text-slate-500">
+                      Ex: <code className="text-rose-600 font-bold font-mono">5</code> (+5% বাড়বে) অথবা <code className="text-rose-600 font-bold font-mono">-5</code> (-5% কমবে)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={bulkPercentage}
+                        onChange={(e) => setBulkPercentage(e.target.value)}
+                        placeholder="e.g. 5 or -5"
+                        className="w-full h-[42px] px-3.5 pr-8 rounded-xl bg-white dark:bg-slate-800/90 text-xs font-bold text-slate-800 dark:text-white border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {[5, 10, 15, -5, -10].map((quick) => (
+                        <button
+                          key={quick}
+                          type="button"
+                          onClick={() => setBulkPercentage(String(quick))}
+                          className="px-2.5 h-[42px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-rose-500 hover:text-rose-600 transition-colors cursor-pointer"
+                        >
+                          {quick > 0 ? `+${quick}%` : `${quick}%`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Product Selection List with Live Price Preview */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="bulkSelectAll"
+                        checked={bulkMatchingProducts.length > 0 && bulkSelectedIds.size === bulkMatchingProducts.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setBulkSelectedIds(new Set(bulkMatchingProducts.map((p) => p.id)));
+                          } else {
+                            setBulkSelectedIds(new Set());
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer"
+                      />
+                      <label htmlFor="bulkSelectAll" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                        Select All Matching ({bulkSelectedIds.size} / {bulkMatchingProducts.length} Selected)
+                      </label>
+                    </div>
+                    <span className="text-[11px] text-slate-500">
+                      Showing matching products for brand
+                    </span>
+                  </div>
+
+                  <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden max-h-[260px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                    {bulkMatchingProducts.length === 0 ? (
+                      <div className="p-6 text-center text-slate-400 text-xs font-medium">
+                        No products found for this brand filter.
+                      </div>
+                    ) : (
+                      bulkMatchingProducts.map((p) => {
+                        const isChecked = bulkSelectedIds.has(p.id);
+                        const pct = parseFloat(bulkPercentage) || 0;
+                        const factor = 1 + pct / 100;
+                        const newSell = Math.round(p.sell_price * factor * 100) / 100;
+                        const newCost = Math.round(p.cost_price * factor * 100) / 100;
+
+                        return (
+                          <div
+                            key={p.id}
+                            onClick={() => {
+                              const next = new Set(bulkSelectedIds);
+                              if (next.has(p.id)) next.delete(p.id);
+                              else next.add(p.id);
+                              setBulkSelectedIds(next);
+                            }}
+                            className={`p-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors ${isChecked
+                                ? "bg-rose-50/40 dark:bg-rose-950/20"
+                                : "hover:bg-slate-50 dark:hover:bg-slate-800/40 opacity-60"
+                              }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => { }} // handled by parent div
+                                className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <div className="font-bold text-slate-800 dark:text-white truncate">
+                                  {p.product_name}
+                                </div>
+                                <div className="text-[10px] text-slate-400">
+                                  {p.brand} &bull; Code: {p.primary_code}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Price Comparison Preview */}
+                            <div className="flex items-center gap-3 shrink-0 text-right">
+                              {(bulkTargetField === "sell_price" || bulkTargetField === "both") && (
+                                <div>
+                                  <span className="text-[10px] text-slate-400 block">Sell Price</span>
+                                  <span className="font-bold text-slate-700 dark:text-slate-300">
+                                    {formatBdCurrency(p.sell_price)}
+                                  </span>
+                                  {pct !== 0 && (
+                                    <span className="text-rose-600 font-extrabold ml-1">
+                                      &rarr; {formatBdCurrency(newSell)}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {(bulkTargetField === "cost_price" || bulkTargetField === "both") && (
+                                <div>
+                                  <span className="text-[10px] text-slate-400 block">Cost Price</span>
+                                  <span className="font-bold text-slate-700 dark:text-slate-300">
+                                    {formatBdCurrency(p.cost_price)}
+                                  </span>
+                                  {pct !== 0 && (
+                                    <span className="text-rose-600 font-extrabold ml-1">
+                                      &rarr; {formatBdCurrency(newCost)}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Sticky Footer */}
+              <div className="shrink-0 bg-slate-50 dark:bg-slate-900/95 px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setBulkModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Cancel (বাতিল)
+                </button>
+                <button
+                  type="submit"
+                  disabled={bulkSubmitting || bulkSelectedIds.size === 0 || !bulkPercentage}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                >
+                  {bulkSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Updating Prices...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Percent className="w-4 h-4" />
+                      <span>Update {bulkSelectedIds.size} Products Price</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

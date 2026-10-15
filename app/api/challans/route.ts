@@ -221,6 +221,7 @@ export async function POST(req: NextRequest) {
       await lockProductsAscending(productIds, tx);
 
       // 4. Pre-validate physical warehouse stock for each line
+      const customItems = Array.isArray(body.items) ? body.items : null;
       for (const line of pendingLines) {
         const [currentProd]: any = await tx.$queryRawUnsafe(
           "SELECT id, product_name, quantity FROM products WHERE id = ?",
@@ -228,7 +229,13 @@ export async function POST(req: NextRequest) {
         );
 
         const physicalStock = parseFloat(currentProd?.quantity || "0");
-        const requiredQty = parseFloat(String(line.quantity || "0"));
+        const lineCustom = customItems?.find(
+          (ci: any) => Number(ci.order_detail_id) === Number(line.id)
+        );
+        const requiredQty =
+          lineCustom && !isNaN(Number(lineCustom.quantity)) && Number(lineCustom.quantity) > 0
+            ? Number(lineCustom.quantity)
+            : parseFloat(String(line.quantity || "0"));
 
         if (physicalStock < requiredQty) {
           const prodName = currentProd?.product_name || `Product #${line.product_id}`;
@@ -262,7 +269,13 @@ export async function POST(req: NextRequest) {
       // 6. Snapshot items into challan_items, decrement physical stock, and update lifecycle state
       for (const line of pendingLines) {
         const prod = line.products;
-        const requiredQty = parseFloat(String(line.quantity || "0"));
+        const lineCustom = customItems?.find(
+          (ci: any) => Number(ci.order_detail_id) === Number(line.id)
+        );
+        const requiredQty =
+          lineCustom && !isNaN(Number(lineCustom.quantity)) && Number(lineCustom.quantity) > 0
+            ? Number(lineCustom.quantity)
+            : parseFloat(String(line.quantity || "0"));
 
         let primaryCode = "";
         if (prod.product_code) {
@@ -284,7 +297,7 @@ export async function POST(req: NextRequest) {
             product_id: line.product_id,
             product_name: prod.product_name,
             product_code: primaryCode || null,
-            quantity: line.quantity,
+            quantity: requiredQty,
             unit: prod.units?.unit_name || "Box",
           },
         });
