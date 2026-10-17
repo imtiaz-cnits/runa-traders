@@ -123,37 +123,96 @@ export function calculateBoxPrice(ratePerSqft: number, sqftPerBox: number): numb
 }
 
 /**
+ * Resolve pieces per box from pcsPerBox property or fallback to popular tile sizes mapping
+ */
+export function getTilePcsPerBox(
+  pcsPerBox?: number | string | null,
+  tileSize?: string | null
+): number {
+  if (pcsPerBox) {
+    const parsed = parseInt(String(pcsPerBox), 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  if (tileSize) {
+    const clean = tileSize.replace(/"/g, '').toLowerCase().replace(/\s+/g, '');
+    const match = POPULAR_TILE_SIZES.find(
+      (s) => s.value.replace(/"/g, '').toLowerCase().replace(/\s+/g, '') === clean
+    );
+    if (match && match.defaultPcsPerBox) return match.defaultPcsPerBox;
+
+    const parsedDim = parseTileDimension(tileSize);
+    if (parsedDim) {
+      const dimKey = `${parsedDim.width}x${parsedDim.height}`;
+      const dimMatch = POPULAR_TILE_SIZES.find(
+        (s) => s.value.replace(/"/g, '').toLowerCase() === dimKey
+      );
+      if (dimMatch && dimMatch.defaultPcsPerBox) return dimMatch.defaultPcsPerBox;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Break down boxes and remaining pieces cleanly
+ * e.g. 4.08 boxes of 8"x12" (25 pcs/box) => { fullBoxes: 4, pcs: 2, formatted: "4 Box, 2 Pcs" }
+ * e.g. 12.4 boxes (10 pcs/box) => { fullBoxes: 12, pcs: 4, formatted: "12 Box, 4 Pcs" }
+ */
+export function parseBoxAndPcs(
+  boxes: number | string | null | undefined,
+  pcsPerBox?: number | string | null,
+  tileSize?: string | null
+): { fullBoxes: number; pcs: number; formatted: string } {
+  if (boxes === null || boxes === undefined || boxes === "") {
+    return { fullBoxes: 0, pcs: 0, formatted: "0 Box" };
+  }
+  const numBoxes = typeof boxes === "number" ? boxes : parseFloat(String(boxes));
+  if (isNaN(numBoxes) || numBoxes <= 0) {
+    return { fullBoxes: 0, pcs: 0, formatted: "0 Box" };
+  }
+
+  const pcsNum = getTilePcsPerBox(pcsPerBox, tileSize);
+  let fullBoxes = Math.floor(numBoxes);
+  const frac = numBoxes - fullBoxes;
+  
+  let pcs = 0;
+  if (pcsNum > 0) {
+    pcs = Math.round(frac * pcsNum);
+    if (pcs >= pcsNum) {
+      fullBoxes += Math.floor(pcs / pcsNum);
+      pcs = pcs % pcsNum;
+    }
+  } else if (frac > 0) {
+    // If pieces per box is not defined, parse decimal digits cleanly (e.g. 12.4 -> 4 pcs, 12.6 -> 6 pcs)
+    const decStr = String(boxes).split('.')[1] || '';
+    pcs = parseInt(decStr, 10) || 0;
+  }
+
+  let formatted = "";
+  if (fullBoxes > 0 && pcs > 0) {
+    formatted = `${fullBoxes} Box, ${pcs} Pcs`;
+  } else if (fullBoxes > 0) {
+    formatted = `${fullBoxes} Box${fullBoxes > 1 ? "es" : ""}`;
+  } else if (pcs > 0) {
+    formatted = `${pcs} Pcs`;
+  } else {
+    formatted = "0 Box";
+  }
+
+  return { fullBoxes, pcs, formatted };
+}
+
+/**
  * Format boxes and remaining pieces cleanly
- * e.g. 75.25 boxes with 4 pcs/box => "75 Boxes 1 Pc"
- * e.g. 12.16 boxes with 25 pcs/box => "12 Boxes 4 Pcs"
+ * e.g. 75.25 boxes with 4 pcs/box => "75 Box, 1 Pcs"
+ * e.g. 12.16 boxes with 25 pcs/box => "12 Box, 4 Pcs"
  * e.g. 10 boxes => "10 Boxes"
  */
 export function formatBoxAndPcs(
   boxes: number | string | null | undefined,
-  pcsPerBox?: number | string | null
+  pcsPerBox?: number | string | null,
+  tileSize?: string | null
 ): string {
-  if (boxes === null || boxes === undefined || boxes === "") return "0 Box";
-  const numBoxes = typeof boxes === "number" ? boxes : parseFloat(String(boxes));
-  if (isNaN(numBoxes) || numBoxes <= 0) return "0 Box";
-
-  const pcsNum = pcsPerBox
-    ? typeof pcsPerBox === "number"
-      ? pcsPerBox
-      : parseInt(String(pcsPerBox), 10)
-    : 0;
-
-  const fullBoxes = Math.floor(numBoxes);
-  const frac = numBoxes - fullBoxes;
-  const pcs = pcsNum > 0 ? Math.round(frac * pcsNum) : 0;
-
-  if (fullBoxes > 0 && pcs > 0) {
-    return `${fullBoxes} Box${fullBoxes > 1 ? "es" : ""} ${pcs} Pc${pcs > 1 ? "s" : ""}`;
-  } else if (fullBoxes > 0) {
-    return `${fullBoxes} Box${fullBoxes > 1 ? "es" : ""}`;
-  } else if (pcs > 0) {
-    return `${pcs} Pc${pcs > 1 ? "s" : ""}`;
-  }
-  return `${numBoxes} Box`;
+  return parseBoxAndPcs(boxes, pcsPerBox, tileSize).formatted;
 }
 
 /**

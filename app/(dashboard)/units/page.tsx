@@ -5,11 +5,13 @@ import {
   Boxes,
   Plus,
   Search,
+  Edit2,
+  Trash2,
   X,
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
-import { Pagination } from "@/components/ui";
+import { Pagination, CustomSelect, DeleteConfirmModal } from "@/components/ui";
 
 interface UnitItem {
   id: number;
@@ -24,9 +26,15 @@ export default function UnitsPage() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+
+  // Modal states
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<UnitItem | null>(null);
+  const [unitToDelete, setUnitToDelete] = useState<UnitItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [unitName, setUnitName] = useState("");
+  const [status, setStatus] = useState("active");
   const [error, setError] = useState("");
 
   async function loadData() {
@@ -46,16 +54,35 @@ export default function UnitsPage() {
     loadData();
   }, []);
 
+  function handleOpenCreate() {
+    setEditingItem(null);
+    setUnitName("");
+    setStatus("active");
+    setError("");
+    setModalOpen(true);
+  }
+
+  function handleOpenEdit(u: UnitItem) {
+    setEditingItem(u);
+    setUnitName(u.unit_name);
+    setStatus(u.status || "active");
+    setError("");
+    setModalOpen(true);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError("");
 
     try {
-      const res = await fetch("/api/units", {
-        method: "POST",
+      const url = editingItem ? `/api/units/${editingItem.id}` : "/api/units";
+      const method = editingItem ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ unit_name: unitName, status: "active" }),
+        body: JSON.stringify({ unit_name: unitName.trim(), status }),
       });
 
       const data = await res.json();
@@ -67,13 +94,37 @@ export default function UnitsPage() {
 
       setModalOpen(false);
       setUnitName("");
-      toast.success("Unit created successfully!");
+      toast.success(editingItem ? "Unit updated successfully!" : "Unit created successfully!");
       setCurrentPage(1);
       loadData();
     } catch (err: any) {
       setError(err?.message || "An error occurred");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function handleDelete(u: UnitItem) {
+    setUnitToDelete(u);
+  }
+
+  async function confirmDelete() {
+    if (!unitToDelete) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/units/${unitToDelete.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.status === "success") {
+        toast.success("Unit deleted successfully!");
+        setUnitToDelete(null);
+        setCurrentPage(1);
+        loadData();
+      } else {
+        toast.error(data.message || "Failed to delete unit");
+        throw new Error(data.message || "Failed to delete unit");
+      }
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -85,6 +136,7 @@ export default function UnitsPage() {
 
   return (
     <div className="space-y-4">
+      {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400 flex items-center justify-center border border-rose-100 dark:border-slate-800 shadow-xs shrink-0">
@@ -98,59 +150,59 @@ export default function UnitsPage() {
         </div>
 
         <button
-          onClick={() => {
-            setUnitName("");
-            setError("");
-            setModalOpen(true);
-          }}
-          className="h-[38px] px-4 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer self-start md:self-auto"
+          onClick={handleOpenCreate}
+          className="inline-flex items-center gap-1.5 px-4 h-[38px] bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#dc2626] hover:from-[#700e2b] hover:to-[#b91c1c] active:scale-[0.98] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Add Unit</span>
         </button>
       </div>
 
-      <div className="card bg-white dark:bg-slate-900 rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
-        <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="w-full sm:w-72 h-[38px] flex items-center px-3 bg-white dark:bg-slate-800/90 rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus-within:border-rose-600 focus-within:ring-2 focus-within:ring-rose-600/20 transition-all shadow-xs">
-            <Search className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
+      {/* Main Table Card */}
+      <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
+        {/* Search Header */}
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
+              placeholder="Search units..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Search unit name..."
-              className="w-full bg-transparent border-none outline-none text-xs text-slate-800 dark:text-white placeholder:text-slate-400"
+              className="w-full pl-9 pr-3 h-[38px] text-xs bg-slate-50 dark:bg-slate-800/80 border-[1.5px] border-[#cbd5e1] dark:border-[#334155] rounded-xl focus:outline-none focus:border-rose-600 text-slate-800 dark:text-white"
             />
           </div>
 
-          <span className="text-xs text-slate-500 font-medium">
+          <span className="text-xs text-slate-400">
             Total <strong>{filtered.length}</strong> Units
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white text-xs font-semibold uppercase tracking-wider whitespace-nowrap">
-                <th className="p-[10px] text-center w-[45px] rounded-tl-xl">SL</th>
+                <th className="p-[10px] text-center w-[50px] rounded-tl-xl">SL</th>
                 <th className="p-[10px]">Unit Name</th>
-                <th className="p-[10px] text-center rounded-tr-xl">Status</th>
+                <th className="p-[10px] text-center w-[140px]">Status</th>
+                <th className="p-[10px] text-center w-[120px] rounded-tr-xl">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-700 dark:text-slate-200">
               {loading ? (
                 <tr>
-                  <td colSpan={3} className="p-8 text-center text-slate-400 font-medium">
-                    <Loader2 className="w-5 h-5 animate-spin inline mr-2 text-emerald-600" />
+                  <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">
+                    <Loader2 className="w-5 h-5 animate-spin inline mr-2 text-rose-600" />
                     Loading units...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="p-8 text-center text-slate-400 font-medium">
+                  <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">
                     No units found.
                   </td>
                 </tr>
@@ -177,12 +229,75 @@ export default function UnitsPage() {
                         {u.status}
                       </span>
                     </td>
-
+                    <td className="p-[10px] text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => handleOpenEdit(u)}
+                          title="Edit Unit"
+                          className="w-7 h-7 rounded-lg border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 text-purple-600 hover:bg-purple-50 flex items-center justify-center transition-colors cursor-pointer"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(u)}
+                          title="Delete Unit"
+                          className="w-7 h-7 rounded-lg border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View Card List */}
+        <div className="block md:hidden p-3 space-y-3">
+          {loading ? (
+            <div className="p-8 text-center text-slate-400 text-xs">Loading units...</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-6 text-center text-slate-400 text-xs">No units found.</div>
+          ) : (
+            displayedUnits.map((u) => (
+              <div
+                key={u.id}
+                className="rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] p-3.5 bg-white dark:bg-slate-800/60 shadow-xs flex items-center justify-between"
+              >
+                <div>
+                  <h4 className="font-bold text-xs text-slate-800 dark:text-white">
+                    {u.unit_name}
+                  </h4>
+                  <span
+                    className={`inline-block px-2 py-0.5 mt-1 rounded-full text-[9px] font-bold uppercase ${
+                      u.status?.toLowerCase() === "inactive"
+                        ? "bg-rose-500 text-white"
+                        : "bg-slate-400 text-white"
+                    }`}
+                  >
+                    {u.status}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleOpenEdit(u)}
+                    className="w-7 h-7 rounded-lg border border-purple-200 text-purple-600 flex items-center justify-center cursor-pointer"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(u)}
+                    className="w-7 h-7 rounded-lg border border-rose-200 text-rose-600 flex items-center justify-center cursor-pointer"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Pagination Controls */}
@@ -199,12 +314,13 @@ export default function UnitsPage() {
         />
       </div>
 
+      {/* Add / Edit Unit Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3">
           <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[16px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
             <div className="sticky top-0 z-20 modal-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-5 py-3.5 flex items-center justify-between shrink-0">
               <h3 className="text-base font-bold text-white tracking-tight m-0">
-                Add Unit
+                {editingItem ? "Edit Unit" : "Add Unit"}
               </h3>
               <button
                 type="button"
@@ -236,6 +352,21 @@ export default function UnitsPage() {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Status
+                </label>
+                <CustomSelect
+                  value={status}
+                  onChange={(val) => setStatus(val)}
+                  options={[
+                    { value: "active", label: "Active" },
+                    { value: "inactive", label: "Inactive" },
+                  ]}
+                  placeholder="Select Status"
+                />
+              </div>
+
               <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
@@ -257,6 +388,17 @@ export default function UnitsPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(unitToDelete)}
+        onClose={() => setUnitToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Confirm Unit Deletion"
+        recordIdentifier={unitToDelete ? `Unit: ${unitToDelete.unit_name}` : null}
+        warningMessage="Are you sure you want to delete this unit? This action cannot be undone."
+        isLoading={deleting}
+      />
     </div>
   );
 }

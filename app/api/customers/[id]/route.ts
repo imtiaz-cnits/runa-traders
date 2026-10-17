@@ -66,6 +66,20 @@ export async function DELETE(
       );
     }
 
+    const dueCount = await prisma.customer_payment_details.count({
+      where: { customer_id: custId },
+    });
+
+    if (dueCount > 0) {
+      return NextResponse.json(
+        {
+          status: "fail",
+          message: `Cannot delete customer with ${dueCount} associated due collection records.`,
+        },
+        { status: 400 }
+      );
+    }
+
     await prisma.customers.delete({
       where: { id: custId },
     });

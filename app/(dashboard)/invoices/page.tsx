@@ -18,7 +18,9 @@ import {
   DollarSign,
   ArrowRight,
   Truck,
+  RotateCcw,
 } from "lucide-react";
+import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
 import { ThermalReceiptModal } from "@/components/pos/thermal-receipt";
 import { ChallanModal } from "@/components/challan/challan-modal";
@@ -280,11 +282,10 @@ export default function InvoicesPage() {
                 setStatusFilter(tab.value);
                 setCurrentPage(1);
               }}
-              className={`h-[32px] px-3.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                statusFilter === tab.value
-                  ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
-                  : "bg-slate-100 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
-              }`}
+              className={`h-[32px] px-3.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${statusFilter === tab.value
+                ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                : "bg-slate-100 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
             >
               {tab.label}
             </button>
@@ -356,22 +357,20 @@ export default function InvoicesPage() {
                     </td>
                     <td className="py-3 px-3 text-right">
                       <span
-                        className={`font-black ${
-                          inv.due_amount > 0 ? "text-rose-600" : "text-emerald-600"
-                        }`}
+                        className={`font-black ${inv.due_amount > 0 ? "text-rose-600" : "text-emerald-600"
+                          }`}
                       >
                         {formatBdCurrency(inv.due_amount)}
                       </span>
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span
-                        className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                          inv.payment_status === "Paid"
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                            : inv.payment_status === "Partial Paid"
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${inv.payment_status === "Paid"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                          : inv.payment_status === "Partial Paid"
                             ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
                             : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
-                        }`}
+                          }`}
                       >
                         {inv.payment_status}
                       </span>
@@ -409,24 +408,32 @@ export default function InvoicesPage() {
                               setChallanOrderId(inv.id);
                               setIsChallanModalOpen(true);
                             }}
-                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
-                              inv.has_challan
-                                ? "bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300"
-                                : inv.has_pending_tiles
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${inv.has_challan
+                              ? "bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300"
+                              : inv.has_pending_tiles
                                 ? "bg-amber-100 hover:bg-amber-200 dark:bg-amber-950 text-amber-800 dark:text-amber-300 animate-pulse"
                                 : "bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
-                            }`}
+                              }`}
                             title={
                               inv.has_challan
                                 ? `View Challan (${inv.challan_no})`
                                 : inv.has_pending_tiles
-                                ? "Generate Delivery Challan for Tiles"
-                                : "View Challan"
+                                  ? "Generate Delivery Challan for Tiles"
+                                  : "View Challan"
                             }
                           >
                             <Truck className="w-3.5 h-3.5" />
                           </button>
                         )}
+
+                        {/* Sales Return */}
+                        <Link
+                          href={`/returns?tab=sales&order_no=${encodeURIComponent(inv.order_no)}`}
+                          className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Process Sales Return"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </Link>
 
                         {/* Collect Due */}
                         {inv.due_amount > 0 && (
@@ -490,11 +497,10 @@ export default function InvoicesPage() {
                 </p>
               </div>
               <span
-                className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                  inv.payment_status === "Paid"
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-rose-100 text-rose-700"
-                }`}
+                className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${inv.payment_status === "Paid"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-rose-100 text-rose-700"
+                  }`}
               >
                 {inv.payment_status}
               </span>
@@ -508,9 +514,8 @@ export default function InvoicesPage() {
               <div>
                 <span className="text-[10px] text-slate-400 block">Due Amount:</span>
                 <span
-                  className={`font-black ${
-                    inv.due_amount > 0 ? "text-rose-600" : "text-emerald-600"
-                  }`}
+                  className={`font-black ${inv.due_amount > 0 ? "text-rose-600" : "text-emerald-600"
+                    }`}
                 >
                   {formatBdCurrency(inv.due_amount)}
                 </span>
@@ -526,13 +531,12 @@ export default function InvoicesPage() {
                     setChallanOrderId(inv.id);
                     setIsChallanModalOpen(true);
                   }}
-                  className={`h-[30px] px-2.5 rounded-lg text-xs font-bold flex items-center gap-1 ${
-                    inv.has_challan
-                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                      : inv.has_pending_tiles
+                  className={`h-[30px] px-2.5 rounded-lg text-xs font-bold flex items-center gap-1 ${inv.has_challan
+                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                    : inv.has_pending_tiles
                       ? "bg-amber-600 text-white animate-pulse"
                       : "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
-                  }`}
+                    }`}
                 >
                   <Truck className="w-3.5 h-3.5" />
                   <span>{inv.has_challan ? "Challan" : inv.has_pending_tiles ? "Dispatch Tiles" : "Challan"}</span>
@@ -546,6 +550,14 @@ export default function InvoicesPage() {
                 <Printer className="w-3.5 h-3.5" />
                 <span>Thermal Print</span>
               </button>
+              <Link
+                href={`/returns?tab=sales&order_no=${encodeURIComponent(inv.order_no)}`}
+                className="h-[30px] px-2.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center gap-1"
+                title="Process Sales Return"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Return</span>
+              </Link>
               <button
                 type="button"
                 onClick={() => {
@@ -595,20 +607,20 @@ export default function InvoicesPage() {
                       setChallanOrderId(selectedInvoice.id);
                       setIsChallanModalOpen(true);
                     }}
-                    className="h-[30px] px-3 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                    className="h-[30px] p-3 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
                     title="Manage Delivery Challan"
                   >
                     <Truck className="w-3.5 h-3.5" />
-                    <span>Delivery Challan</span>
+                    <span>Challan</span>
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={() => triggerThermalReceipt(selectedInvoice)}
-                  className="h-[30px] px-3 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                  className="h-[30px] p-3 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span>Print Receipt</span>
+                  <span>Print</span>
                 </button>
                 <button
                   type="button"

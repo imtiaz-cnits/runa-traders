@@ -14,10 +14,12 @@ import {
   Mail,
   Phone,
   User,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
-import { Pagination } from "@/components/ui";
+import { Pagination, DeleteConfirmModal } from "@/components/ui";
 
 interface UserItem {
   id: number;
@@ -38,8 +40,14 @@ export default function UsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // Delete Confirm Modal State
+  const [userToDelete, setUserToDelete] = useState<UserItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -80,14 +88,101 @@ export default function UsersPage() {
     loadUsers();
   }, []);
 
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      email: "",
+      mobile: "",
+      password: "",
+      role: "cashier",
+      status: "approved",
+      permissions: {
+        pos: true,
+        products: true,
+        purchases: false,
+        invoices: true,
+        customers: true,
+        suppliers: false,
+        expenses: false,
+        reports: false,
+        users: false,
+      },
+    });
+    setSelectedUser(null);
+    setError("");
+  };
+
+  const handleOpenAdd = () => {
+    resetForm();
+    setModalOpen(true);
+  };
+
+  const handleOpenEdit = (user: UserItem) => {
+    setSelectedUser(user);
+    setError("");
+    setFormData({
+      name: user.name,
+      email: user.email || "",
+      mobile: user.mobile,
+      password: "",
+      role: user.role,
+      status: user.status,
+      permissions: (user.permissions as any) || {
+        pos: true,
+        products: true,
+        purchases: false,
+        invoices: true,
+        customers: true,
+        suppliers: false,
+        expenses: false,
+        reports: false,
+        users: false,
+      },
+    });
+    setModalOpen(true);
+  };
+
+  const handleDeleteUser = (user: UserItem) => {
+    if (user.id === 1 || user.id === 7) {
+      toast.error("Super Admin account cannot be deleted!");
+      return;
+    }
+    setDeleteError(null);
+    setUserToDelete(user);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/users/${userToDelete.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok && data.status === "success") {
+        toast.success("User account deleted successfully!");
+        setUserToDelete(null);
+        setCurrentPage(1);
+        loadUsers();
+      } else {
+        setDeleteError(data.message || "Failed to delete user account");
+      }
+    } catch (err: any) {
+      setDeleteError(err?.message || "Communication error deleting user account");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError("");
 
     try {
-      const res = await fetch("/api/users", {
-        method: "POST",
+      const url = selectedUser ? `/api/users/${selectedUser.id}` : "/api/users";
+      const method = selectedUser ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
@@ -95,33 +190,14 @@ export default function UsersPage() {
       const data = await res.json();
 
       if (!res.ok || data.status !== "success") {
-        setError(data.message || "Failed to create user");
+        setError(data.message || `Failed to ${selectedUser ? "update" : "create"} user`);
         setSubmitting(false);
         return;
       }
 
       setModalOpen(false);
-      toast.success("User created successfully!");
-      setFormData({
-        name: "",
-        email: "",
-        mobile: "",
-        password: "",
-        role: "cashier",
-        status: "approved",
-        permissions: {
-          pos: true,
-          products: true,
-          purchases: false,
-          invoices: true,
-          customers: true,
-          suppliers: false,
-          expenses: false,
-          reports: false,
-          users: false,
-        },
-      });
-      // Post-Creation Reset Rule: reload and show latest on top
+      toast.success(selectedUser ? "User updated successfully!" : "User created successfully!");
+      resetForm();
       setCurrentPage(1);
       loadUsers();
     } catch (err: any) {
@@ -161,7 +237,7 @@ export default function UsersPage() {
 
         {/* Action Button */}
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={handleOpenAdd}
           className="h-[38px] px-4 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer self-start md:self-auto"
         >
           <Plus className="w-4 h-4" />
@@ -204,20 +280,21 @@ export default function UsersPage() {
                 <th className="p-[10px]">Mobile</th>
                 <th className="p-[10px] text-center">Role</th>
                 <th className="p-[10px] text-center">Status</th>
-                <th className="p-[10px] text-center rounded-tr-xl">Created At</th>
+                <th className="p-[10px] text-center">Created At</th>
+                <th className="p-[10px] text-center rounded-tr-xl">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-700 dark:text-slate-200">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400 font-medium">
+                  <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
                     <Loader2 className="w-5 h-5 animate-spin inline mr-2 text-emerald-600" />
                     Loading users...
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400 font-medium">
+                  <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
                     No users found matching query.
                   </td>
                 </tr>
@@ -265,6 +342,31 @@ export default function UsersPage() {
                     </td>
                     <td className="p-[10px] text-center text-slate-400 whitespace-nowrap">
                       {new Date(user.created_at).toLocaleDateString("en-GB")}
+                    </td>
+                    <td className="p-[10px] text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(user)}
+                          className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Edit User"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteUser(user)}
+                          disabled={user.id === 1 || user.id === 7}
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                            user.id === 1 || user.id === 7
+                              ? "bg-slate-100 text-slate-300 cursor-not-allowed"
+                              : "bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 cursor-pointer"
+                          }`}
+                          title={user.id === 1 || user.id === 7 ? "Super Admin protected" : "Delete User"}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -318,6 +420,28 @@ export default function UsersPage() {
                   <p>Mobile: <strong className="text-slate-700 dark:text-slate-200">{user.mobile}</strong></p>
                   <p>Email: {user.email || "—"}</p>
                 </div>
+
+                <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEdit(user)}
+                    className="h-[30px] px-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteUser(user)}
+                    disabled={user.id === 1 || user.id === 7}
+                    className={`h-[30px] px-2 rounded-lg text-xs font-bold ${
+                      user.id === 1 || user.id === 7
+                        ? "bg-slate-100 text-slate-300 cursor-not-allowed"
+                        : "bg-rose-50 text-rose-600"
+                    }`}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))
           )}
@@ -347,7 +471,7 @@ export default function UsersPage() {
             {/* Sticky Header: Solid Emerald #15803d, Circular Red Close #dc2626 */}
             <div className="sticky top-0 z-20 modal-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-5 py-3.5 flex items-center justify-between shrink-0">
               <h3 className="text-base font-bold text-white tracking-tight m-0">
-                Add New Staff User
+                {selectedUser ? "Edit User Account" : "Add New Staff User"}
               </h3>
               <button
                 type="button"
@@ -423,16 +547,16 @@ export default function UsersPage() {
               {/* Password */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Login Password *
+                  Login Password {selectedUser ? "(leave blank to keep current)" : "*"}
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                   <input
                     type="password"
-                    required
+                    required={!selectedUser}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Minimum 6 characters"
+                    placeholder={selectedUser ? "•••••••• (unchanged)" : "Minimum 6 characters"}
                     className="w-full h-[42px] pl-9 pr-3 rounded-xl bg-white dark:bg-slate-800/90 text-xs text-slate-800 dark:text-white border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600"
                   />
                 </div>
@@ -486,13 +610,30 @@ export default function UsersPage() {
                   className="px-5 py-2 rounded-lg bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-70"
                 >
                   {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Save User</span>
+                  <span>{selectedUser ? "Update User" : "Save User"}</span>
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={!!userToDelete}
+        onClose={() => {
+          if (!isDeleting) {
+            setUserToDelete(null);
+            setDeleteError(null);
+          }
+        }}
+        onConfirm={confirmDeleteUser}
+        title="Delete User Account"
+        itemName={userToDelete ? `${userToDelete.name} (${userToDelete.role})` : ""}
+        description="Are you sure you want to delete this staff user account? Users with recorded sales or purchases cannot be deleted."
+        loading={isDeleting}
+        error={deleteError}
+      />
     </div>
   );
 }

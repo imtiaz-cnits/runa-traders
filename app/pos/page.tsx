@@ -29,6 +29,9 @@ import {
   RotateCcw,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Check,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 import { usePosStore, CartItem, Customer } from "@/lib/pos-store";
@@ -82,6 +85,15 @@ interface Unit {
   unit_name: string;
 }
 
+type ProductFilterOption = "all" | "in_stock" | "out_of_stock" | "a_to_z";
+
+const FILTER_OPTIONS: { id: ProductFilterOption; label: string }[] = [
+  { id: "all", label: "All Items" },
+  { id: "in_stock", label: "In Stock" },
+  { id: "out_of_stock", label: "Out of Stock" },
+  { id: "a_to_z", label: "A to Z" },
+];
+
 export default function PosPage() {
   const { showToast: triggerGlobalToast } = useToast();
   // Store
@@ -133,6 +145,11 @@ export default function PosPage() {
   // Customer dropdown
   const [customerSearch, setCustomerSearch] = useState("");
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+
+  // Product Sort & Filter dropdown
+  const [filterOption, setFilterOption] = useState<ProductFilterOption>("all");
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const filterDropdownRef = useRef<HTMLDivElement>(null);
 
   // Modals
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -258,11 +275,14 @@ export default function PosPage() {
     } catch {}
   };
 
-  // Close customer dropdown on outside click
+  // Close customer & filter dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (customerDropdownRef.current && !customerDropdownRef.current.contains(e.target as Node)) {
         setIsCustomerDropdownOpen(false);
+      }
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target as Node)) {
+        setIsFilterDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -597,21 +617,37 @@ export default function PosPage() {
     }
   };
 
-  // Filtered catalog products
-  const displayProducts = products.filter((p) => {
-    if (selectedCategory !== "all" && p.category_id !== selectedCategory) {
-      return false;
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return (
-        p.product_name.toLowerCase().includes(q) ||
-        p.display_codes.toLowerCase().includes(q) ||
-        String(p.id) === q
-      );
-    }
-    return true;
-  });
+  // Filtered and sorted catalog products
+  const displayProducts = products
+    .filter((p) => {
+      // Category filter
+      if (selectedCategory !== "all" && p.category_id !== selectedCategory) {
+        return false;
+      }
+      // Stock status filter
+      if (filterOption === "in_stock" && Number(p.quantity || 0) <= 0) {
+        return false;
+      }
+      if (filterOption === "out_of_stock" && Number(p.quantity || 0) > 0) {
+        return false;
+      }
+      // Live search query filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return (
+          p.product_name.toLowerCase().includes(q) ||
+          p.display_codes.toLowerCase().includes(q) ||
+          String(p.id) === q
+        );
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (filterOption === "a_to_z") {
+        return a.product_name.localeCompare(b.product_name, undefined, { sensitivity: "base" });
+      }
+      return 0;
+    });
 
   // Filtered customers for dropdown
   const filteredCustomers = customers.filter(
@@ -755,6 +791,59 @@ export default function PosPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* Custom Sort & Filter Dropdown (All Items, In Stock, Out of Stock, A to Z) */}
+            <div className="relative shrink-0" ref={filterDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsFilterDropdownOpen((prev) => !prev)}
+                className={`h-[38px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-xs ${
+                  filterOption !== "all"
+                    ? "bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900 text-rose-700 dark:text-rose-400"
+                    : "bg-slate-50 hover:bg-slate-100 dark:bg-[#1e293b] dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-[#cbd5e1] dark:border-[#334155]"
+                }`}
+                title="Filter & Sort Products"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                <span className="hidden sm:inline whitespace-nowrap">
+                  {FILTER_OPTIONS.find((o) => o.id === filterOption)?.label || "Sort"}
+                </span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-200 shrink-0 ${
+                    isFilterDropdownOpen ? "rotate-180 text-rose-600" : "text-slate-400"
+                  }`}
+                />
+              </button>
+
+              {isFilterDropdownOpen && (
+                <div className="absolute left-0 sm:right-0 sm:left-auto top-[44px] z-40 w-44 bg-white dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl shadow-2xl py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800/80">
+                    Filter &amp; Sort
+                  </div>
+                  {FILTER_OPTIONS.map((opt) => {
+                    const isSelected = filterOption === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setFilterOption(opt.id);
+                          setIsFilterDropdownOpen(false);
+                        }}
+                        className={`w-full px-3 py-2 text-xs font-semibold flex items-center justify-between text-left transition-colors cursor-pointer ${
+                          isSelected
+                            ? "bg-rose-50/80 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 font-bold"
+                            : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                        }`}
+                      >
+                        <span>{opt.label}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>

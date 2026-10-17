@@ -43,8 +43,24 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const brandId = BigInt(id);
+
+    const prodCount = await prisma.products.count({
+      where: { brand_id: brandId },
+    });
+
+    if (prodCount > 0) {
+      return NextResponse.json(
+        {
+          status: "fail",
+          message: `Cannot delete brand because it contains ${prodCount} product(s). Please reassign or remove the products first.`,
+        },
+        { status: 400 }
+      );
+    }
+
     await prisma.brands.delete({
-      where: { id: BigInt(id) },
+      where: { id: brandId },
     });
 
     return NextResponse.json({

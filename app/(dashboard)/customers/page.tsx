@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
-import { Pagination } from "@/components/ui";
+import { Pagination, DeleteConfirmModal } from "@/components/ui";
 
 interface Customer {
   id: number;
@@ -41,6 +41,8 @@ export default function CustomersPage() {
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     customer_name: "",
@@ -137,6 +139,26 @@ export default function CustomersPage() {
       setSaving(false);
     }
   };
+
+  async function confirmDeleteCustomer() {
+    if (!customerToDelete) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/customers/${customerToDelete.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.status === "success") {
+        toast.success("Customer deleted successfully!");
+        setCustomerToDelete(null);
+        setCurrentPage(1);
+        loadCustomers();
+      } else {
+        toast.error(data.message || "Failed to delete customer");
+        throw new Error(data.message || "Failed to delete customer");
+      }
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const startIndex = (currentPage - 1) * pageSize;
   const displayedCustomers = customers.slice(startIndex, startIndex + pageSize);
@@ -268,14 +290,24 @@ export default function CustomersPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(c)}
-                        className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer mx-auto"
-                        title="Edit Customer"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(c)}
+                          className="w-7 h-7 rounded-lg border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 text-purple-600 hover:bg-purple-50 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Edit Customer"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCustomerToDelete(c)}
+                          className="w-7 h-7 rounded-lg border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Delete Customer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -427,6 +459,21 @@ export default function CustomersPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(customerToDelete)}
+        onClose={() => setCustomerToDelete(null)}
+        onConfirm={confirmDeleteCustomer}
+        title="Confirm Customer Deletion"
+        recordIdentifier={
+          customerToDelete
+            ? `Customer: ${customerToDelete.customer_name} (${customerToDelete.mobile})`
+            : null
+        }
+        warningMessage="Are you sure you want to delete this customer? This action cannot be undone."
+        isLoading={deleting}
+      />
     </div>
   );
 }

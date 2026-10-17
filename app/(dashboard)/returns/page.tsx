@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   RotateCcw,
   Plus,
@@ -86,8 +87,9 @@ interface SearchRecordData {
   items: SearchItemLine[];
 }
 
-export default function ReturnsManagementPage() {
+function ReturnsManagementContent() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
 
   // Mode Tab: 'sales' or 'purchase'
   const [activeTab, setActiveTab] = useState<"sales" | "purchase">("sales");
@@ -142,6 +144,25 @@ export default function ReturnsManagementPage() {
     fetchReturnList(activeTab);
   }, [activeTab]);
 
+  // Handle URL Query Params
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    const orderNoParam = searchParams.get("order_no");
+    const purchaseNoParam = searchParams.get("purchase_no");
+
+    if (tabParam === "purchase" || purchaseNoParam) {
+      setActiveTab("purchase");
+      if (purchaseNoParam) {
+        openModalForRecord(purchaseNoParam, "purchase");
+      }
+    } else if (tabParam === "sales" || orderNoParam) {
+      setActiveTab("sales");
+      if (orderNoParam) {
+        openModalForRecord(orderNoParam, "sales");
+      }
+    }
+  }, [searchParams]);
+
   // Handle Tab Switch
   const handleTabSwitch = (tab: "sales" | "purchase") => {
     if (tab === activeTab) return;
@@ -152,7 +173,11 @@ export default function ReturnsManagementPage() {
   };
 
   // 2. Open Modal & Load Record
-  const openModalForRecord = async (prefillQuery: string = "") => {
+  const openModalForRecord = async (prefillQuery: string = "", targetTab?: "sales" | "purchase") => {
+    const currentTab = targetTab || activeTab;
+    if (targetTab && targetTab !== activeTab) {
+      setActiveTab(targetTab);
+    }
     setLoadedRecord(null);
     setSelectedItems({});
     setReturnQuantities({});
@@ -162,16 +187,17 @@ export default function ReturnsManagementPage() {
     setIsModalOpen(true);
 
     if (prefillQuery.trim()) {
-      await searchRecordForReturn(prefillQuery.trim());
+      await searchRecordForReturn(prefillQuery.trim(), currentTab);
     }
   };
 
   // Search invoice/purchase
-  const searchRecordForReturn = async (queryText: string) => {
+  const searchRecordForReturn = async (queryText: string, targetTab?: "sales" | "purchase") => {
+    const currentTab = targetTab || activeTab;
     const q = queryText.trim();
     if (!q) {
       toast.error(
-        activeTab === "purchase"
+        currentTab === "purchase"
           ? "Please enter a purchase memo number"
           : "Please enter an invoice number"
       );
@@ -180,7 +206,7 @@ export default function ReturnsManagementPage() {
 
     setModalSearching(true);
     try {
-      const url = `/api/returns/search?type=${activeTab}&query=${encodeURIComponent(q)}`;
+      const url = `/api/returns/search?type=${currentTab}&query=${encodeURIComponent(q)}`;
       const res = await fetch(url);
       const data = await res.json();
 
@@ -200,7 +226,7 @@ export default function ReturnsManagementPage() {
         setReturnQuantities(initQty);
       } else {
         setLoadedRecord(null);
-        toast.error(data.message || (activeTab === "purchase" ? "Purchase record not found" : "Invoice not found"));
+        toast.error(data.message || (currentTab === "purchase" ? "Purchase record not found" : "Invoice not found"));
       }
     } catch (err: any) {
       console.error("Search error:", err);
@@ -1019,5 +1045,13 @@ export default function ReturnsManagementPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ReturnsManagementPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading returns...</div>}>
+      <ReturnsManagementContent />
+    </Suspense>
   );
 }

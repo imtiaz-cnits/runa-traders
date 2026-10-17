@@ -23,7 +23,7 @@ import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
-import { Pagination } from "@/components/ui";
+import { Pagination, DeleteConfirmModal } from "@/components/ui";
 
 interface StaffMember {
   id: number;
@@ -76,6 +76,11 @@ export default function StaffPage() {
   });
   const [savingPayout, setSavingPayout] = useState(false);
   const [payoutError, setPayoutError] = useState<string | null>(null);
+
+  // Delete Confirm Modal State
+  const [staffToDelete, setStaffToDelete] = useState<StaffMember | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
@@ -180,28 +185,34 @@ export default function StaffPage() {
     }
   };
 
-  const handleDeleteStaff = async (item: StaffMember) => {
+  const handleDeleteStaff = (item: StaffMember) => {
     if (item.id === 1 || item.id === 7) {
       toast.error("Super Admin account cannot be deleted!");
       return;
     }
+    setDeleteError(null);
+    setStaffToDelete(item);
+  };
 
-    if (!confirm(`Are you sure you want to remove staff member "${item.name}"?`)) {
-      return;
-    }
-
+  const confirmDeleteStaff = async () => {
+    if (!staffToDelete) return;
+    setIsDeleting(true);
+    setDeleteError(null);
     try {
-      const res = await fetch(`/api/staff/${item.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/staff/${staffToDelete.id}`, { method: "DELETE" });
       const data = await res.json();
-      if (data.status === "success") {
+      if (res.ok && data.status === "success") {
         toast.success("Staff member removed successfully!");
+        setStaffToDelete(null);
         setCurrentPage(1);
         loadData();
       } else {
-        toast.error(data.message || "Failed to remove staff");
+        setDeleteError(data.message || "Failed to remove staff");
       }
-    } catch {
-      toast.error("Error deleting staff");
+    } catch (err: any) {
+      setDeleteError(err?.message || "Communication error removing staff");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -546,6 +557,18 @@ export default function StaffPage() {
               >
                 Edit
               </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteStaff(item)}
+                disabled={item.id === 1 || item.id === 7}
+                className={`h-[30px] px-2 rounded-lg text-xs font-bold ${
+                  item.id === 1 || item.id === 7
+                    ? "bg-slate-100 text-slate-300 cursor-not-allowed"
+                    : "bg-rose-50 text-rose-600"
+                }`}
+              >
+                Delete
+              </button>
             </div>
           </div>
         ))}
@@ -838,6 +861,23 @@ export default function StaffPage() {
           </div>
         </div>
       )}
+
+      {/* 8. DELETE CONFIRMATION MODAL */}
+      <DeleteConfirmModal
+        isOpen={!!staffToDelete}
+        onClose={() => {
+          if (!isDeleting) {
+            setStaffToDelete(null);
+            setDeleteError(null);
+          }
+        }}
+        onConfirm={confirmDeleteStaff}
+        title="Remove Staff Member"
+        itemName={staffToDelete ? `${staffToDelete.name} (${staffToDelete.role})` : ""}
+        description="Are you sure you want to remove this staff profile? Staff with linked orders or expense payout records cannot be removed."
+        loading={isDeleting}
+        error={deleteError}
+      />
     </div>
   );
 }

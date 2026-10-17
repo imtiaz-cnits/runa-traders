@@ -20,7 +20,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
-import { CustomSelect, Pagination } from "@/components/ui";
+import { CustomSelect, Pagination, DeleteConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
 interface Supplier {
@@ -48,6 +48,8 @@ export default function SuppliersPage() {
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
 
   // Form states
@@ -207,20 +209,27 @@ export default function SuppliersPage() {
   };
 
   // Delete Supplier
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this supplier?")) return;
+  const handleDelete = (s: Supplier) => {
+    setSupplierToDelete(s);
+  };
+
+  const confirmDeleteSupplier = async () => {
+    if (!supplierToDelete) return;
+    setDeleting(true);
     try {
-      const res = await fetch(`/api/suppliers/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/suppliers/${supplierToDelete.id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.status === "success") {
         toast.success("Supplier deleted successfully!");
+        setSupplierToDelete(null);
         setCurrentPage(1);
         loadSuppliers();
       } else {
         toast.error(data.message || "Failed to delete supplier");
+        throw new Error(data.message || "Failed to delete supplier");
       }
-    } catch (err) {
-      toast.error("Error deleting supplier");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -403,7 +412,7 @@ export default function SuppliersPage() {
                         {/* Delete Button */}
                         <button
                           type="button"
-                          onClick={() => handleDelete(s.id)}
+                          onClick={() => handleDelete(s)}
                           className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
                           title="Delete Supplier"
                         >
@@ -494,8 +503,8 @@ export default function SuppliersPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleDelete(s.id)}
-                  className="h-[30px] px-2.5 rounded-lg bg-rose-50 text-rose-600 text-xs font-bold"
+                  onClick={() => handleDelete(s)}
+                  className="h-[30px] px-2.5 rounded-lg bg-rose-50 text-rose-600 text-xs font-bold cursor-pointer"
                 >
                   Delete
                 </button>
@@ -787,6 +796,21 @@ export default function SuppliersPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(supplierToDelete)}
+        onClose={() => setSupplierToDelete(null)}
+        onConfirm={confirmDeleteSupplier}
+        title="Confirm Supplier Deletion"
+        recordIdentifier={
+          supplierToDelete
+            ? `Supplier: ${supplierToDelete.name} (${supplierToDelete.company})`
+            : null
+        }
+        warningMessage="Are you sure you want to delete this supplier? This action cannot be undone."
+        isLoading={deleting}
+      />
     </div>
   );
 }

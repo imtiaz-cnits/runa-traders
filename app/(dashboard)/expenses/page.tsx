@@ -23,9 +23,7 @@ import {
 import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
-import { CustomSelect } from "@/components/ui/custom-select";
-import { useToast } from "@/components/ui/toast";
-import { Pagination } from "@/components/ui";
+import { Pagination, DeleteConfirmModal, CustomSelect, useToast } from "@/components/ui";
 
 interface Expense {
   id: number;
@@ -96,6 +94,11 @@ export default function ExpensesPage() {
   const [openingAmount, setOpeningAmount] = useState("");
   const [openingNote, setOpeningNote] = useState("");
   const [savingOpening, setSavingOpening] = useState(false);
+
+  // Delete Confirm Modal State
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
@@ -207,20 +210,30 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this expense record?")) return;
+  const handleDelete = (exp: Expense) => {
+    setDeleteError(null);
+    setExpenseToDelete(exp);
+  };
+
+  const confirmDeleteExpense = async () => {
+    if (!expenseToDelete) return;
+    setIsDeleting(true);
+    setDeleteError(null);
     try {
-      const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/expenses/${expenseToDelete.id}`, { method: "DELETE" });
       const data = await res.json();
-      if (data.status === "success") {
+      if (res.ok && data.status === "success") {
         toast.success("Expense deleted successfully!");
+        setExpenseToDelete(null);
         setCurrentPage(1);
         loadData();
       } else {
-        toast.error(data.message || "Failed to delete expense");
+        setDeleteError(data.message || "Failed to delete expense record");
       }
-    } catch {
-      toast.error("Error deleting expense");
+    } catch (err: any) {
+      setDeleteError(err?.message || "Communication error deleting expense");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -530,7 +543,7 @@ export default function ExpensesPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDelete(exp.id)}
+                          onClick={() => handleDelete(exp)}
                           className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
                           title="Delete Expense"
                         >
@@ -595,7 +608,7 @@ export default function ExpensesPage() {
               </button>
               <button
                 type="button"
-                onClick={() => handleDelete(exp.id)}
+                onClick={() => handleDelete(exp)}
                 className="h-[30px] px-2.5 rounded-lg bg-rose-50 text-rose-600 text-xs font-bold"
               >
                 Delete
@@ -828,6 +841,23 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
+
+      {/* 8. DELETE CONFIRMATION MODAL */}
+      <DeleteConfirmModal
+        isOpen={!!expenseToDelete}
+        onClose={() => {
+          if (!isDeleting) {
+            setExpenseToDelete(null);
+            setDeleteError(null);
+          }
+        }}
+        onConfirm={confirmDeleteExpense}
+        title="Delete Expense Record"
+        itemName={expenseToDelete ? `${expenseToDelete.type_name} (${formatBdCurrency(expenseToDelete.expense_amount)})` : ""}
+        description="Are you sure you want to delete this expense record? This will permanently remove the expense transaction from accounts."
+        loading={isDeleting}
+        error={deleteError}
+      />
     </div>
   );
 }

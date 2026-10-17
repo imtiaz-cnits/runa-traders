@@ -19,7 +19,7 @@ import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
-import { Pagination } from "@/components/ui";
+import { Pagination, DeleteConfirmModal } from "@/components/ui";
 
 interface ExpenseType {
   id: number;
@@ -45,6 +45,11 @@ export default function ExpenseTypesPage() {
   const [status, setStatus] = useState("Active");
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Delete Confirm Modal State
+  const [typeToDelete, setTypeToDelete] = useState<ExpenseType | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const loadExpenseTypes = async () => {
     try {
@@ -129,36 +134,38 @@ export default function ExpenseTypesPage() {
     }
   };
 
-  const handleDelete = async (item: ExpenseType) => {
+  const handleDelete = (item: ExpenseType) => {
     if (item.total_records > 0) {
       toast.error(
         `Cannot delete "${item.type_name}" because it already has ${item.total_records} expense records.`
       );
       return;
     }
+    setDeleteError(null);
+    setTypeToDelete(item);
+  };
 
-    if (
-      !confirm(
-        `Are you sure you want to delete the expense category "${item.type_name}"?`
-      )
-    ) {
-      return;
-    }
-
+  const confirmDeleteType = async () => {
+    if (!typeToDelete) return;
+    setIsDeleting(true);
+    setDeleteError(null);
     try {
-      const res = await fetch(`/api/expense-types/${item.id}`, {
+      const res = await fetch(`/api/expense-types/${typeToDelete.id}`, {
         method: "DELETE",
       });
       const data = await res.json();
-      if (data.status === "success") {
+      if (res.ok && data.status === "success") {
         toast.success("Expense category deleted successfully!");
+        setTypeToDelete(null);
         setCurrentPage(1);
         loadExpenseTypes();
       } else {
-        toast.error(data.message || "Failed to delete expense type");
+        setDeleteError(data.message || "Failed to delete expense type");
       }
-    } catch {
-      toast.error("Error deleting expense type");
+    } catch (err: any) {
+      setDeleteError(err?.message || "Communication error deleting expense category");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -537,6 +544,23 @@ export default function ExpenseTypesPage() {
           </div>
         </div>
       )}
+
+      {/* 6. DELETE CONFIRMATION MODAL */}
+      <DeleteConfirmModal
+        isOpen={!!typeToDelete}
+        onClose={() => {
+          if (!isDeleting) {
+            setTypeToDelete(null);
+            setDeleteError(null);
+          }
+        }}
+        onConfirm={confirmDeleteType}
+        title="Delete Expense Category"
+        itemName={typeToDelete ? typeToDelete.type_name : ""}
+        description="Are you sure you want to delete this expense category? Categories with active expense entries cannot be removed."
+        loading={isDeleting}
+        error={deleteError}
+      />
     </div>
   );
 }

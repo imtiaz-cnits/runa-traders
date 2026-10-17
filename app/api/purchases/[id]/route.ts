@@ -87,3 +87,96 @@ export async function GET(
     return NextResponse.json({ status: "fail", message: error?.message }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const purchaseId = BigInt(id);
+
+    const purchase = await prisma.purchases.findUnique({
+      where: { id: purchaseId },
+      include: {
+        purchase_order_details: true,
+      },
+    });
+
+    if (!purchase) {
+      return NextResponse.json({ status: "fail", message: "Purchase record not found" }, { status: 404 });
+    }
+
+    // Safeguard: Check if purchase has returns
+    const hasReturns = await prisma.purchase_returns.count({
+      where: { purchase_id: purchaseId },
+    });
+
+    if (hasReturns > 0) {
+      return NextResponse.json(
+        {
+          status: "fail",
+          message: "Cannot delete purchase because it has associated purchase return records.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Execute atomic deletion with stock and balance reversal
+    await prisma.$transaction(async (tx) => {
+      // 1. Revert product stocks
+      for (const d of purchase.purchase_order_details) {
+        const qtyNum = parseFloat(d.quantity || "0");
+        const [prod]: any = await tx.$queryRawUnsafe(
+          "SELECT quantity FROM products WHERE id = ?",
+          d.product_id
+        );
+        if (prod) {
+          const currentStock = parseFloat(prod.quantity || "0");
+          const revertedStock = Math.max(0, currentStock - qtyNum);
+          await tx.products.update({
+            where: { id: d.product_id },
+            data: { quantity: String(revertedStock) },
+          });
+        }
+      }
+
+      // 2. Adjust supplier payable due amount
+      const dueNum = parseFloat(purchase.due_amount || "0");
+      if (purchase.supplier_id && dueNum > 0) {
+        const supp = await tx.suppliers.findUnique({
+          where: { id: purchase.supplier_id },
+        });
+        if (supp) {
+          const currentPayable = parseFloat(supp.purchase_payable_amount || "0");
+          const revertedPayable = Math.max(0, currentPayable - dueNum);
+          await tx.suppliers.update({
+            where: { id: purchase.supplier_id },
+            data: { purchase_payable_amount: String(revertedPayable) },
+          });
+        }
+      }
+
+      // 3. Delete payments, items, and purchase
+      await tx.purchase_payment_details.deleteMany({
+        where: { purchases_id: purchaseId },
+      });
+
+      await tx.purchase_order_details.deleteMany({
+        where: { purchase_id: purchaseId },
+      });
+
+      await tx.purchases.delete({
+        where: { id: purchaseId },
+      });
+    });
+
+    return NextResponse.json({
+      status: "success",
+      message: "Purchase record deleted and inventory/balances reverted successfully.",
+    });
+  } catch (error: any) {
+    console.error("Purchase DELETE Error:", error);
+    return NextResponse.json({ status: "fail", message: error?.message || "Failed to delete purchase" }, { status: 500 });
+  }
+}

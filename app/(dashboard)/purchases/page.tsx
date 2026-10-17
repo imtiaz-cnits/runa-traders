@@ -16,11 +16,14 @@ import {
   AlertCircle,
   FileText,
   Calendar,
+  RotateCcw,
 } from "lucide-react";
+import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui/custom-select";
-import { Pagination } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
+import { Pagination, DeleteConfirmModal } from "@/components/ui";
 
 interface PurchaseItem {
   product_id: number;
@@ -85,6 +88,7 @@ interface Product {
 }
 
 export default function PurchasesPage() {
+  const { toast } = useToast();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -96,6 +100,11 @@ export default function PurchasesPage() {
   // Modals
   const [isNewPurchaseOpen, setIsNewPurchaseOpen] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
+
+  // Delete Confirm Modal State
+  const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // New purchase form
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
@@ -143,6 +152,33 @@ export default function PurchasesPage() {
   useEffect(() => {
     loadData();
   }, [search]);
+
+  const handleDeletePurchase = (p: Purchase) => {
+    setDeleteError(null);
+    setPurchaseToDelete(p);
+  };
+
+  const confirmDeletePurchase = async () => {
+    if (!purchaseToDelete) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/purchases/${purchaseToDelete.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok && data.status === "success") {
+        toast.success("Purchase record deleted and stock reverted successfully!");
+        setPurchaseToDelete(null);
+        setCurrentPage(1);
+        loadData();
+      } else {
+        setDeleteError(data.message || "Failed to delete purchase record");
+      }
+    } catch (err: any) {
+      setDeleteError(err?.message || "Communication error deleting purchase");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Handle adding product line to new purchase
   const handleAddLineItem = () => {
@@ -413,15 +449,31 @@ export default function PurchasesPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedPurchase(p)}
-                        className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1 mx-auto transition-colors cursor-pointer"
-                        title="View Purchase Details"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>View</span>
-                      </button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPurchase(p)}
+                          className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                          title="View Purchase Details"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                        </button>
+                        <Link
+                          href={`/returns?tab=purchase&purchase_no=${encodeURIComponent(p.purchase_id)}`}
+                          className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Process Purchase Return"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePurchase(p)}
+                          className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Delete Purchase"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -482,14 +534,31 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setSelectedPurchase(p)}
-              className="w-full h-[32px] rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>View Inward Voucher</span>
-            </button>
+            <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setSelectedPurchase(p)}
+                className="h-[30px] px-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-1"
+              >
+                <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                <span>View</span>
+              </button>
+              <Link
+                href={`/returns?tab=purchase&purchase_no=${encodeURIComponent(p.purchase_id)}`}
+                className="h-[30px] px-2.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center gap-1"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Return</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => handleDeletePurchase(p)}
+                className="h-[30px] px-2.5 rounded-lg bg-rose-50 text-rose-600 font-bold text-xs flex items-center gap-1"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete</span>
+              </button>
+            </div>
           </div>
         ))}
 
@@ -915,6 +984,23 @@ export default function PurchasesPage() {
           </div>
         </div>
       )}
+
+      {/* 7. DELETE CONFIRMATION MODAL */}
+      <DeleteConfirmModal
+        isOpen={!!purchaseToDelete}
+        onClose={() => {
+          if (!isDeleting) {
+            setPurchaseToDelete(null);
+            setDeleteError(null);
+          }
+        }}
+        onConfirm={confirmDeletePurchase}
+        title="Delete Purchase Record"
+        itemName={purchaseToDelete ? `${purchaseToDelete.purchase_id} (${purchaseToDelete.supplier?.name || "Supplier"})` : ""}
+        description="Are you sure you want to delete this purchase inward record? Product stock will be decremented and supplier payable due balances will be safely reversed. Purchases with returns cannot be deleted."
+        loading={isDeleting}
+        error={deleteError}
+      />
     </div>
   );
 }

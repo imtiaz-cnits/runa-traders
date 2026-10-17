@@ -122,6 +122,32 @@ export async function DELETE(
       );
     }
 
+    const dueCount = await prisma.supplier_due_collections.count({
+      where: { supplier_id: supplierId },
+    });
+    if (dueCount > 0) {
+      return NextResponse.json(
+        {
+          status: "fail",
+          message: `Cannot delete supplier with ${dueCount} associated due payment records.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const returnCount = await prisma.purchase_returns.count({
+      where: { supplier_id: supplierId },
+    });
+    if (returnCount > 0) {
+      return NextResponse.json(
+        {
+          status: "fail",
+          message: `Cannot delete supplier with ${returnCount} associated purchase return records.`,
+        },
+        { status: 400 }
+      );
+    }
+
     await prisma.suppliers.delete({
       where: { id: supplierId },
     });

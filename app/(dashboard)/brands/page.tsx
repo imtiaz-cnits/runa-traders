@@ -10,7 +10,7 @@ import {
   X,
   Loader2,
 } from "lucide-react";
-import { CustomSelect, Pagination } from "@/components/ui";
+import { CustomSelect, Pagination, DeleteConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
 interface BrandItem {
@@ -29,6 +29,8 @@ export default function BrandsPage() {
   const [pageSize, setPageSize] = useState(20);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<BrandItem | null>(null);
+  const [brandToDelete, setBrandToDelete] = useState<BrandItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -103,20 +105,27 @@ export default function BrandsPage() {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("Are you sure you want to delete this brand?")) return;
+  function handleDelete(brand: BrandItem) {
+    setBrandToDelete(brand);
+  }
+
+  async function confirmDelete() {
+    if (!brandToDelete) return;
+    setDeleting(true);
     try {
-      const res = await fetch(`/api/brands/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/brands/${brandToDelete.id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.status === "success") {
         toast.success("Brand deleted successfully!");
+        setBrandToDelete(null);
         setCurrentPage(1);
         loadData();
       } else {
         toast.error(data.message || "Failed to delete brand");
+        throw new Error(data.message || "Failed to delete brand");
       }
-    } catch {
-      toast.error("Failed to delete brand");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -227,7 +236,7 @@ export default function BrandsPage() {
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => handleDelete(b.id)}
+                          onClick={() => handleDelete(b)}
                           title="Delete"
                           className="w-7 h-7 rounded-lg border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
                         >
@@ -278,8 +287,8 @@ export default function BrandsPage() {
                     <Edit2 className="w-3 h-3" />
                   </button>
                   <button
-                    onClick={() => handleDelete(b.id)}
-                    className="w-7 h-7 rounded-lg border border-rose-200 text-rose-600 flex items-center justify-center"
+                    onClick={() => handleDelete(b)}
+                    className="w-7 h-7 rounded-lg border border-rose-200 text-rose-600 flex items-center justify-center cursor-pointer"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -376,6 +385,17 @@ export default function BrandsPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(brandToDelete)}
+        onClose={() => setBrandToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Confirm Brand Deletion"
+        recordIdentifier={brandToDelete ? `Brand: ${brandToDelete.name}` : null}
+        warningMessage="Are you sure you want to delete this brand? This action cannot be undone."
+        isLoading={deleting}
+      />
     </div>
   );
 }

@@ -65,6 +65,21 @@ export async function DELETE(
       );
     }
 
+    const [expenseCount, orderCount] = await Promise.all([
+      prisma.expenses.count({ where: { user_id: staffId } }),
+      prisma.orders.count({ where: { user_id: staffId } }),
+    ]);
+
+    if (expenseCount > 0 || orderCount > 0) {
+      return NextResponse.json(
+        {
+          status: "fail",
+          message: `Cannot delete staff member because they have associated records (${expenseCount} expenses, ${orderCount} orders).`,
+        },
+        { status: 400 }
+      );
+    }
+
     await prisma.users.delete({
       where: { id: staffId },
     });

@@ -1,6 +1,7 @@
 "use client";
 
 import { Printer, X, Truck, Calendar, User, MapPin } from "lucide-react";
+import { parseBoxAndPcs } from "@/lib/tiles-calculator";
 
 interface ChallanItem {
   id: number;
@@ -43,7 +44,22 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
     window.print();
   };
 
-  const totalQuantity = challan.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  let totalBoxes = 0;
+  let totalPcs = 0;
+  challan.items.forEach((it) => {
+    const { fullBoxes, pcs } = parseBoxAndPcs(it.quantity, it.pcs_per_box, it.tile_size);
+    totalBoxes += fullBoxes;
+    totalPcs += pcs;
+  });
+
+  const formattedTotalDispatch =
+    totalBoxes > 0 && totalPcs > 0
+      ? `${totalBoxes} Boxes, ${totalPcs} Pcs`
+      : totalBoxes > 0
+      ? `${totalBoxes} Boxes`
+      : totalPcs > 0
+      ? `${totalPcs} Pcs`
+      : "0 Box";
 
   const formattedDate = challan.challan_date
     ? new Date(challan.challan_date).toLocaleDateString("en-GB", {
@@ -211,36 +227,40 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 text-slate-800">
-                    {challan.items.map((item, idx) => (
-                      <tr key={item.id || idx} className="hover:bg-slate-50/50">
-                        <td className="py-1.5 px-2 text-center text-slate-500 font-mono text-[10px]">
-                          {idx + 1}
-                        </td>
-                        <td className="py-1.5 px-2 font-semibold text-slate-900 leading-tight">
-                          {item.product_name}
-                        </td>
-                        <td className="py-1.5 px-1.5 text-center text-slate-600 text-[10px]">
-                          {item.tile_size || "-"}
-                        </td>
-                        <td className="py-1.5 px-2 text-right font-bold font-mono text-slate-900">
-                          {item.quantity}
-                        </td>
-                        <td className="py-1.5 px-1.5 text-center text-slate-600 text-[10px]">
-                          {item.unit || "Box"}
-                        </td>
-                      </tr>
-                    ))}
+                    {challan.items.map((item, idx) => {
+                      const { fullBoxes, pcs, formatted } = parseBoxAndPcs(
+                        item.quantity,
+                        item.pcs_per_box,
+                        item.tile_size
+                      );
+                      return (
+                        <tr key={item.id || idx} className="hover:bg-slate-50/50">
+                          <td className="py-1.5 px-2 text-center text-slate-500 font-mono text-[10px]">
+                            {idx + 1}
+                          </td>
+                          <td className="py-1.5 px-2 font-semibold text-slate-900 leading-tight">
+                            {item.product_name}
+                          </td>
+                          <td className="py-1.5 px-1.5 text-center text-slate-600 text-[10px]">
+                            {item.tile_size || "-"}
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-bold font-mono text-slate-900 whitespace-nowrap">
+                            {formatted}
+                          </td>
+                          <td className="py-1.5 px-1.5 text-center text-slate-600 text-[10px] whitespace-nowrap">
+                            {fullBoxes > 0 && pcs > 0 ? "Box, Pcs" : fullBoxes > 0 ? "Box" : "Pcs"}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                   <tfoot>
                     <tr className="bg-slate-100 border-t-2 border-slate-300 font-bold text-slate-900 text-[11px]">
                       <td colSpan={3} className="py-1.5 px-2 text-right uppercase text-[10px]">
                         Total Dispatch:
                       </td>
-                      <td className="py-1.5 px-2 text-right font-mono font-black text-rose-900">
-                        {totalQuantity}
-                      </td>
-                      <td className="py-1.5 px-1.5 text-center text-[10px]">
-                        Boxes
+                      <td colSpan={2} className="py-1.5 px-2 text-right font-mono font-black text-rose-900 whitespace-nowrap">
+                        {formattedTotalDispatch}
                       </td>
                     </tr>
                   </tfoot>

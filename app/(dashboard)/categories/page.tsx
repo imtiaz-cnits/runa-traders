@@ -12,7 +12,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import { CustomSelect, Pagination } from "@/components/ui";
+import { CustomSelect, Pagination, DeleteConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
 interface CategoryItem {
@@ -31,6 +31,8 @@ export default function CategoriesPage() {
   const [pageSize, setPageSize] = useState(20);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CategoryItem | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<CategoryItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -105,20 +107,27 @@ export default function CategoriesPage() {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("Are you sure you want to delete this category?")) return;
+  function handleDelete(category: CategoryItem) {
+    setCategoryToDelete(category);
+  }
+
+  async function confirmDelete() {
+    if (!categoryToDelete) return;
+    setDeleting(true);
     try {
-      const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/categories/${categoryToDelete.id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.status === "success") {
         toast.success("Category deleted successfully!");
+        setCategoryToDelete(null);
         setCurrentPage(1);
         loadData();
       } else {
         toast.error(data.message || "Failed to delete category");
+        throw new Error(data.message || "Failed to delete category");
       }
-    } catch {
-      toast.error("Failed to delete category");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -234,7 +243,7 @@ export default function CategoriesPage() {
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => handleDelete(c.id)}
+                          onClick={() => handleDelete(c)}
                           title="Delete"
                           className="w-7 h-7 rounded-lg border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
                         >
@@ -285,8 +294,8 @@ export default function CategoriesPage() {
                     <Edit2 className="w-3 h-3" />
                   </button>
                   <button
-                    onClick={() => handleDelete(c.id)}
-                    className="w-7 h-7 rounded-lg border border-rose-200 text-rose-600 flex items-center justify-center"
+                    onClick={() => handleDelete(c)}
+                    className="w-7 h-7 rounded-lg border border-rose-200 text-rose-600 flex items-center justify-center cursor-pointer"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -384,6 +393,17 @@ export default function CategoriesPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(categoryToDelete)}
+        onClose={() => setCategoryToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Confirm Category Deletion"
+        recordIdentifier={categoryToDelete ? `Category: ${categoryToDelete.category_name}` : null}
+        warningMessage="Are you sure you want to delete this category? This action cannot be undone."
+        isLoading={deleting}
+      />
     </div>
   );
 }

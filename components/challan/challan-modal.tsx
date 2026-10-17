@@ -15,6 +15,7 @@ import {
   User,
 } from "lucide-react";
 import { ChallanPrintReceipt, ChallanPrintData } from "./challan-print-receipt";
+import { formatBoxAndPcs } from "@/lib/tiles-calculator";
 
 interface ChallanModalProps {
   orderId: number;
@@ -175,13 +176,13 @@ export function ChallanModal({
           </div>
 
           {/* Body Content */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
-            {loading ? (
-              <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
-                <Loader2 className="w-8 h-8 animate-spin text-rose-600" />
-                <p className="text-xs font-medium">Checking invoice eligibility...</p>
-              </div>
-            ) : error ? (
+          {loading ? (
+            <div className="flex-1 overflow-y-auto p-5 flex flex-col items-center justify-center gap-3 text-slate-400">
+              <Loader2 className="w-8 h-8 animate-spin text-rose-600" />
+              <p className="text-xs font-medium">Checking invoice eligibility...</p>
+            </div>
+          ) : error ? (
+            <div className="flex-1 overflow-y-auto p-5">
               <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs flex items-start gap-2.5">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <div>
@@ -189,8 +190,118 @@ export function ChallanModal({
                   <p className="mt-0.5">{error}</p>
                 </div>
               </div>
-            ) : (
-              <>
+            </div>
+          ) : invoiceData?.has_existing_challan ? (
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {/* Invoice Summary Card */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#1e293b]/70 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Invoice Reference
+                    </span>
+                    <p className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                      {invoiceData?.order_no}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Status
+                    </span>
+                    <div className="mt-0.5">
+                      <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-900">
+                        Delivered ({invoiceData.existing_challan?.challan_no})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+                  <div>
+                    Customer: <span className="font-bold text-slate-900 dark:text-white">{invoiceData?.customer?.name}</span>
+                  </div>
+                  {invoiceData?.customer?.mobile && (
+                    <div>
+                      Mobile: <span className="font-mono">{invoiceData.customer.mobile}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Already Issued Notice */}
+              <div className="p-4 rounded-xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 space-y-3 text-center">
+                <CheckCircle2 className="w-10 h-10 text-rose-600 mx-auto" />
+                <div>
+                  <h4 className="font-bold text-sm text-rose-950 dark:text-rose-200">
+                    Delivery Challan Already Issued
+                  </h4>
+                  <p className="text-xs text-rose-700 dark:text-rose-400 mt-1">
+                    Challan No: <span className="font-mono font-bold">{invoiceData.existing_challan?.challan_no}</span>
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Stock was already deducted upon Challan generation. You can view or reprint the document safely without mutating stock.
+                  </p>
+                </div>
+                <button
+                  onClick={handleViewExistingChallan}
+                  className="h-10 px-5 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white font-bold text-xs inline-flex items-center gap-2 shadow-xs cursor-pointer transition-colors"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>View & Reprint Challan</span>
+                </button>
+              </div>
+            </div>
+          ) : !invoiceData?.is_eligible ? (
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {/* Invoice Summary Card */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#1e293b]/70 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Invoice Reference
+                    </span>
+                    <p className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                      {invoiceData?.order_no}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Status
+                    </span>
+                    <div className="mt-0.5">
+                      <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                        {invoiceData?.eligibility_reason || "Challan Not Required"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+                  <div>
+                    Customer: <span className="font-bold text-slate-900 dark:text-white">{invoiceData?.customer?.name}</span>
+                  </div>
+                  {invoiceData?.customer?.mobile && (
+                    <div>
+                      Mobile: <span className="font-mono">{invoiceData.customer.mobile}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Ineligible Notice */}
+              <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center space-y-2">
+                <Package className="w-8 h-8 text-slate-400 mx-auto" />
+                <p className="font-bold text-xs text-slate-700 dark:text-slate-300">
+                  {invoiceData?.eligibility_reason || "Challan Not Required"}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  This invoice either contains only non-tiles items (fulfilled immediately at POS checkout) or is a completed historical invoice.
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* Eligible Form: Dispatch Tiles items with Scrollable Body & Sticky Bottom Buttons */
+            <form onSubmit={handleGenerateChallan} className="flex-1 min-h-0 flex flex-col overflow-hidden">
+              {/* Scrollable Form Body */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
                 {/* Invoice Summary Card */}
                 <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#1e293b]/70 border border-slate-200 dark:border-slate-800 space-y-2">
                   <div className="flex items-center justify-between">
@@ -207,20 +318,8 @@ export function ChallanModal({
                         Status
                       </span>
                       <div className="mt-0.5">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            invoiceData?.has_existing_challan || invoiceData?.challan_status === "DELIVERED"
-                              ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-900"
-                              : invoiceData?.is_eligible
-                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-900"
-                              : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
-                          }`}
-                        >
-                          {invoiceData?.has_existing_challan
-                            ? `Delivered (${invoiceData.existing_challan?.challan_no})`
-                            : invoiceData?.is_eligible
-                            ? "Pending Challan Dispatch"
-                            : invoiceData?.eligibility_reason}
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-900">
+                          Pending Challan Dispatch
                         </span>
                       </div>
                     </div>
@@ -238,187 +337,152 @@ export function ChallanModal({
                   </div>
                 </div>
 
-                {/* If Challan Already Exists */}
-                {invoiceData?.has_existing_challan ? (
-                  <div className="p-4 rounded-xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 space-y-3 text-center">
-                    <CheckCircle2 className="w-10 h-10 text-rose-600 mx-auto" />
-                    <div>
-                      <h4 className="font-bold text-sm text-rose-950 dark:text-rose-200">
-                        Delivery Challan Already Issued
-                      </h4>
-                      <p className="text-xs text-rose-700 dark:text-rose-400 mt-1">
-                        Challan No: <span className="font-mono font-bold">{invoiceData.existing_challan?.challan_no}</span>
-                      </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        Stock was already deducted upon Challan generation. You can view or reprint the document safely without mutating stock.
-                      </p>
-                    </div>
-                    <button
-                      onClick={handleViewExistingChallan}
-                      className="h-10 px-5 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white font-bold text-xs inline-flex items-center gap-2 shadow-xs cursor-pointer transition-colors"
-                    >
-                      <Printer className="w-4 h-4" />
-                      <span>View & Reprint Challan</span>
-                    </button>
-                  </div>
-                ) : !invoiceData?.is_eligible ? (
-                  /* Ineligible (e.g. Non-Tiles or Legacy Fulfilled) */
-                  <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center space-y-2">
-                    <Package className="w-8 h-8 text-slate-400 mx-auto" />
-                    <p className="font-bold text-xs text-slate-700 dark:text-slate-300">
-                      {invoiceData?.eligibility_reason || "Challan Not Required"}
-                    </p>
-                    <p className="text-[11px] text-slate-500">
-                      This invoice either contains only non-tiles items (fulfilled immediately at POS checkout) or is a completed historical invoice.
-                    </p>
-                  </div>
-                ) : (
-                  /* Eligible Form: Dispatch Tiles items */
-                  <form onSubmit={handleGenerateChallan} className="space-y-4">
-                    {/* Tiles Line Items Preview */}
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                        Eligible Tiles Items ({invoiceData?.tiles_items?.length || 0})
-                      </label>
-                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                        {invoiceData?.tiles_items?.map((item: any) => (
-                          <div
-                            key={item.order_detail_id}
-                            className="p-3 flex items-center justify-between gap-3 bg-white dark:bg-slate-900"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <p className="font-bold text-slate-900 dark:text-white truncate">
-                                {item.product_name}
-                              </p>
-                              <p className="text-[10px] text-slate-500">
-                                Size: {item.tile_size || "Standard"} {item.grade ? `• Grade: ${item.grade}` : ""}
-                              </p>
-                              <span className="inline-block text-[9px] text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
-                                Ordered: {item.quantity} {item.unit || "Box"}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                Dispatch Qty:
-                              </label>
-                              <input
-                                type="number"
-                                step="any"
-                                min="0.01"
-                                value={itemQuantities[item.order_detail_id] ?? item.quantity}
-                                onChange={(e) =>
-                                  setItemQuantities((prev) => ({
-                                    ...prev,
-                                    [item.order_detail_id]: e.target.value,
-                                  }))
-                                }
-                                className="w-20 sm:w-24 h-[36px] px-2 text-right font-mono font-bold text-rose-700 dark:text-rose-400 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs focus:outline-hidden focus:ring-2 focus:ring-rose-500"
-                              />
-                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                {item.unit || "Box"}
-                              </span>
-                            </div>
+                {/* Tiles Line Items Preview */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Eligible Tiles Items ({invoiceData?.tiles_items?.length || 0})
+                  </label>
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                    {invoiceData?.tiles_items?.map((item: any) => {
+                      const currentQty = itemQuantities[item.order_detail_id] ?? item.quantity;
+                      const formattedQty = formatBoxAndPcs(currentQty, item.pcs_per_box, item.tile_size);
+                      return (
+                        <div
+                          key={item.order_detail_id}
+                          className="p-3 flex items-center justify-between gap-3 bg-white dark:bg-slate-900"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-slate-900 dark:text-white truncate">
+                              {item.product_name}
+                            </p>
+                            <p className="text-[10px] text-slate-500">
+                              Size: {item.tile_size || "Standard"} {item.grade ? `• Grade: ${item.grade}` : ""}
+                            </p>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Delivery & Logistics Inputs */}
-                    <div className="space-y-3 pt-1">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                          Delivery Destination Address
-                        </label>
-                        <input
-                          type="text"
-                          value={deliveryAddress}
-                          onChange={(e) => setDeliveryAddress(e.target.value)}
-                          placeholder="e.g. Construction Site, Road 4, Pabna"
-                          className="h-[42px] w-full px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-600 focus:border-rose-600"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Driver Name <span className="text-slate-400 font-normal">(Optional)</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={driverName}
-                            onChange={(e) => setDriverName(e.target.value)}
-                            placeholder="e.g. Md. Karim"
-                            className="h-[42px] w-full px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-600 focus:border-rose-600"
-                          />
+                          <div className="flex items-center gap-2.5 shrink-0">
+                            <div className="text-right">
+                              <span className="font-mono font-bold text-rose-700 dark:text-rose-400 text-sm block">
+                                {formattedQty}
+                              </span>
+                              <span className="block text-[9px] text-amber-600 dark:text-amber-400 font-semibold">
+                                Pending Dispatch
+                              </span>
+                            </div>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0.01"
+                              title="Edit Dispatch Quantity (in boxes, e.g. 4.08)"
+                              value={currentQty}
+                              onChange={(e) =>
+                                setItemQuantities((prev) => ({
+                                  ...prev,
+                                  [item.order_detail_id]: e.target.value,
+                                }))
+                              }
+                              className="w-16 h-[32px] px-1 text-center font-mono font-bold text-xs text-rose-700 dark:text-rose-400 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-rose-500"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Driver Phone No <span className="text-slate-400 font-normal">(Optional)</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={driverPhone}
-                            onChange={(e) => setDriverPhone(e.target.value)}
-                            placeholder="e.g. 01700-123456"
-                            className="h-[42px] w-full px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-600 focus:border-rose-600"
-                          />
-                        </div>
-                      </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                          Dispatch Note <span className="text-slate-400 font-normal">(Optional)</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={note}
-                          onChange={(e) => setNote(e.target.value)}
-                          placeholder="e.g. Handle with care, offload ground floor"
-                          className="h-[42px] w-full px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-600 focus:border-rose-600"
-                        />
-                      </div>
-                    </div>
+                {/* Delivery & Logistics Inputs */}
+                <div className="space-y-3 pt-1">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Delivery Destination Address
+                    </label>
+                    <input
+                      type="text"
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      placeholder="e.g. Construction Site, Road 4, Pabna"
+                      className="h-[42px] w-full px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-600 focus:border-rose-600"
+                    />
+                  </div>
 
-                    {/* Stock Alert Notice */}
-                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-[11px] text-amber-900 dark:text-amber-300 flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <span>
-                        Generating this Challan will permanently decrement physical warehouse stock for the listed Tiles items and mark this invoice as Delivered.
-                      </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Driver Name <span className="text-slate-400 font-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={driverName}
+                        onChange={(e) => setDriverName(e.target.value)}
+                        placeholder="e.g. Md. Karim"
+                        className="h-[42px] w-full px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-600 focus:border-rose-600"
+                      />
                     </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Driver Phone No <span className="text-slate-400 font-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={driverPhone}
+                        onChange={(e) => setDriverPhone(e.target.value)}
+                        placeholder="e.g. 01700-123456"
+                        className="h-[42px] w-full px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-600 focus:border-rose-600"
+                      />
+                    </div>
+                  </div>
 
-                    {/* Submit Button */}
-                    <div className="pt-2 flex items-center justify-end gap-2.5">
-                      <button
-                        type="button"
-                        onClick={onClose}
-                        className="h-[42px] px-4 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        className="h-[42px] px-6 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] disabled:opacity-50 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
-                      >
-                        {submitting ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Processing & Deducting Stock...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Truck className="w-4 h-4" />
-                            <span>Generate & Dispatch Challan</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </>
-            )}
-          </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Dispatch Note <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="e.g. Handle with care, offload ground floor"
+                      className="h-[42px] w-full px-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-600 focus:border-rose-600"
+                    />
+                  </div>
+                </div>
+
+                {/* Stock Alert Notice */}
+                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-[11px] text-amber-900 dark:text-amber-300 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    Generating this Challan will permanently decrement physical warehouse stock for the listed Tiles items and mark this invoice as Delivered.
+                  </span>
+                </div>
+              </div>
+
+              {/* Sticky Footer Action Buttons (Header-like sticky pinned to bottom) */}
+              <div className="shrink-0 px-5 py-3.5 bg-slate-50 dark:bg-[#1e293b]/90 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5 shadow-xs">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="h-[42px] px-5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="h-[42px] px-6 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] disabled:opacity-50 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Processing & Deducting Stock...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Truck className="w-4 h-4" />
+                      <span>Generate & Dispatch Challan</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
 

@@ -88,8 +88,27 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const prodId = BigInt(id);
+
+    const [orderCount, purchaseCount, returnCount, challanCount] = await Promise.all([
+      prisma.order_details.count({ where: { product_id: prodId } }),
+      prisma.purchase_order_details.count({ where: { product_id: prodId } }),
+      prisma.product_returns.count({ where: { product_id: prodId } }),
+      prisma.challan_items.count({ where: { product_id: prodId } }),
+    ]);
+
+    if (orderCount > 0 || purchaseCount > 0 || returnCount > 0 || challanCount > 0) {
+      return NextResponse.json(
+        {
+          status: "fail",
+          message: `Cannot delete product because it has transaction history (${orderCount} sales, ${purchaseCount} purchases, ${returnCount} returns, ${challanCount} challans).`,
+        },
+        { status: 400 }
+      );
+    }
+
     await prisma.products.delete({
-      where: { id: BigInt(id) },
+      where: { id: prodId },
     });
 
     return NextResponse.json({
@@ -97,6 +116,6 @@ export async function DELETE(
       message: "Product deleted successfully",
     });
   } catch (error: any) {
-    return NextResponse.json({ status: "fail", message: error?.message }, { status: 500 });
+    return NextResponse.json({ status: "fail", message: error?.message || "Failed to delete product" }, { status: 500 });
   }
 }

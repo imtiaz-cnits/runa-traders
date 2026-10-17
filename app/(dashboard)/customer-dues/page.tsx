@@ -229,10 +229,10 @@ export default function CustomerDuesPage() {
                       <button
                         type="button"
                         onClick={() => handleOpenCollect(c)}
-                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs mx-auto"
+                        className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs mx-auto"
                       >
                         <Wallet className="w-3.5 h-3.5" />
-                        <span>Collect Due</span>
+                        <span className="whitespace-nowrap">Collect Due</span>
                       </button>
                     </td>
                   </tr>

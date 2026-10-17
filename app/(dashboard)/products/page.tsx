@@ -28,7 +28,7 @@ import {
   autoCalculateSqftPerBox,
   formatBoxAndPcs,
 } from "@/lib/tiles-calculator";
-import { CustomSelect, Pagination } from "@/components/ui";
+import { CustomSelect, Pagination, DeleteConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
 interface ProductItem {
@@ -268,9 +268,8 @@ export default function ProductsPage() {
         loadData();
       } else {
         toast.error(data.message || "Failed to delete product");
+        throw new Error(data.message || "Failed to delete product");
       }
-    } catch {
-      toast.error("Failed to delete product");
     } finally {
       setDeleting(false);
     }
@@ -1583,72 +1582,20 @@ export default function ProductsPage() {
       )}
 
       {/* Custom Delete Confirmation Modal */}
-      {productToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[16px] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-5 py-3.5 flex items-center justify-between shadow-xs">
-              <div className="flex items-center gap-2 text-white font-bold text-sm">
-                <Trash2 className="w-4 h-4 text-rose-200" />
-                <span>পণ্য ডিলিট নিশ্চিতকরণ (Confirm Delete)</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setProductToDelete(null)}
-                className="w-7 h-7 rounded-full bg-[#dc2626] hover:bg-red-700 text-white flex items-center justify-center shadow-xs cursor-pointer transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="p-5 space-y-3.5">
-              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50">
-                <h4 className="text-xs font-bold text-rose-900 dark:text-rose-200">
-                  {productToDelete.product_name || productToDelete.name}
-                </h4>
-                <p className="text-[11px] text-rose-700 dark:text-rose-300 mt-1">
-                  Brand: {productToDelete.brand} &bull; Barcode: {productToDelete.primary_code} &bull; Stock: {productToDelete.tile_size || productToDelete.pcs_per_box ? formatBoxAndPcs(productToDelete.quantity, productToDelete.pcs_per_box) : `${productToDelete.quantity} ${productToDelete.unit}`}
-                </p>
-              </div>
-
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                আপনি কি নিশ্চিতভাবে এই পণ্যটি ডিলিট করতে চান? এই প্রক্রিয়াটি পরবর্তীতে ফিরিয়ে আনা সম্ভব নয়।
-              </p>
-            </div>
-
-            {/* Sticky Footer */}
-            <div className="bg-slate-50 dark:bg-slate-900/95 px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setProductToDelete(null)}
-                disabled={deleting}
-                className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-colors cursor-pointer"
-              >
-                না, বাতিল
-              </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                disabled={deleting}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs disabled:opacity-50"
-              >
-                {deleting ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>ডিলিট হচ্ছে...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>হ্যাঁ, ডিলিট করুন</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Custom Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(productToDelete)}
+        onClose={() => setProductToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Confirm Product Deletion"
+        recordIdentifier={
+          productToDelete
+            ? `Product: ${productToDelete.product_name || productToDelete.name} (${productToDelete.primary_code})`
+            : null
+        }
+        warningMessage="Are you sure you want to delete this product? This action cannot be undone."
+        isLoading={deleting}
+      />
 
       {/* Bulk Percentage Price Update Modal */}
       {bulkModalOpen && (
