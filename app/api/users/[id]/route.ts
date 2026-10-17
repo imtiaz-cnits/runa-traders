@@ -17,7 +17,7 @@ export async function PUT(
     const { id } = await params;
     const targetUserId = BigInt(id);
     const body = await req.json();
-    const { name, email, mobile, password, role, status, permissions } = body;
+    const { name, email, mobile, password, role, status, permissions, img_url } = body;
 
     const data: any = {};
     if (name) data.name = name.trim();
@@ -28,6 +28,7 @@ export async function PUT(
     }
     if (role) data.role = role;
     if (status) data.status = status;
+    if (img_url !== undefined) data.img_url = img_url || null;
     if (permissions !== undefined) {
       data.permissions = typeof permissions === "object" ? JSON.stringify(permissions) : permissions;
     }

@@ -197,4 +197,7 @@ table thead th {
   }
 }
 
-
+/* Global Print Page Margin (10px gap all around) */
+@page {
+  margin: 10px;
+}

@@ -124,7 +124,7 @@ export default function StockOutReportPage() {
 
       {/* 2. Four KPI Warning Cards */}
       {summary && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
           <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-rose-200 dark:border-rose-900/50 shadow-xs">
             <div className="flex items-center justify-between text-rose-600 text-xs font-bold">
               <span>Out of Stock (Zero Stock)</span>

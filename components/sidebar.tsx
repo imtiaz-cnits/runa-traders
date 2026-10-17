@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   X,
   AlertTriangle,
+  User,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 
@@ -71,7 +72,6 @@ export const NAV_ITEMS: NavItem[] = [
     children: [
       { label: "Invoices List", href: "/invoices", icon: Receipt },
       { label: "Challan List", href: "/challans", icon: FileSpreadsheet },
-      { label: "Due Collections", href: "/customer-dues", icon: Wallet },
       { label: "Sales Return", href: "/returns", icon: RotateCcw },
     ],
   },
@@ -81,6 +81,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Truck,
     children: [
       { label: "Purchase List", href: "/purchases", icon: ShoppingCart },
+      { label: "Purchase Return", href: "/purchase-returns", icon: RotateCcw },
       { label: "Suppliers", href: "/suppliers", icon: Users },
       { label: "Supplier Due Pay", href: "/supplier-dues", icon: Wallet },
     ],
@@ -88,8 +89,11 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: "customers",
     label: "Customers",
-    href: "/customers",
     icon: Users,
+    children: [
+      { label: "Customer List", href: "/customers", icon: Users },
+      { label: "Customer Due", href: "/customer-dues", icon: Wallet },
+    ],
   },
   {
     id: "expenses",
@@ -115,8 +119,11 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: "settings",
     label: "Settings",
-    href: "/users",
     icon: Settings,
+    children: [
+      { label: "User List & Roles", href: "/users", icon: Users },
+      { label: "Profile", href: "/profile", icon: User },
+    ],
   },
 ];
 

@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
         mobile: true,
         role: true,
         status: true,
+        img_url: true,
         permissions: true,
         created_at: true,
       },
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, email, mobile, password, role, status, permissions } = body;
+    const { name, email, mobile, password, role, status, permissions, img_url } = body;
 
     if (!name || !mobile || !password || !role) {
       return NextResponse.json(
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest) {
         password: hashedPassword,
         role,
         status: status || "approved",
+        img_url: img_url || null,
         otp: "000000",
         permissions: permissions ? JSON.stringify(permissions) : null,
       },

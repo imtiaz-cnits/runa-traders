@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Wallet,
   Search,
@@ -94,17 +95,17 @@ export default function SupplierDuesPage() {
         }),
       });
 
-      const data = await res.json();
-      if (data.status === "success") {
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.status === "success") {
         setIsPayModalOpen(false);
         setSelectedSupplier(null);
         setCurrentPage(1);
         loadSuppliers();
       } else {
-        alert(data.message || "Payment failed");
+        alert(data?.message || `Payment failed (Server error: ${res.status})`);
       }
-    } catch (err) {
-      alert("Communication error");
+    } catch (err: any) {
+      alert(err?.message || "Communication error");
     } finally {
       setSaving(false);
     }
@@ -170,8 +171,8 @@ export default function SupplierDuesPage() {
         </span>
       </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
+      {/* Desktop Table (Strict Marss Corp Rule) */}
+      <div className="hidden md:block bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
@@ -207,10 +208,20 @@ export default function SupplierDuesPage() {
                   >
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-800 dark:text-slate-100 text-xs">
-                        {s.name}
+                        <Link
+                          href={`/suppliers/${s.id}`}
+                          className="hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                        >
+                          {s.name}
+                        </Link>
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                        {s.supplier_id}
+                        <Link
+                          href={`/suppliers/${s.id}`}
+                          className="text-rose-600 dark:text-rose-400 font-mono font-bold hover:underline cursor-pointer"
+                        >
+                          {s.supplier_id}
+                        </Link>
                       </div>
                     </td>
                     <td className="py-3 px-3 font-semibold text-slate-700 dark:text-slate-200">
@@ -255,6 +266,95 @@ export default function SupplierDuesPage() {
           }}
           pageSizeOptions={[20, 50, 100, 200, 500]}
         />
+      </div>
+
+      {/* Mobile Card / Box List (Strict Rule: block md:hidden) */}
+      <div className="block md:hidden space-y-2.5">
+        {loading ? (
+          <div className="py-10 text-center text-slate-400">
+            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
+            <span>Loading due records...</span>
+          </div>
+        ) : filteredSuppliers.length === 0 ? (
+          <div className="p-6 text-center text-slate-400 font-bold bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
+            <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-80" />
+            <span>All supplier dues are currently cleared!</span>
+          </div>
+        ) : (
+          displayedSuppliers.map((s) => (
+            <div
+              key={s.id}
+              className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                    <Link
+                      href={`/suppliers/${s.id}`}
+                      className="hover:text-rose-600 transition-colors"
+                    >
+                      {s.name}
+                    </Link>
+                  </h3>
+                  <p className="text-[11px] font-semibold text-emerald-600">{s.company}</p>
+                </div>
+                <Link
+                  href={`/suppliers/${s.id}`}
+                  className="text-[10px] font-mono text-rose-600 font-bold hover:underline"
+                >
+                  {s.supplier_id}
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-[#1e293b] p-2 rounded-xl">
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Phone:</span>
+                  <span className="font-bold">{s.mobile}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 block">Payable Due:</span>
+                  <span className="font-black text-rose-600 dark:text-rose-400">
+                    {formatBdCurrency(s.purchase_payable_amount)}
+                  </span>
+                </div>
+                {s.address && (
+                  <div className="col-span-2 pt-1 border-t border-slate-200/60 dark:border-slate-800">
+                    <span className="text-[10px] text-slate-400 block">Address:</span>
+                    <span className="text-slate-700 dark:text-slate-300 truncate block">
+                      {s.address}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleOpenPay(s)}
+                  className="h-[32px] w-full text-center px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                >
+                  <Wallet className="w-3.5 h-3.5" />
+                  <span>Pay Due</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Mobile Pagination */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredSuppliers.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
 
       {/* Pay Modal */}

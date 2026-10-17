@@ -527,8 +527,52 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-4">
+      {/* Print-Only Styles and Dedicated Report Template */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 10px !important;
+          }
+          body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          aside,
+          header,
+          nav,
+          footer,
+          .no-print {
+            display: none !important;
+          }
+          .print-only {
+            display: block !important;
+          }
+          .print-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 10px !important;
+          }
+          .print-table th,
+          .print-table td {
+            border: 1px solid #94a3b8 !important;
+            padding: 4px 6px !important;
+          }
+          .print-table tr {
+            page-break-inside: avoid !important;
+          }
+        }
+        @media screen {
+          .print-only {
+            display: none !important;
+          }
+        }
+      `}</style>
+
       {/* Top Header & Export Controls (Rule 5.1 & 5.2) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
+      <div className="no-print flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400 flex items-center justify-center border border-rose-100 dark:border-slate-800 shadow-xs shrink-0">
             <Package className="w-4 h-4" />
@@ -542,22 +586,10 @@ export default function ProductsPage() {
 
         {/* Action Controls & Export Buttons (Rule 5.2) */}
         <div className="flex items-center gap-2 self-start md:self-auto">
-          {/* Copy, Excel, Print */}
-          <button
-            title="Copy"
-            className="w-[38px] h-[38px] rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-slate-100/80 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center shadow-xs transition-colors cursor-pointer"
-          >
-            <Copy className="w-4 h-4" />
-          </button>
-          <button
-            title="Excel / CSV"
-            className="w-[38px] h-[38px] rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-slate-100/80 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center shadow-xs transition-colors cursor-pointer"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-          </button>
+          {/* Print Button */}
           <button
             onClick={() => window.print()}
-            title="Print"
+            title="Print Product List"
             className="w-[38px] h-[38px] rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-slate-100/80 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center shadow-xs transition-colors cursor-pointer"
           >
             <Printer className="w-4 h-4" />
@@ -583,11 +615,9 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Main Table Card (Rule 5.1) */}
-      <div className="card bg-white dark:bg-slate-900 rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
-        {/* Controls & Filter Bar (Rule 5.3) */}
-        <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col xl:flex-row items-center justify-between gap-3">
-          {/* Left Side: Search Bar + Category, Brand, Stock Status & Unit Filters */}
+      {/* 2. Controls & Filter Bar in its own Card */}
+      <div className="no-print bg-white dark:bg-slate-900 rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-xs p-3 sm:p-4 flex flex-col xl:flex-row items-center justify-between gap-3">
+        {/* Left Side: Search Bar + Category, Brand, Stock Status & Unit Filters */}
           <div className="grid grid-cols-2 md:flex md:flex-wrap items-center gap-2 md:gap-2.5 w-full xl:w-auto flex-1">
             {/* Search Bar - 2 cols on mobile */}
             <div className="col-span-2 md:w-64 h-[38px] flex items-center px-3 bg-white dark:bg-slate-800/90 rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus-within:border-rose-600 focus-within:ring-2 focus-within:ring-rose-600/20 transition-all shadow-xs">
@@ -754,6 +784,8 @@ export default function ProductsPage() {
           </div>
         </div>
 
+      {/* 3. Main Table Card (Extracted below filter box, Rule 5.1) */}
+      <div className="no-print card bg-white dark:bg-slate-900 rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
         {/* Desktop View Table (hidden on mobile, visible on desktop >= 768px, Rule 5.4) */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -1855,6 +1887,61 @@ export default function ProductsPage() {
           </div>
         </div>
       )}
+
+      {/* 5. Dedicated Print-Only Report Template */}
+      <div className="print-only p-2 text-black bg-white">
+        <div className="border-b-2 border-slate-900 pb-2 mb-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-slate-900 m-0">RUNA TRADERS</h1>
+              <p className="text-xs text-slate-600 font-medium m-0">
+                Tiles, Sanitary &amp; Bath Fitting Wholesale &amp; Retail
+              </p>
+              <h2 className="text-sm font-bold text-slate-800 mt-1 uppercase tracking-wider">
+                Product Inventory Price &amp; Stock List
+              </h2>
+            </div>
+            <div className="text-right text-xs text-slate-600">
+              <p>Printed: {new Date().toLocaleDateString("en-GB")} {new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</p>
+              <p>Total Products: <strong className="text-slate-900">{filteredProducts.length}</strong></p>
+            </div>
+          </div>
+        </div>
+
+        <table className="print-table w-full text-left border-collapse text-xs">
+          <thead>
+            <tr className="bg-slate-100 text-black font-bold border-b-2 border-slate-900">
+              <th className="p-1.5 text-center w-8">SL</th>
+              <th className="p-1.5">Product Name</th>
+              <th className="p-1.5">Code / Barcode</th>
+              <th className="p-1.5">Category</th>
+              <th className="p-1.5">Size / Brand</th>
+              <th className="p-1.5 text-center">Stock</th>
+              <th className="p-1.5 text-right">Cost Price</th>
+              <th className="p-1.5 text-right">Sell Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProducts.map((p, idx) => (
+              <tr key={p.id} className="border-b border-slate-300">
+                <td className="p-1.5 text-center font-bold">{idx + 1}</td>
+                <td className="p-1.5 font-bold">{p.product_name}</td>
+                <td className="p-1.5 font-mono text-[10px]">{p.display_codes}</td>
+                <td className="p-1.5">{p.category}</td>
+                <td className="p-1.5">{p.tile_size || p.brand || "-"}</td>
+                <td className="p-1.5 text-center font-bold">
+                  {p.tile_size || p.pcs_per_box
+                    ? formatBoxAndPcs(p.quantity, p.pcs_per_box, p.tile_size)
+                    : `${p.quantity} pcs`}
+                </td>
+                <td className="p-1.5 text-right">{formatBdCurrency(p.cost_price)}</td>
+                <td className="p-1.5 text-right font-bold">{formatBdCurrency(p.sell_price)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
+

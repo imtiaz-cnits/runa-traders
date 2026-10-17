@@ -377,18 +377,14 @@ export default function InvoicesPage() {
                     </td>
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
-                        {/* View Details */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedInvoice(inv);
-                            setIsDetailModalOpen(true);
-                          }}
+                        {/* View Invoice Bill */}
+                        <Link
+                          href={`/invoices/${inv.id}`}
                           className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
-                          title="View Invoice Details"
+                          title="View Invoice Bill"
                         >
-                          <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                        </button>
+                          <Eye className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                        </Link>
 
                         {/* Thermal Print */}
                         <button
@@ -511,10 +507,14 @@ export default function InvoicesPage() {
                 <span className="text-[10px] text-slate-400 block">Net Payable:</span>
                 <span className="font-bold">{formatBdCurrency(inv.net_payable)}</span>
               </div>
-              <div>
-                <span className="text-[10px] text-slate-400 block">Due Amount:</span>
+              <div className="text-right">
+                <span className="text-[10px] text-slate-400 block">
+                  Due Amount:
+                </span>
                 <span
-                  className={`font-black ${inv.due_amount > 0 ? "text-rose-600" : "text-emerald-600"
+                  className={`font-black ${inv.due_amount > 0
+                    ? "text-rose-600"
+                    : "text-emerald-600"
                     }`}
                 >
                   {formatBdCurrency(inv.due_amount)}
@@ -523,7 +523,7 @@ export default function InvoicesPage() {
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-1">
-              {/* Challan Button - Strictly only if invoice has Tiles */}
+              {/* Challan Button */}
               {Boolean(inv.has_tiles || inv.has_pending_tiles || inv.has_challan || (inv.challan_status && inv.challan_status !== "NOT_REQUIRED")) && (
                 <button
                   type="button"
@@ -531,43 +531,47 @@ export default function InvoicesPage() {
                     setChallanOrderId(inv.id);
                     setIsChallanModalOpen(true);
                   }}
-                  className={`h-[30px] px-2.5 rounded-lg text-xs font-bold flex items-center gap-1 ${inv.has_challan
-                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                    : inv.has_pending_tiles
-                      ? "bg-amber-600 text-white animate-pulse"
-                      : "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
+                  className={`h-[30px] w-full px-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 ${inv.has_challan
+                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                      : inv.has_pending_tiles
+                        ? "bg-amber-600 text-white animate-pulse"
+                        : "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
                     }`}
                 >
                   <Truck className="w-3.5 h-3.5" />
-                  <span>{inv.has_challan ? "Challan" : inv.has_pending_tiles ? "Dispatch Tiles" : "Challan"}</span>
+                  <span>
+                    {inv.has_challan ? "Challan" : inv.has_pending_tiles ? "Dispatch Tiles" : "Challan"}
+                  </span>
                 </button>
               )}
+
+              {/* Print Button */}
               <button
                 type="button"
                 onClick={() => triggerThermalReceipt(inv)}
-                className="h-[30px] px-3 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center gap-1"
+                className="h-[30px] w-full px-3 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>Thermal Print</span>
+                <span>Print</span>
               </button>
+
+              {/* Return Button */}
               <Link
                 href={`/returns?tab=sales&order_no=${encodeURIComponent(inv.order_no)}`}
-                className="h-[30px] px-2.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center gap-1"
+                className="h-[30px] w-full px-2.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center justify-center gap-1"
                 title="Process Sales Return"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Return</span>
               </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedInvoice(inv);
-                  setIsDetailModalOpen(true);
-                }}
-                className="h-[30px] px-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs"
+
+              {/* View Button */}
+              <Link
+                href={`/invoices/${inv.id}`}
+                className="h-[30px] w-full px-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center"
               >
-                Details
-              </button>
+                View
+              </Link>
             </div>
           </div>
         ))}

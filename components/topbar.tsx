@@ -167,7 +167,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
               </div>
 
               <Link
-                href="/users"
+                href="/profile"
                 className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-800 hover:text-rose-700 transition-colors"
               >
                 <UserIcon className="w-3.5 h-3.5" />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import {
   Truck,
   Plus,
@@ -191,15 +192,15 @@ export default function SuppliersPage() {
         }),
       });
 
-      const data = await res.json();
-      if (data.status === "success") {
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.status === "success") {
         setIsPayModalOpen(false);
         setSelectedSupplier(null);
         toast.success("Due payment recorded successfully!");
         setCurrentPage(1);
         loadSuppliers();
       } else {
-        setErrorMsg(data.message || "Failed to process payment");
+        setErrorMsg(data?.message || `Failed to process payment (Status ${res.status})`);
       }
     } catch (err: any) {
       setErrorMsg(err?.message || "Communication error");
@@ -218,16 +219,17 @@ export default function SuppliersPage() {
     setDeleting(true);
     try {
       const res = await fetch(`/api/suppliers/${supplierToDelete.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (data.status === "success") {
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.status === "success") {
         toast.success("Supplier deleted successfully!");
         setSupplierToDelete(null);
         setCurrentPage(1);
         loadSuppliers();
       } else {
-        toast.error(data.message || "Failed to delete supplier");
-        throw new Error(data.message || "Failed to delete supplier");
+        toast.error(data?.message || `Failed to delete supplier (Status ${res.status})`);
       }
+    } catch (err: any) {
+      toast.error(err?.message || "Communication error deleting supplier");
     } finally {
       setDeleting(false);
     }
@@ -352,10 +354,20 @@ export default function SuppliersPage() {
                   >
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-800 dark:text-slate-100 text-xs">
-                        {s.name}
+                        <Link
+                          href={`/suppliers/${s.id}`}
+                          className="hover:text-rose-600 transition-colors cursor-pointer"
+                        >
+                          {s.name}
+                        </Link>
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                        {s.supplier_id}
+                        <Link
+                          href={`/suppliers/${s.id}`}
+                          className="text-rose-600 hover:underline font-mono font-bold cursor-pointer"
+                        >
+                          {s.supplier_id}
+                        </Link>
                       </div>
                     </td>
                     <td className="py-3 px-3 font-semibold text-slate-700 dark:text-slate-200">
@@ -375,11 +387,10 @@ export default function SuppliersPage() {
                     </td>
                     <td className="py-3 px-3 text-right">
                       <span
-                        className={`font-black text-xs ${
-                          s.purchase_payable_amount > 0
-                            ? "text-rose-600 dark:text-rose-400"
-                            : "text-emerald-600 dark:text-emerald-400"
-                        }`}
+                        className={`font-black text-xs ${s.purchase_payable_amount > 0
+                          ? "text-rose-600 dark:text-rose-400"
+                          : "text-emerald-600 dark:text-emerald-400"
+                          }`}
                       >
                         {formatBdCurrency(s.purchase_payable_amount)}
                       </span>
@@ -407,16 +418,6 @@ export default function SuppliersPage() {
                           title="Edit Supplier"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-
-                        {/* Delete Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(s)}
-                          className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
-                          title="Delete Supplier"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
@@ -460,10 +461,19 @@ export default function SuppliersPage() {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">{s.name}</h3>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                    <Link href={`/suppliers/${s.id}`} className="hover:text-rose-600 transition-colors">
+                      {s.name}
+                    </Link>
+                  </h3>
                   <p className="text-[11px] font-semibold text-emerald-600">{s.company}</p>
                 </div>
-                <span className="text-[10px] font-mono text-slate-400">{s.supplier_id}</span>
+                <Link
+                  href={`/suppliers/${s.id}`}
+                  className="text-[10px] font-mono text-rose-600 font-bold hover:underline"
+                >
+                  {s.supplier_id}
+                </Link>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-[#1e293b] p-2 rounded-xl">
@@ -471,12 +481,11 @@ export default function SuppliersPage() {
                   <span className="text-[10px] text-slate-400 block">Phone:</span>
                   <span className="font-bold">{s.mobile}</span>
                 </div>
-                <div>
+                <div className="text-right">
                   <span className="text-[10px] text-slate-400 block">Payable Due:</span>
                   <span
-                    className={`font-black ${
-                      s.purchase_payable_amount > 0 ? "text-rose-600" : "text-emerald-600"
-                    }`}
+                    className={`font-black ${s.purchase_payable_amount > 0 ? "text-rose-600" : "text-emerald-600"
+                      }`}
                   >
                     {formatBdCurrency(s.purchase_payable_amount)}
                   </span>
@@ -488,25 +497,19 @@ export default function SuppliersPage() {
                   <button
                     type="button"
                     onClick={() => handleOpenPay(s)}
-                    className="h-[30px] px-3 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center gap-1"
+                    className="h-[30px] w-full px-3 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1"
                   >
                     <Wallet className="w-3.5 h-3.5" />
                     <span>Pay Due</span>
                   </button>
                 )}
+
                 <button
                   type="button"
                   onClick={() => handleOpenEdit(s)}
-                  className="h-[30px] px-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs"
+                  className="h-[30px] w-full px-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center"
                 >
                   Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(s)}
-                  className="h-[30px] px-2.5 rounded-lg bg-rose-50 text-rose-600 text-xs font-bold cursor-pointer"
-                >
-                  Delete
                 </button>
               </div>
             </div>

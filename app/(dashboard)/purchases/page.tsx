@@ -164,14 +164,14 @@ export default function PurchasesPage() {
     setDeleteError(null);
     try {
       const res = await fetch(`/api/purchases/${purchaseToDelete.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (res.ok && data.status === "success") {
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.status === "success") {
         toast.success("Purchase record deleted and stock reverted successfully!");
         setPurchaseToDelete(null);
         setCurrentPage(1);
         loadData();
       } else {
-        setDeleteError(data.message || "Failed to delete purchase record");
+        setDeleteError(data?.message || `Failed to delete purchase record (Status ${res.status})`);
       }
     } catch (err: any) {
       setDeleteError(err?.message || "Communication error deleting purchase");
@@ -421,7 +421,16 @@ export default function PurchasesPage() {
                     </td>
                     <td className="py-3 px-3">
                       <div className="font-bold text-slate-800 dark:text-slate-200">
-                        {p.supplier?.name || "N/A"}
+                        {p.supplier ? (
+                          <Link
+                            href={`/suppliers/${p.supplier.id}`}
+                            className="hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                          >
+                            {p.supplier.name}
+                          </Link>
+                        ) : (
+                          "N/A"
+                        )}
                       </div>
                       <div className="text-[10px] text-slate-400">{p.supplier?.company}</div>
                     </td>
@@ -441,23 +450,21 @@ export default function PurchasesPage() {
                     </td>
                     <td className="py-3 px-3 text-right">
                       <span
-                        className={`font-black ${
-                          p.due_amount > 0 ? "text-rose-600" : "text-emerald-600"
-                        }`}
+                        className={`font-black ${p.due_amount > 0 ? "text-rose-600" : "text-emerald-600"
+                          }`}
                       >
                         {formatBdCurrency(p.due_amount)}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedPurchase(p)}
+                        <Link
+                          href={`/purchases/${p.id}`}
                           className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center transition-colors cursor-pointer"
-                          title="View Purchase Details"
+                          title="View Purchase Bill"
                         >
-                          <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                        </button>
+                          <Eye className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                        </Link>
                         <Link
                           href={`/returns?tab=purchase&purchase_no=${encodeURIComponent(p.purchase_id)}`}
                           className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 flex items-center justify-center transition-colors cursor-pointer"
@@ -522,12 +529,11 @@ export default function PurchasesPage() {
                   {formatBdCurrency(p.grand_subtotal + p.delivery_charge)}
                 </span>
               </div>
-              <div>
+              <div className="text-right">
                 <span className="text-[10px] text-slate-400 block">Due Amount:</span>
                 <span
-                  className={`font-black ${
-                    p.due_amount > 0 ? "text-rose-600" : "text-emerald-600"
-                  }`}
+                  className={`font-black ${p.due_amount > 0 ? "text-rose-600" : "text-emerald-600"
+                    }`}
                 >
                   {formatBdCurrency(p.due_amount)}
                 </span>
@@ -538,22 +544,24 @@ export default function PurchasesPage() {
               <button
                 type="button"
                 onClick={() => setSelectedPurchase(p)}
-                className="h-[30px] px-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-1"
+                className="h-[30px] w-full text-center px-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center gap-1"
               >
                 <Eye className="w-3.5 h-3.5 text-emerald-600" />
                 <span>View</span>
               </button>
+
               <Link
                 href={`/returns?tab=purchase&purchase_no=${encodeURIComponent(p.purchase_id)}`}
-                className="h-[30px] px-2.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center gap-1"
+                className="h-[30px] w-full text-center px-2.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center justify-center gap-1"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Return</span>
               </Link>
+
               <button
                 type="button"
                 onClick={() => handleDeletePurchase(p)}
-                className="h-[30px] px-2.5 rounded-lg bg-rose-50 text-rose-600 font-bold text-xs flex items-center gap-1"
+                className="h-[30px] w-full text-center px-2.5 rounded-lg bg-rose-50 text-rose-600 font-bold text-xs flex items-center justify-center gap-1"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Delete</span>
@@ -878,7 +886,7 @@ export default function PurchasesPage() {
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="h-[30px] px-3 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                  className="h-[30px] w-full text-center px-3 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print Voucher</span>

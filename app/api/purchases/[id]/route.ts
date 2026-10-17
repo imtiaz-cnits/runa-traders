@@ -107,30 +107,15 @@ export async function DELETE(
       return NextResponse.json({ status: "fail", message: "Purchase record not found" }, { status: 404 });
     }
 
-    // Safeguard: Check if purchase has returns
-    const hasReturns = await prisma.purchase_returns.count({
-      where: { purchase_id: purchaseId },
-    });
-
-    if (hasReturns > 0) {
-      return NextResponse.json(
-        {
-          status: "fail",
-          message: "Cannot delete purchase because it has associated purchase return records.",
-        },
-        { status: 400 }
-      );
-    }
-
     // Execute atomic deletion with stock and balance reversal
     await prisma.$transaction(async (tx) => {
       // 1. Revert product stocks
       for (const d of purchase.purchase_order_details) {
         const qtyNum = parseFloat(d.quantity || "0");
-        const [prod]: any = await tx.$queryRawUnsafe(
-          "SELECT quantity FROM products WHERE id = ?",
-          d.product_id
-        );
+        const prod = await tx.products.findUnique({
+          where: { id: d.product_id },
+          select: { quantity: true },
+        });
         if (prod) {
           const currentStock = parseFloat(prod.quantity || "0");
           const revertedStock = Math.max(0, currentStock - qtyNum);
@@ -146,6 +131,7 @@ export async function DELETE(
       if (purchase.supplier_id && dueNum > 0) {
         const supp = await tx.suppliers.findUnique({
           where: { id: purchase.supplier_id },
+          select: { purchase_payable_amount: true },
         });
         if (supp) {
           const currentPayable = parseFloat(supp.purchase_payable_amount || "0");
@@ -157,7 +143,11 @@ export async function DELETE(
         }
       }
 
-      // 3. Delete payments, items, and purchase
+      // 3. Delete returns, payments, items, and purchase
+      await tx.purchase_returns.deleteMany({
+        where: { purchase_id: purchaseId },
+      });
+
       await tx.purchase_payment_details.deleteMany({
         where: { purchases_id: purchaseId },
       });

@@ -967,17 +967,30 @@ export default function PosPage() {
                           </p>
                         </div>
 
-                        <span
-                          className={`text-[10px] font-black px-2 py-0.5 rounded-md shrink-0 mt-0.5 whitespace-nowrap ${
-                            isOutOfStock
-                              ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400"
-                              : p.quantity <= 5
-                              ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
-                              : "bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/50 dark:border-rose-900/50"
-                          }`}
-                        >
-                          {isOutOfStock ? "Out of Stock" : `Stock: ${p.quantity}`}
-                        </span>
+                        {(() => {
+                          const stockText = isOutOfStock
+                            ? "Out of Stock"
+                            : p.tile_size || p.pcs_per_box || p.unit?.toLowerCase() === "box"
+                            ? formatBoxAndPcs(p.quantity, p.pcs_per_box, p.tile_size)
+                            : p.quantity % 1 !== 0
+                            ? `${parseFloat(p.quantity.toFixed(2))} ${p.unit || ""}`.trim()
+                            : `${p.quantity} ${p.unit || ""}`.trim();
+
+                          return (
+                            <span
+                              title={isOutOfStock ? "Out of Stock" : `Stock: ${stockText}`}
+                              className={`text-[10px] font-black px-2 py-0.5 rounded-md shrink-0 mt-0.5 max-w-[145px] truncate text-right ${
+                                isOutOfStock
+                                  ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400"
+                                  : p.quantity <= 5
+                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+                                  : "bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/50 dark:border-rose-900/50"
+                              }`}
+                            >
+                              {isOutOfStock ? "Out of Stock" : `Stock: ${stockText}`}
+                            </span>
+                          );
+                        })()}
                       </div>
 
                       {/* Product Tags (Wrapped cleanly to 2nd line) */}

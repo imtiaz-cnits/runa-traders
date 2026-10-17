@@ -165,7 +165,7 @@ export default function InventoryPage() {
   const isTilesSelected = Boolean(
     selectedCatObj?.category_name &&
     (selectedCatObj.category_name.toLowerCase().includes("tile") ||
-     selectedCatObj.category_name.toLowerCase().includes("টাইল"))
+      selectedCatObj.category_name.toLowerCase().includes("টাইল"))
   );
 
   const categoryOptions = [
@@ -345,11 +345,10 @@ export default function InventoryPage() {
                   setStatusFilter(statusFilter === "low" ? "all" : "low");
                   setCurrentPage(1);
                 }}
-                className={`h-[36px] px-3 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer ${
-                  statusFilter === "low"
+                className={`h-[36px] px-3 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer ${statusFilter === "low"
                     ? "bg-amber-500 text-white border-amber-600 shadow-xs"
                     : "bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-900/40 hover:bg-amber-100"
-                }`}
+                  }`}
               >
                 <AlertTriangle className="w-3.5 h-3.5" />
                 <span>Low Stock:</span>
@@ -362,11 +361,10 @@ export default function InventoryPage() {
                   setStatusFilter(statusFilter === "out" ? "all" : "out");
                   setCurrentPage(1);
                 }}
-                className={`h-[36px] px-3 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer ${
-                  statusFilter === "out"
+                className={`h-[36px] px-3 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer ${statusFilter === "out"
                     ? "bg-rose-600 text-white border-rose-700 shadow-xs"
                     : "bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-900/40 hover:bg-rose-100"
-                }`}
+                  }`}
               >
                 <span>Out of Stock:</span>
                 <span className="font-black">{summary.out_of_stock_count}</span>
@@ -441,9 +439,9 @@ export default function InventoryPage() {
               +
               {summary.total_cost_valuation > 0
                 ? (
-                    (summary.potential_profit / summary.total_cost_valuation) *
-                    100
-                  ).toFixed(1)
+                  (summary.potential_profit / summary.total_cost_valuation) *
+                  100
+                ).toFixed(1)
                 : 0}
               % Markup
             </div>
@@ -670,13 +668,12 @@ export default function InventoryPage() {
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span
-                        className={`inline-block px-2.5 py-1 rounded-full text-xs font-black ${
-                          item.quantity <= 0
+                        className={`inline-block px-2.5 py-1 rounded-full text-xs font-black ${item.quantity <= 0
                             ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400"
                             : item.quantity <= 5
-                            ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
-                            : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
-                        }`}
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                          }`}
                       >
                         {item.tile_size || item.pcs_per_box
                           ? formatBoxAndPcs(item.quantity, item.pcs_per_box)
@@ -744,13 +741,12 @@ export default function InventoryPage() {
                   </p>
                 </div>
                 <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-black ${
-                    item.quantity <= 0
+                  className={`px-2 py-0.5 rounded text-[10px] font-black ${item.quantity <= 0
                       ? "bg-rose-100 text-rose-700"
                       : item.quantity <= 5
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-emerald-100 text-emerald-700"
-                  }`}
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-emerald-100 text-emerald-700"
+                    }`}
                 >
                   {item.tile_size || item.pcs_per_box
                     ? formatBoxAndPcs(item.quantity, item.pcs_per_box)
@@ -774,7 +770,7 @@ export default function InventoryPage() {
               )}
 
               <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-[#1e293b] p-2 rounded-xl">
-                <div>
+                <div className="text-right">
                   <span className="text-[10px] text-slate-400 block">Cost / Sell:</span>
                   <span className="font-bold">
                     ৳{item.cost_price} / ৳{item.sell_price}

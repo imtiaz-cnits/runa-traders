@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Users,
   Plus,
@@ -233,8 +234,8 @@ export default function CustomersPage() {
         </span>
       </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
+      {/* Desktop Table (Strict Marss Corp Rule) */}
+      <div className="hidden md:block bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
@@ -268,10 +269,20 @@ export default function CustomersPage() {
                   >
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-800 dark:text-slate-100 text-xs">
-                        {c.customer_name}
+                        <Link
+                          href={`/customers/${c.id}`}
+                          className="hover:text-rose-600 transition-colors cursor-pointer"
+                        >
+                          {c.customer_name}
+                        </Link>
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                        {c.customer_id}
+                        <Link
+                          href={`/customers/${c.id}`}
+                          className="text-rose-600 hover:underline font-mono font-bold cursor-pointer"
+                        >
+                          {c.customer_id}
+                        </Link>
                       </div>
                     </td>
                     <td className="py-3 px-3 font-bold text-slate-800 dark:text-slate-200">
@@ -299,14 +310,6 @@ export default function CustomersPage() {
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setCustomerToDelete(c)}
-                          className="w-7 h-7 rounded-lg border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
-                          title="Delete Customer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -316,7 +319,7 @@ export default function CustomersPage() {
           </table>
         </div>
 
-        {/* Pagination Controls */}
+        {/* Pagination Controls Desktop */}
         <Pagination
           currentPage={currentPage}
           totalItems={customers.length}
@@ -328,6 +331,98 @@ export default function CustomersPage() {
           }}
           pageSizeOptions={[20, 50, 100, 200, 500]}
         />
+      </div>
+
+      {/* Mobile Card / Box List (Strict Rule: block md:hidden) */}
+      <div className="block md:hidden space-y-2.5">
+        {loading ? (
+          <div className="py-10 text-center text-slate-400">
+            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
+            <span>Loading customers...</span>
+          </div>
+        ) : customers.length === 0 ? (
+          <div className="p-6 text-center text-slate-400 font-bold bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
+            No customers found. Click "+ Add Customer" to create one.
+          </div>
+        ) : (
+          displayedCustomers.map((c) => (
+            <div
+              key={c.id}
+              className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                    <Link
+                      href={`/customers/${c.id}`}
+                      className="hover:text-rose-600 transition-colors"
+                    >
+                      {c.customer_name}
+                    </Link>
+                  </h3>
+                  <p className="text-[11px] text-slate-500">{c.mobile}</p>
+                </div>
+                <Link
+                  href={`/customers/${c.id}`}
+                  className="text-[10px] font-mono text-rose-600 font-bold hover:underline"
+                >
+                  {c.customer_id}
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-[#1e293b] p-2 rounded-xl">
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Phone:</span>
+                  <span className="font-bold">{c.mobile}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 block">Outstanding Due:</span>
+                  <span
+                    className={`font-black ${
+                      c.previous_due_amount > 0 ? "text-rose-600" : "text-emerald-600"
+                    }`}
+                  >
+                    {formatBdCurrency(c.previous_due_amount)}
+                  </span>
+                </div>
+                {c.address_details && (
+                  <div className="col-span-2 pt-1 border-t border-slate-200/60 dark:border-slate-800">
+                    <span className="text-[10px] text-slate-400 block">Address:</span>
+                    <span className="text-slate-700 dark:text-slate-300 truncate block">
+                      {c.address_details}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleOpenEdit(c)}
+                  className="h-[30px] w-full text-center px-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span>Edit Customer</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Mobile Pagination */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={customers.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
 
       {/* Modal */}

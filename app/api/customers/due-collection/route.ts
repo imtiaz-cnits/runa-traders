@@ -53,6 +53,22 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      // Create customer_payment_details record
+      await tx.customer_payment_details.create({
+        data: {
+          customer_id: custId,
+          paid_amount: String(paidNum),
+          discount_amount: String(discNum),
+          due_amount: String(newCustomerDue),
+          previous_due_amount: String(prevDue),
+          payment_method: payment_method || "Cash",
+          transaction_id: transaction_id || null,
+          payment_status: newCustomerDue <= 0 ? "Paid" : "Partial",
+          due_collection_date: body.due_collection_date ? new Date(body.due_collection_date) : new Date(),
+          user_id: BigInt(userId),
+        },
+      });
+
       // If specific order is attached, adjust order and add payment detail
       if (order_id) {
         const order = await tx.orders.findUnique({

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Wallet,
   Search,
@@ -208,10 +209,20 @@ export default function CustomerDuesPage() {
                   >
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-800 dark:text-slate-100 text-xs">
-                        {c.customer_name}
+                        <Link
+                          href={`/customers/${c.id}`}
+                          className="hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                        >
+                          {c.customer_name}
+                        </Link>
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                        {c.customer_id}
+                        <Link
+                          href={`/customers/${c.id}`}
+                          className="text-rose-600 dark:text-rose-400 font-mono font-bold hover:underline cursor-pointer"
+                        >
+                          {c.customer_id}
+                        </Link>
                       </div>
                     </td>
                     <td className="py-3 px-3 font-bold text-slate-800 dark:text-slate-200">
@@ -265,12 +276,20 @@ export default function CustomerDuesPage() {
           >
             <div className="flex items-start justify-between">
               <div>
-                <span className="font-bold text-xs text-slate-900 dark:text-white">
+                <Link
+                  href={`/customers/${c.id}`}
+                  className="font-bold text-xs text-slate-900 dark:text-white hover:text-rose-600 transition-colors block"
+                >
                   {c.customer_name}
-                </span>
+                </Link>
                 <p className="text-[11px] text-slate-500">{c.mobile}</p>
               </div>
-              <span className="text-[10px] font-mono text-slate-400">{c.customer_id}</span>
+              <Link
+                href={`/customers/${c.id}`}
+                className="text-[10px] font-mono font-bold text-rose-600 dark:text-rose-400 hover:underline"
+              >
+                {c.customer_id}
+              </Link>
             </div>
 
             <div className="bg-slate-50 dark:bg-[#1e293b] p-2 rounded-xl flex justify-between items-center text-xs">

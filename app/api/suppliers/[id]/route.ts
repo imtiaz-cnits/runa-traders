@@ -17,11 +17,18 @@ export async function GET(
       include: {
         purchases: {
           orderBy: { id: "desc" },
-          take: 20,
+          take: 50,
         },
         supplier_due_collections: {
           orderBy: { id: "desc" },
-          take: 20,
+          take: 50,
+        },
+        purchase_returns: {
+          orderBy: { id: "desc" },
+          take: 50,
+          include: {
+            products: true,
+          },
         },
       },
     });
@@ -30,12 +37,25 @@ export async function GET(
       return NextResponse.json({ status: "fail", message: "Supplier not found" }, { status: 404 });
     }
 
+    const currentPayable = parseFloat(supplier.purchase_payable_amount || "0");
+    const totalPurchases = supplier.purchases.length;
+    const totalPurchaseAmount = supplier.purchases.reduce((acc, p) => acc + (parseFloat(p.grand_subtotal || "0") || 0), 0);
+    const totalPaidAmount = supplier.purchases.reduce((acc, p) => acc + (parseFloat(p.paid_amount || "0") || 0), 0);
+    const totalPurchaseDue = supplier.purchases.reduce((acc, p) => acc + (parseFloat(p.due_amount || "0") || 0), 0);
+
     return NextResponse.json({
       status: "success",
       data: {
         ...supplier,
         id: Number(supplier.id),
-        purchase_payable_amount: parseFloat(supplier.purchase_payable_amount || "0"),
+        purchase_payable_amount: currentPayable,
+        kpi: {
+          total_purchases: totalPurchases,
+          total_purchase_amount: totalPurchaseAmount,
+          total_paid_amount: totalPaidAmount,
+          total_purchase_due: totalPurchaseDue,
+          current_payable: currentPayable,
+        },
         purchases: supplier.purchases.map((p) => ({
           ...p,
           id: Number(p.id),
@@ -47,7 +67,20 @@ export async function GET(
           ...dc,
           id: Number(dc.id),
           paid_amount: parseFloat(dc.paid_amount || "0"),
+          discount_amount: parseFloat(dc.discount_amount || "0"),
           due_amount: parseFloat(dc.due_amount || "0"),
+          purchase_payable_amount: parseFloat(dc.purchase_payable_amount || "0"),
+        })),
+        purchase_returns: supplier.purchase_returns.map((pr) => ({
+          id: Number(pr.id),
+          purchase_id: Number(pr.purchase_id),
+          product_id: Number(pr.product_id),
+          product_name: pr.products?.product_name || "N/A",
+          product_code: pr.products?.product_code,
+          amount: Number(pr.amount || 0),
+          quantity: pr.quantity,
+          date: pr.date,
+          created_at: pr.created_at,
         })),
       },
     });

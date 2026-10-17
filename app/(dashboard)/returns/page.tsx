@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomSelect, Pagination } from "@/components/ui";
+import { CustomDatePicker } from "@/components/ui/date-picker";
 import { formatBoxAndPcs } from "@/lib/tiles-calculator";
 import { useToast } from "@/components/ui/toast";
 
@@ -414,10 +415,10 @@ function ReturnsManagementContent() {
           </div>
           <div>
             <h1 className="text-base sm:text-xl font-bold text-slate-800 dark:text-white tracking-tight leading-tight m-0">
-              Return Management
+              Sales Return Management
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 m-0">
-              RUNA TRADERS - Sales & Purchase Return Management
+              RUNA TRADERS - Customer Sales Return &amp; Refund Processing
             </p>
           </div>
         </div>
@@ -430,38 +431,9 @@ function ReturnsManagementContent() {
             className="h-[38px] px-4 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>{activeTab === "purchase" ? "New Purchase Return" : "New Sales Return"}</span>
+            <span>New Sales Return</span>
           </button>
         </div>
-      </div>
-
-      {/* 2. Mode Toggle Nav Tabs (38px height, MARSS reference layout) */}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => handleTabSwitch("sales")}
-          className={`inline-flex items-center gap-2 px-4 h-[38px] min-h-[38px] text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer ${
-            activeTab === "sales"
-              ? "bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white"
-              : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-[#cbd5e1] dark:border-[#334155] hover:bg-slate-50 dark:hover:bg-slate-700"
-          }`}
-        >
-          <ShoppingCart className="w-3.5 h-3.5" />
-          <span>Sales Return</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabSwitch("purchase")}
-          className={`inline-flex items-center gap-2 px-4 h-[38px] min-h-[38px] text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer ${
-            activeTab === "purchase"
-              ? "bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white"
-              : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-[#cbd5e1] dark:border-[#334155] hover:bg-slate-50 dark:hover:bg-slate-700"
-          }`}
-        >
-          <Truck className="w-3.5 h-3.5" />
-          <span>Purchase Return</span>
-        </button>
       </div>
 
       {/* 3. Quick Search Box (Fixed 38px, MARSS reference layout with brand red left border) */}
@@ -577,9 +549,9 @@ function ReturnsManagementContent() {
             <thead>
               <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-semibold uppercase tracking-wider whitespace-nowrap">
                 <th className="p-3 text-center w-[45px]">SL</th>
-                <th className="p-3 w-[120px]">Return Date</th>
-                <th className="p-3 w-[150px]">
-                  {activeTab === "purchase" ? "Purchase Memo No" : "Invoice No"}
+                <th className="p-3 w-[120px] whitespace-nowrap">Return Date</th>
+                <th className="p-3 min-w-[170px] whitespace-nowrap">
+                  Invoice No
                 </th>
                 <th className="p-3">
                   {activeTab === "purchase" ? "Supplier Name" : "Customer Name"}
@@ -618,8 +590,8 @@ function ReturnsManagementContent() {
                         <span>{item.date || "N/A"}</span>
                       </div>
                     </td>
-                    <td className="p-3 font-mono font-bold text-slate-800 dark:text-white">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <td className="p-3 font-mono font-bold text-slate-800 dark:text-white whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 whitespace-nowrap inline-block">
                         {item.record_no}
                       </span>
                     </td>
@@ -985,12 +957,12 @@ function ReturnsManagementContent() {
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                         Return Date <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="date"
-                        required
+                      <CustomDatePicker
                         value={modalReturnDate}
-                        onChange={(e) => setModalReturnDate(e.target.value)}
-                        className="w-full h-[42px] px-3.5 rounded-xl bg-white dark:bg-slate-800/90 text-xs font-bold text-slate-800 dark:text-white border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600"
+                        onChange={(val) => setModalReturnDate(val)}
+                        placeholder="DD/MM/YYYY"
+                        placement="auto"
+                        className="w-full"
                       />
                     </div>
 
