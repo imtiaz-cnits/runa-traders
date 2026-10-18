@@ -775,6 +775,9 @@ export default function ProductsPage() {
                   { value: "100", label: "Show: 100" },
                   { value: "200", label: "Show: 200" },
                   { value: "500", label: "Show: 500" },
+                  { value: "1000", label: "Show: 1000" },
+                  { value: "1500", label: "Show: 1500" },
+                  { value: "2000", label: "Show: 2000" },
                 ]}
                 matchTriggerWidth={true}
                 minPopoverWidth={125}
@@ -1035,7 +1038,7 @@ export default function ProductsPage() {
             setPageSize(newSize);
             setCurrentPage(1);
           }}
-          pageSizeOptions={[20, 50, 100, 200, 500]}
+          pageSizeOptions={[20, 50, 100, 200, 500, 1000, 1500, 2000]}
         />
       </div>
 
