@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   RotateCcw,
   Plus,
@@ -18,11 +19,16 @@ import {
   Barcode,
   Layers,
   Sparkles,
+  Eye,
+  FileText,
+  Printer,
+  User,
+  ExternalLink,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomSelect, Pagination } from "@/components/ui";
 import { CustomDatePicker } from "@/components/ui/date-picker";
-import { formatBoxAndPcs } from "@/lib/tiles-calculator";
+import { formatBoxAndPcs, formatTileOrItemQty, parseBoxAndPcs } from "@/lib/tiles-calculator";
 import { useToast } from "@/components/ui/toast";
 
 interface ReturnItem {
@@ -30,7 +36,9 @@ interface ReturnItem {
   type: "sales" | "purchase";
   record_no: string;
   order_id?: number;
+  customer_id?: number;
   purchase_id?: number;
+  supplier_id?: number;
   party_name: string;
   party_mobile: string;
   product_id: number | null;
@@ -105,6 +113,10 @@ function ReturnsManagementContent() {
   const [quickSearchInput, setQuickSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
+
+  // Quick View & Print Modals (MARSS Reference)
+  const [selectedReturnForQuickView, setSelectedReturnForQuickView] = useState<ReturnItem | null>(null);
+  const [selectedReturnForPrint, setSelectedReturnForPrint] = useState<ReturnItem | null>(null);
 
   // Return Processing Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -551,79 +563,167 @@ function ReturnsManagementContent() {
                 <th className="p-3 text-center w-[45px]">SL</th>
                 <th className="p-3 w-[120px] whitespace-nowrap">Return Date</th>
                 <th className="p-3 min-w-[170px] whitespace-nowrap">
-                  Invoice No
+                  {activeTab === "purchase" ? "Purchase Memo No" : "Invoice No"}
                 </th>
                 <th className="p-3">
                   {activeTab === "purchase" ? "Supplier Name" : "Customer Name"}
                 </th>
                 <th className="p-3">Returned Product</th>
                 <th className="p-3 text-center w-[110px]">Qty</th>
-                <th className="p-3 text-right w-[150px]">Refund Amount</th>
+                <th className="p-3 text-right w-[150px]">
+                  {activeTab === "purchase" ? "Adjusted Amount" : "Refund Amount"}
+                </th>
+                <th className="p-3 text-center w-[120px] whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400">
+                  <td colSpan={8} className="p-8 text-center text-slate-400">
                     <Loader2 className="w-5 h-5 animate-spin inline mr-2 text-rose-600" />
                     Loading return records...
                   </td>
                 </tr>
               ) : displayedHistory.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400 font-medium">
+                  <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
                     No return records found. Use the search box above to process a return.
                   </td>
                 </tr>
               ) : (
-                displayedHistory.map((item, idx) => (
-                  <tr
-                    key={item.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
-                  >
-                    <td className="p-3 text-center font-bold text-slate-400">
-                      {startIndex + idx + 1}
-                    </td>
-                    <td className="p-3 font-medium whitespace-nowrap text-slate-600 dark:text-slate-300">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-rose-600" />
-                        <span>{item.date || "N/A"}</span>
-                      </div>
-                    </td>
-                    <td className="p-3 font-mono font-bold text-slate-800 dark:text-white whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 whitespace-nowrap inline-block">
-                        {item.record_no}
-                      </span>
-                    </td>
-                    <td className="p-3 font-bold text-slate-800 dark:text-white">
-                      <div>{item.party_name}</div>
-                      {item.party_mobile && (
-                        <div className="text-[10px] text-slate-400 font-normal">{item.party_mobile}</div>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <div className="font-bold text-slate-800 dark:text-white">{item.product_name}</div>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <span className="text-[10px] font-mono text-slate-400">Code: {item.product_code}</span>
-                        {item.tile_size && (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
-                            📐 {item.tile_size}
+                displayedHistory.map((item, idx) => {
+                  const returnBadge = `#RET${String(item.id).padStart(5, "0")}`;
+                  const invoiceUrl =
+                    item.type === "purchase"
+                      ? item.purchase_id
+                        ? `/purchases/${item.purchase_id}`
+                        : null
+                      : item.order_id
+                      ? `/invoices/${item.order_id}`
+                      : null;
+                  const profileUrl =
+                    item.type === "purchase"
+                      ? item.supplier_id
+                        ? `/suppliers/${item.supplier_id}`
+                        : null
+                      : item.customer_id
+                      ? `/customers/${item.customer_id}`
+                      : null;
+
+                  return (
+                    <tr
+                      key={item.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                    >
+                      <td className="p-3 text-center font-bold text-slate-400">
+                        {startIndex + idx + 1}
+                      </td>
+                      <td className="p-3 font-medium whitespace-nowrap text-slate-600 dark:text-slate-300">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-rose-600" />
+                          <span>{item.date || "N/A"}</span>
+                        </div>
+                      </td>
+                      <td className="p-3 whitespace-nowrap">
+                        <div className="flex flex-col items-start gap-1">
+                          {/* Return Badge */}
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs">
+                            {returnBadge}
                           </span>
+                          {/* Clickable Original Invoice / Memo Link */}
+                          {invoiceUrl ? (
+                            <Link
+                              href={invoiceUrl}
+                              className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-2 py-0.5 rounded-md hover:bg-rose-100 hover:text-rose-800 dark:hover:bg-rose-900/60 transition-colors group/inv cursor-pointer"
+                              title={`Open Original ${item.type === "purchase" ? "Purchase Memo" : "Invoice"} ${item.record_no}`}
+                            >
+                              <span>{item.record_no}</span>
+                              <ExternalLink className="w-2.5 h-2.5 opacity-70 group-hover/inv:opacity-100 transition-opacity" />
+                            </Link>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[11px] text-slate-600 dark:text-slate-300">
+                              {item.record_no}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        {profileUrl ? (
+                          <Link
+                            href={profileUrl}
+                            className="font-bold text-slate-800 dark:text-white hover:text-rose-700 dark:hover:text-rose-400 hover:underline transition-colors inline-flex items-center gap-1 group/party"
+                            title={`View ${item.type === "purchase" ? "Supplier" : "Customer"} Profile`}
+                          >
+                            <span>{item.party_name}</span>
+                            <ExternalLink className="w-2.5 h-2.5 text-rose-600 opacity-0 group-hover/party:opacity-100 transition-opacity" />
+                          </Link>
+                        ) : (
+                          <div className="font-bold text-slate-800 dark:text-white">{item.party_name}</div>
                         )}
-                      </div>
-                    </td>
-                    <td className="p-3 text-center font-bold text-slate-800 dark:text-white">
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-bold text-xs">
-                        {item.tile_size || item.pcs_per_box
-                          ? formatBoxAndPcs(item.quantity, item.pcs_per_box)
-                          : `${item.quantity} pcs`}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right font-black text-rose-700 dark:text-rose-400 text-xs">
-                      {formatBdCurrency(item.amount)}
-                    </td>
-                  </tr>
-                ))
+                        {item.party_mobile && (
+                          <div className="text-[10px] text-slate-400 font-normal">{item.party_mobile}</div>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <div className="font-bold text-slate-800 dark:text-white">{item.product_name}</div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-[10px] font-mono text-slate-400">Code: {item.product_code}</span>
+                          {item.tile_size && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
+                              📐 {item.tile_size}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 text-center font-bold text-slate-800 dark:text-white">
+                        <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-bold text-xs whitespace-nowrap">
+                          {formatTileOrItemQty(item.quantity, item)}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right font-black text-rose-700 dark:text-rose-400 text-xs">
+                        {formatBdCurrency(item.amount)}
+                      </td>
+                      <td className="p-3 text-center whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* 1. Quick View Summary (Eye) */}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedReturnForQuickView(item)}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-600 hover:text-white transition-all shadow-2xs cursor-pointer"
+                            title="Quick View Summary"
+                            aria-label="Quick View"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* 2. Open Original Invoice / Purchase (FileText) */}
+                          {invoiceUrl && (
+                            <Link
+                              href={invoiceUrl}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 hover:bg-blue-600 hover:text-white transition-all shadow-2xs"
+                              title={`Open Original ${item.type === "purchase" ? "Purchase Memo" : "Invoice"}`}
+                              aria-label="Open Transaction"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                            </Link>
+                          )}
+
+                          {/* 3. Customer / Supplier Profile (User) */}
+                          {profileUrl && (
+                            <Link
+                              href={profileUrl}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60 hover:bg-purple-600 hover:text-white transition-all shadow-2xs"
+                              title={`View ${item.type === "purchase" ? "Supplier" : "Customer"} Profile`}
+                              aria-label="View Profile"
+                            >
+                              <User className="w-3.5 h-3.5" />
+                            </Link>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
             {filteredHistory.length > 0 && (
@@ -632,12 +732,35 @@ function ReturnsManagementContent() {
                   <td colSpan={5} className="p-3 text-right text-slate-600 dark:text-slate-300">
                     Total Returned Refund Value:
                   </td>
-                  <td className="p-3 text-center font-bold text-slate-900 dark:text-white">
-                    {filteredHistory.reduce((acc, i) => acc + i.quantity, 0)} pcs
+                  <td className="p-3 text-center font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                    {(() => {
+                      const hasTiles = filteredHistory.some((i) => Boolean(i.tile_size || i.pcs_per_box));
+                      const totalQty = filteredHistory.reduce((acc, i) => acc + i.quantity, 0);
+                      if (hasTiles) {
+                        let totalBoxes = 0;
+                        let totalPcs = 0;
+                        filteredHistory.forEach((i) => {
+                          const isTile = Boolean(i.tile_size || i.pcs_per_box);
+                          if (isTile) {
+                            const { fullBoxes, pcs } = parseBoxAndPcs(i.quantity, i.pcs_per_box, i.tile_size);
+                            totalBoxes += fullBoxes;
+                            totalPcs += pcs;
+                          } else {
+                            totalPcs += i.quantity;
+                          }
+                        });
+                        if (totalBoxes > 0 && totalPcs > 0) return `${totalBoxes} Boxes ${totalPcs} Pcs`;
+                        if (totalBoxes > 0) return `${totalBoxes} Box${totalBoxes > 1 ? "es" : ""}`;
+                        if (totalPcs > 0) return `${totalPcs} Pcs`;
+                        return "0 Box";
+                      }
+                      return `${totalQty} Pcs`;
+                    })()}
                   </td>
                   <td className="p-3 text-right font-black text-rose-700 dark:text-rose-400 text-sm">
                     {formatBdCurrency(filteredHistory.reduce((acc, i) => acc + i.amount, 0))}
                   </td>
+                  <td className="p-3" />
                 </tr>
               </tfoot>
             )}
@@ -651,38 +774,125 @@ function ReturnsManagementContent() {
           ) : displayedHistory.length === 0 ? (
             <div className="p-6 text-center text-slate-400 text-xs">No return records found.</div>
           ) : (
-            displayedHistory.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white dark:bg-slate-800/60 p-3 rounded-xl border border-[#cbd5e1] dark:border-[#334155] shadow-2xs space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800">
-                    {item.record_no}
-                  </span>
-                  <span className="text-[11px] text-slate-500 flex items-center gap-1">
-                    <Calendar className="w-3 h-3 text-rose-600" />
-                    {item.date}
-                  </span>
-                </div>
+            displayedHistory.map((item, idx) => {
+              const returnBadge = `#RET${String(item.id).padStart(5, "0")}`;
+              const invoiceUrl =
+                item.type === "purchase"
+                  ? item.purchase_id
+                    ? `/purchases/${item.purchase_id}`
+                    : null
+                  : item.order_id
+                  ? `/invoices/${item.order_id}`
+                  : null;
+              const profileUrl =
+                item.type === "purchase"
+                  ? item.supplier_id
+                    ? `/suppliers/${item.supplier_id}`
+                    : null
+                  : item.customer_id
+                  ? `/customers/${item.customer_id}`
+                  : null;
 
-                <div>
-                  <div className="font-bold text-xs text-slate-800 dark:text-white">
-                    {item.party_name}
+              return (
+                <div
+                  key={item.id}
+                  className="bg-white dark:bg-slate-800/60 p-3 rounded-xl border border-[#cbd5e1] dark:border-[#334155] shadow-2xs space-y-2.5"
+                >
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-bold flex items-center justify-center text-slate-500">
+                        #{startIndex + idx + 1}
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
+                        {returnBadge}
+                      </span>
+                      {invoiceUrl ? (
+                        <Link
+                          href={invoiceUrl}
+                          className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-2 py-0.5 rounded hover:bg-rose-100"
+                        >
+                          <span>{item.record_no}</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </Link>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          {item.record_no}
+                        </span>
+                      )}
+                    </div>
+
+                    <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-rose-600" />
+                      {item.date}
+                    </span>
                   </div>
-                  <div className="text-[11px] text-slate-500">{item.product_name}</div>
-                </div>
 
-                <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 dark:border-slate-700">
-                  <span className="font-bold text-slate-700 dark:text-slate-300">
-                    Qty: {item.quantity} pcs
-                  </span>
-                  <span className="font-black text-rose-700 dark:text-rose-400">
-                    {formatBdCurrency(item.amount)}
-                  </span>
+                  <div>
+                    {profileUrl ? (
+                      <Link
+                        href={profileUrl}
+                        className="font-bold text-xs text-slate-800 dark:text-white hover:text-rose-600 inline-flex items-center gap-1"
+                      >
+                        <span>{item.party_name}</span>
+                        <ExternalLink className="w-2.5 h-2.5 text-rose-600" />
+                      </Link>
+                    ) : (
+                      <div className="font-bold text-xs text-slate-800 dark:text-white">
+                        {item.party_name}
+                      </div>
+                    )}
+                    <div className="text-[11px] text-slate-500">{item.product_name}</div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Qty</span>
+                      <span className="font-bold text-slate-800 dark:text-white whitespace-nowrap">
+                        {formatTileOrItemQty(item.quantity, item)}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Refund Value</span>
+                      <span className="font-black text-rose-700 dark:text-rose-400 text-sm">
+                        {formatBdCurrency(item.amount)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Mobile Action Buttons Row */}
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReturnForQuickView(item)}
+                      className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-slate-700 hover:bg-emerald-600 hover:text-white flex items-center gap-1 transition-all cursor-pointer"
+                    >
+                      <Eye className="w-3 h-3" />
+                      <span>Quick View</span>
+                    </button>
+
+                    {invoiceUrl && (
+                      <Link
+                        href={invoiceUrl}
+                        className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-slate-700 hover:bg-blue-600 hover:text-white flex items-center gap-1 transition-all"
+                      >
+                        <FileText className="w-3 h-3" />
+                        <span>{item.type === "purchase" ? "Memo" : "Invoice"}</span>
+                      </Link>
+                    )}
+
+                    {profileUrl && (
+                      <Link
+                        href={profileUrl}
+                        className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200 dark:border-slate-700 hover:bg-purple-600 hover:text-white flex items-center gap-1 transition-all"
+                      >
+                        <User className="w-3 h-3" />
+                        <span>Profile</span>
+                      </Link>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -904,10 +1114,10 @@ function ReturnsManagementContent() {
                                 </div>
                               </td>
                               <td className="p-2.5 text-center font-bold text-slate-700 dark:text-slate-300">
-                                <div>{item.purchased_quantity} pcs</div>
+                                <div className="whitespace-nowrap">{formatTileOrItemQty(item.purchased_quantity, item)}</div>
                                 {item.returnable_quantity < item.purchased_quantity && (
-                                  <div className="text-[10px] text-emerald-600">
-                                    Eligible: {item.returnable_quantity}
+                                  <div className="text-[10px] text-emerald-600 whitespace-nowrap">
+                                    Eligible: {formatTileOrItemQty(item.returnable_quantity, item)}
                                   </div>
                                 )}
                               </td>
@@ -1012,6 +1222,538 @@ function ReturnsManagementContent() {
                   )}
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. Quick View Summary Modal (MARSS Reference) */}
+      {selectedReturnForQuickView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="w-full max-w-3xl sm:max-w-4xl bg-white dark:bg-slate-900 rounded-[16px] shadow-2xl overflow-hidden max-h-[92vh] flex flex-col border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
+            {/* Header: Brand Gradient & Circular Close Button */}
+            <div className="bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-6 py-4 flex items-center justify-between shrink-0 shadow-xs">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="w-8 h-8 rounded-lg bg-white/20 text-white flex items-center justify-center shrink-0">
+                  <Eye className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white tracking-tight m-0">
+                    {selectedReturnForQuickView.type === "purchase"
+                      ? "Purchase Return Summary"
+                      : "Sales Return Summary"}
+                  </h3>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="bg-white/20 text-white font-mono text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-white/30">
+                      {`#RET${String(selectedReturnForQuickView.id).padStart(5, "0")}`}
+                    </span>
+                    <span className="bg-emerald-500/30 text-emerald-100 text-[10px] font-semibold px-2.5 py-0.5 rounded-full border border-emerald-400/30">
+                      {selectedReturnForQuickView.type === "purchase" ? "Supplier Return" : "Customer Return"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedReturnForQuickView(null)}
+                className="w-7 h-7 rounded-full bg-[#dc2626] hover:bg-red-700 text-white flex items-center justify-center shadow-xs cursor-pointer transition-colors"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body: Scrollable */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4">
+              {/* KPI Cards Grid: 4 columns */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-center">
+                  <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                    Return Date
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100">
+                    {selectedReturnForQuickView.date || "N/A"}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-center">
+                  <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                    Returned Qty
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                    {formatTileOrItemQty(selectedReturnForQuickView.quantity, selectedReturnForQuickView)}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-center">
+                  <span className="block text-[10px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1">
+                    {selectedReturnForQuickView.type === "purchase" ? "Adjusted Amount" : "Refund Amount"}
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400">
+                    {formatBdCurrency(selectedReturnForQuickView.amount)}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-center">
+                  <span className="block text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
+                    Due Adjustment
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                    {formatBdCurrency(selectedReturnForQuickView.due_amount)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Return Specifications Box */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="bg-slate-100 dark:bg-slate-800 px-5 py-2.5 border-b border-slate-200 dark:border-slate-700 font-bold text-xs text-slate-700 dark:text-slate-200 uppercase tracking-wider flex items-center justify-between">
+                  <span>Return Specifications</span>
+                  <span className="text-rose-700 dark:text-rose-400 font-bold">
+                    {selectedReturnForQuickView.type === "purchase" ? "Purchase Return" : "Sales Return"}
+                  </span>
+                </div>
+                <div className="divide-y divide-slate-200 dark:divide-slate-700 text-xs">
+                  <div className="grid grid-cols-3 px-5 py-2.5 bg-white dark:bg-slate-800/90">
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">Return ID:</span>
+                    <span className="col-span-2 font-mono font-bold text-slate-800 dark:text-slate-100">
+                      {`#RET${String(selectedReturnForQuickView.id).padStart(5, "0")}`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50">
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">
+                      {selectedReturnForQuickView.type === "purchase" ? "Original Purchase Memo:" : "Original Invoice:"}
+                    </span>
+                    <span className="col-span-2">
+                      {selectedReturnForQuickView.type === "purchase" ? (
+                        selectedReturnForQuickView.purchase_id ? (
+                          <Link
+                            href={`/purchases/${selectedReturnForQuickView.purchase_id}`}
+                            className="bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-slate-800 font-mono font-bold px-2 py-0.5 rounded hover:bg-rose-100 transition-colors inline-flex items-center gap-1"
+                            title={`Open Purchase Memo ${selectedReturnForQuickView.record_no}`}
+                          >
+                            <span>{selectedReturnForQuickView.record_no}</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </Link>
+                        ) : (
+                          <span className="font-mono text-slate-700 dark:text-slate-300">
+                            {selectedReturnForQuickView.record_no}
+                          </span>
+                        )
+                      ) : selectedReturnForQuickView.order_id ? (
+                        <Link
+                          href={`/invoices/${selectedReturnForQuickView.order_id}`}
+                          className="bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-slate-800 font-mono font-bold px-2 py-0.5 rounded hover:bg-rose-100 transition-colors inline-flex items-center gap-1"
+                          title={`Open Sales Invoice ${selectedReturnForQuickView.record_no}`}
+                        >
+                          <span>{selectedReturnForQuickView.record_no}</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </Link>
+                      ) : (
+                        <span className="font-mono text-slate-700 dark:text-slate-300">
+                          {selectedReturnForQuickView.record_no}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 px-5 py-2.5 bg-white dark:bg-slate-800/90">
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">
+                      {selectedReturnForQuickView.type === "purchase" ? "Supplier Name:" : "Customer Name:"}
+                    </span>
+                    <span className="col-span-2">
+                      {selectedReturnForQuickView.type === "purchase" ? (
+                        selectedReturnForQuickView.supplier_id ? (
+                          <Link
+                            href={`/suppliers/${selectedReturnForQuickView.supplier_id}`}
+                            className="font-bold text-slate-800 dark:text-white hover:text-rose-600 inline-flex items-center gap-1"
+                          >
+                            <span>{selectedReturnForQuickView.party_name}</span>
+                            <ExternalLink className="w-2.5 h-2.5 text-rose-600" />
+                          </Link>
+                        ) : (
+                          <span className="font-medium text-slate-800 dark:text-slate-200">
+                            {selectedReturnForQuickView.party_name}
+                          </span>
+                        )
+                      ) : selectedReturnForQuickView.customer_id ? (
+                        <Link
+                          href={`/customers/${selectedReturnForQuickView.customer_id}`}
+                          className="font-bold text-slate-800 dark:text-white hover:text-rose-600 inline-flex items-center gap-1"
+                        >
+                          <span>{selectedReturnForQuickView.party_name}</span>
+                          <ExternalLink className="w-2.5 h-2.5 text-rose-600" />
+                        </Link>
+                      ) : (
+                        <span className="font-medium text-slate-800 dark:text-slate-200">
+                          {selectedReturnForQuickView.party_name}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50">
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">Contact Mobile:</span>
+                    <span className="col-span-2 font-medium text-slate-800 dark:text-slate-200">
+                      {selectedReturnForQuickView.party_mobile || "N/A"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 px-5 py-2.5 bg-white dark:bg-slate-800/90">
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">Returned Product:</span>
+                    <span className="col-span-2 font-bold text-slate-800 dark:text-slate-100">
+                      {selectedReturnForQuickView.product_name}
+                      {selectedReturnForQuickView.product_code && (
+                        <span className="text-slate-400 font-mono text-[11px] ml-1.5 font-normal">
+                          ({selectedReturnForQuickView.product_code})
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50">
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">Return Quantity:</span>
+                    <span className="col-span-2 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                      {formatTileOrItemQty(selectedReturnForQuickView.quantity, selectedReturnForQuickView)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 px-5 py-2.5 bg-white dark:bg-slate-800/90">
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">
+                      {selectedReturnForQuickView.type === "purchase" ? "Adjusted Amount:" : "Refund Amount:"}
+                    </span>
+                    <span className="col-span-2 font-bold text-rose-600 dark:text-rose-400">
+                      {formatBdCurrency(selectedReturnForQuickView.amount)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50">
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">Due Adjustment:</span>
+                    <span className="col-span-2 font-bold text-emerald-600 dark:text-emerald-400">
+                      {formatBdCurrency(selectedReturnForQuickView.due_amount)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 px-5 py-2.5 bg-white dark:bg-slate-800/90">
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">Processed On:</span>
+                    <span className="col-span-2 font-medium text-slate-800 dark:text-slate-200">
+                      {selectedReturnForQuickView.created_at
+                        ? new Date(selectedReturnForQuickView.created_at).toLocaleString()
+                        : selectedReturnForQuickView.date}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Returned Products Breakdown Table */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="bg-slate-100 dark:bg-slate-800 px-5 py-2.5 border-b border-slate-200 dark:border-slate-700 font-bold text-xs text-slate-700 dark:text-slate-200 uppercase tracking-wider flex items-center justify-between">
+                  <span>Returned Products Breakdown</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                    1 Product
+                  </span>
+                </div>
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-500 uppercase">
+                      <th className="p-2.5 text-center w-[40px]">SL</th>
+                      <th className="p-2.5">Product Name</th>
+                      <th className="p-2.5 text-center w-[100px]">Qty</th>
+                      <th className="p-2.5 text-right w-[110px]">Unit Rate</th>
+                      <th className="p-2.5 text-right w-[120px] pr-4">Total Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tr>
+                      <td className="p-2.5 text-center text-slate-400">1</td>
+                      <td className="p-2.5 font-bold text-slate-800 dark:text-white">
+                        {selectedReturnForQuickView.product_name}
+                        {selectedReturnForQuickView.tile_size && (
+                          <span className="ml-1.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                            📐 {selectedReturnForQuickView.tile_size}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-2.5 text-center font-bold whitespace-nowrap">
+                        {formatTileOrItemQty(selectedReturnForQuickView.quantity, selectedReturnForQuickView)}
+                      </td>
+                      <td className="p-2.5 text-right font-medium">
+                        {formatBdCurrency(
+                          selectedReturnForQuickView.quantity > 0
+                            ? selectedReturnForQuickView.amount / selectedReturnForQuickView.quantity
+                            : 0
+                        )}
+                      </td>
+                      <td className="p-2.5 text-right pr-4 font-bold text-rose-600 dark:text-rose-400">
+                        {formatBdCurrency(selectedReturnForQuickView.amount)}
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot className="bg-slate-50 dark:bg-slate-800/80 font-bold border-t border-slate-200 dark:border-slate-700">
+                    <tr>
+                      <td colSpan={2} className="p-2.5 text-right text-xs uppercase text-slate-500">
+                        Total Returned:
+                      </td>
+                      <td className="p-2.5 text-center font-bold whitespace-nowrap">
+                        {formatTileOrItemQty(selectedReturnForQuickView.quantity, selectedReturnForQuickView)}
+                      </td>
+                      <td className="p-2.5 text-right text-slate-500 uppercase text-[10px]">
+                        Total Value:
+                      </td>
+                      <td className="p-2.5 text-right pr-4 font-black text-rose-600 dark:text-rose-400 text-sm">
+                        {formatBdCurrency(selectedReturnForQuickView.amount)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Footer: Sticky Bottom Navigation & Actions */}
+            <div className="shrink-0 bg-slate-50 dark:bg-slate-900/95 px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {selectedReturnForQuickView.type === "purchase" ? (
+                  <>
+                    {selectedReturnForQuickView.purchase_id && (
+                      <Link
+                        href={`/purchases/${selectedReturnForQuickView.purchase_id}`}
+                        className="inline-flex items-center gap-1.5 px-3.5 h-[38px] rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 dark:text-blue-300 border border-blue-200 dark:border-slate-700 text-xs font-semibold transition-all shadow-2xs"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Open Purchase Memo</span>
+                      </Link>
+                    )}
+                    {selectedReturnForQuickView.supplier_id && (
+                      <Link
+                        href={`/suppliers/${selectedReturnForQuickView.supplier_id}`}
+                        className="inline-flex items-center gap-1.5 px-3.5 h-[38px] rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:hover:bg-purple-900/60 dark:text-purple-300 border border-purple-200 dark:border-slate-700 text-xs font-semibold transition-all shadow-2xs"
+                      >
+                        <User className="w-3.5 h-3.5" />
+                        <span>Supplier Profile</span>
+                      </Link>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {selectedReturnForQuickView.order_id && (
+                      <Link
+                        href={`/invoices/${selectedReturnForQuickView.order_id}`}
+                        className="inline-flex items-center gap-1.5 px-3.5 h-[38px] rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 dark:text-blue-300 border border-blue-200 dark:border-slate-700 text-xs font-semibold transition-all shadow-2xs"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Open Invoice</span>
+                      </Link>
+                    )}
+                    {selectedReturnForQuickView.customer_id && (
+                      <Link
+                        href={`/customers/${selectedReturnForQuickView.customer_id}`}
+                        className="inline-flex items-center gap-1.5 px-3.5 h-[38px] rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:hover:bg-purple-900/60 dark:text-purple-300 border border-purple-200 dark:border-slate-700 text-xs font-semibold transition-all shadow-2xs"
+                      >
+                        <User className="w-3.5 h-3.5" />
+                        <span>Customer Profile</span>
+                      </Link>
+                    )}
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const r = selectedReturnForQuickView;
+                    setSelectedReturnForQuickView(null);
+                    setSelectedReturnForPrint(r);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 h-[38px] rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-semibold transition-all shadow-2xs cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Print Return Slip</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedReturnForQuickView(null)}
+                className="h-[38px] px-5 rounded-xl bg-[#dc2626] hover:bg-red-700 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs ml-auto"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 9. Printable Return Document Voucher Modal */}
+      {selectedReturnForPrint && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto print:p-0 print:bg-white print:static print:inset-auto">
+          <div className="bg-white text-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:border-none print:shadow-none print:w-full">
+            {/* Top Bar - Hidden in Print */}
+            <div className="bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white px-5 py-3.5 flex items-center justify-between shrink-0 print:hidden">
+              <div className="flex items-center gap-2">
+                <Printer className="w-4 h-4 text-white" />
+                <h3 className="text-sm font-bold tracking-tight text-white m-0 uppercase">
+                  {selectedReturnForPrint.type === "purchase" ? "Purchase Return Voucher" : "Sales Return Voucher"}: #RET{String(selectedReturnForPrint.id).padStart(5, "0")}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="h-[32px] px-3.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print Voucher</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedReturnForPrint(null)}
+                  className="w-7 h-7 rounded-full bg-[#dc2626] hover:bg-red-700 text-white flex items-center justify-center cursor-pointer transition-colors shadow-xs"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Voucher Body */}
+            <div className="p-6 sm:p-8 overflow-y-auto flex-1 space-y-5 print:p-0 print:overflow-visible">
+              {/* Company Header */}
+              <div className="text-center pb-3 border-b-2 border-slate-800">
+                <h1 className="text-2xl font-black tracking-wider uppercase text-rose-900">
+                  RUNA TRADERS
+                </h1>
+                <p className="text-xs font-semibold text-slate-600 mt-0.5">
+                  Tiles, Sanitary &amp; Bath Fittings
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Success Super Market, Pabna | Mobile: 01975-703216, 01715-842083
+                </p>
+                <div className="inline-block mt-2 px-3 py-0.5 bg-rose-100 text-rose-900 border border-rose-300 font-bold text-xs uppercase tracking-wider rounded">
+                  {selectedReturnForPrint.type === "purchase"
+                    ? "Supplier Purchase Return Voucher"
+                    : "Customer Sales Return Voucher"}
+                </div>
+              </div>
+
+              {/* Voucher Meta Grid */}
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <div className="text-slate-500">
+                    Return No:{" "}
+                    <strong className="text-slate-900 font-mono">
+                      #RET{String(selectedReturnForPrint.id).padStart(5, "0")}
+                    </strong>
+                  </div>
+                  <div className="text-slate-500">
+                    {selectedReturnForPrint.type === "purchase" ? "Purchase Memo No: " : "Original Invoice: "}
+                    <strong className="text-slate-900 font-mono">
+                      {selectedReturnForPrint.record_no}
+                    </strong>
+                  </div>
+                  <div className="text-slate-500">
+                    Return Date:{" "}
+                    <strong className="text-slate-900">
+                      {selectedReturnForPrint.date}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-slate-500">
+                    {selectedReturnForPrint.type === "purchase" ? "Supplier: " : "Customer: "}
+                    <strong className="text-slate-900">
+                      {selectedReturnForPrint.party_name}
+                    </strong>
+                  </div>
+                  {selectedReturnForPrint.party_mobile && (
+                    <div className="text-slate-500">
+                      Mobile:{" "}
+                      <strong className="text-slate-900 font-mono">
+                        {selectedReturnForPrint.party_mobile}
+                      </strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="border border-slate-300 rounded-lg overflow-hidden">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 border-b border-slate-300 font-bold uppercase text-slate-700">
+                      <th className="p-2.5 text-center w-[40px]">SL</th>
+                      <th className="p-2.5">Item Description</th>
+                      <th className="p-2.5 text-center w-[100px]">Qty</th>
+                      <th className="p-2.5 text-right w-[110px]">Rate</th>
+                      <th className="p-2.5 text-right w-[120px] pr-3">
+                        {selectedReturnForPrint.type === "purchase" ? "Adjusted Amount" : "Refund Amount"}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    <tr>
+                      <td className="p-2.5 text-center text-slate-500">1</td>
+                      <td className="p-2.5">
+                        <div className="font-bold text-slate-900">
+                          {selectedReturnForPrint.product_name}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          Code: {selectedReturnForPrint.product_code}
+                          {selectedReturnForPrint.tile_size && ` | Size: ${selectedReturnForPrint.tile_size}`}
+                        </div>
+                      </td>
+                      <td className="p-2.5 text-center font-bold whitespace-nowrap">
+                        {formatTileOrItemQty(selectedReturnForPrint.quantity, selectedReturnForPrint)}
+                      </td>
+                      <td className="p-2.5 text-right">
+                        {formatBdCurrency(
+                          selectedReturnForPrint.quantity > 0
+                            ? selectedReturnForPrint.amount / selectedReturnForPrint.quantity
+                            : 0
+                        )}
+                      </td>
+                      <td className="p-2.5 text-right pr-3 font-bold text-rose-800">
+                        {formatBdCurrency(selectedReturnForPrint.amount)}
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot className="bg-slate-50 font-bold border-t-2 border-slate-300">
+                    <tr>
+                      <td colSpan={2} className="p-2.5 text-right uppercase text-[11px] text-slate-600">
+                        Total Returned Quantity:
+                      </td>
+                      <td className="p-2.5 text-center whitespace-nowrap">
+                        {formatTileOrItemQty(selectedReturnForPrint.quantity, selectedReturnForPrint)}
+                      </td>
+                      <td className="p-2.5 text-right uppercase text-[11px] text-slate-600">
+                        Total Amount:
+                      </td>
+                      <td className="p-2.5 text-right pr-3 text-rose-800 font-black">
+                        {formatBdCurrency(selectedReturnForPrint.amount)}
+                      </td>
+                    </tr>
+                    {selectedReturnForPrint.due_amount > 0 && (
+                      <tr>
+                        <td colSpan={4} className="p-2 text-right text-emerald-700 text-[11px]">
+                          Due Adjustment:
+                        </td>
+                        <td className="p-2 text-right pr-3 text-emerald-700 font-bold">
+                          {formatBdCurrency(selectedReturnForPrint.due_amount)}
+                        </td>
+                      </tr>
+                    )}
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Signatures */}
+              <div className="pt-12 grid grid-cols-2 gap-8 text-xs">
+                <div className="text-center">
+                  <div className="border-t border-slate-400 pt-1.5 font-semibold text-slate-700">
+                    {selectedReturnForPrint.type === "purchase" ? "Supplier Signature" : "Customer Signature"}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="border-t border-slate-400 pt-1.5 font-semibold text-slate-700">
+                    Authorized Signature
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center text-[10px] text-slate-400 pt-2 border-t border-dashed border-slate-200">
+                Software By: CodeNext IT | RUNA TRADERS POS System
+              </div>
             </div>
           </div>
         </div>

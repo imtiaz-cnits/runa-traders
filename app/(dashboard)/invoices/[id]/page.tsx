@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Printer, ArrowLeft, Loader2 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
+import { formatTileOrItemQty } from "@/lib/tiles-calculator";
 
 interface InvoiceDetail {
   id: number;
@@ -13,6 +14,8 @@ interface InvoiceDetail {
   sqft_per_box?: string | null;
   pcs_per_box?: string | null;
   grade?: string | null;
+  category?: string | null;
+  unit?: string | null;
   quantity: number;
   selling_price: number;
   line_total: number;
@@ -165,13 +168,13 @@ export default function InvoiceBillPage({
   const grandTotalDue = todayDue + prevDue;
 
   return (
-    <div className="max-w-5xl mx-auto font-sans">
+    <div className="font-sans">
       {/* 1. TOP ACTION BAR (Hidden when printing) */}
-      <div className="no-print mb-4 flex items-center justify-between gap-3">
+      <div className="no-print mb-4 flex items-center justify-between gap-2 flex-wrap">
         <button
           type="button"
           onClick={() => router.back()}
-          className="px-5 py-2.5 rounded-lg bg-[#475569] hover:bg-[#334155] text-white font-bold text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+          className="px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg bg-[#475569] hover:bg-[#334155] text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-sm transition-all cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Invoice List</span>
@@ -179,35 +182,35 @@ export default function InvoiceBillPage({
         <button
           type="button"
           onClick={handlePrint}
-          className="px-5 py-2.5 rounded-lg bg-[#15803d] hover:bg-[#166534] text-white font-bold text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+          className="px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg bg-[#15803d] hover:bg-[#166534] text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-sm transition-all cursor-pointer"
         >
           <Printer className="w-4 h-4" />
           <span>Print Bill</span>
         </button>
       </div>
 
-      {/* 2. INVOICE SHEET PAPER (A4 / 8in x 10.5in format matching MARSS CORP) */}
+      {/* 2. INVOICE SHEET PAPER (Full width) */}
       <div
         id="invoicePrintSheet"
-        className="invoice-paper bg-white text-black p-6 sm:p-8 border border-slate-300 w-full min-h-[10.5in] shadow-md relative flex flex-col justify-between"
+        className="invoice-paper bg-white text-black p-4 sm:p-8 border border-slate-300 w-full shadow-md relative flex flex-col justify-between overflow-hidden"
         style={{
           fontFamily: "'Valley Sans', Arial, sans-serif",
           boxSizing: "border-box",
         }}
       >
         <div className="sheet-top-content">
-          {/* Header */}
-          <div className="flex justify-between items-start pb-2 border-b border-slate-200">
+          {/* Header: Responsive on Mobile, Horizontal on Desktop & Print */}
+          <div className="flex flex-col sm:flex-row print:flex-row justify-between items-center sm:items-start print:items-start gap-3 sm:gap-2 print:gap-0 pb-2 border-b border-slate-200">
             {/* Brand Logo & Name */}
             <div className="flex items-start gap-2.5">
               <div className="w-11 h-11 rounded-lg border-2 border-[#15803d] flex items-center justify-center font-black text-xl text-[#991b1b] bg-white shrink-0 shadow-xs">
                 RT
               </div>
               <div className="flex flex-col">
-                <h1 className="text-2xl font-black tracking-wide text-[#15803d] m-0 leading-tight">
+                <h1 className="text-xl sm:text-2xl print:text-2xl font-black tracking-wide text-[#15803d] m-0 leading-tight">
                   RUNA TRADERS
                 </h1>
-                <div className="text-[11px] font-bold text-[#166534] border-t border-[#15803d] pt-0.5 mt-0.5 whitespace-nowrap">
+                <div className="text-[10px] sm:text-[11px] print:text-[11px] font-bold text-[#166534] border-t border-[#15803d] pt-0.5 mt-0.5 whitespace-normal sm:whitespace-nowrap print:whitespace-nowrap">
                   All Kinds of Tiles, Sanitary & Fittings Supplier
                 </div>
               </div>
@@ -215,13 +218,13 @@ export default function InvoiceBillPage({
 
             {/* Middle "Bill" Badge */}
             <div className="self-center">
-              <span className="px-5 py-1 rounded bg-[#15803d] text-white font-serif font-black text-lg tracking-wider">
+              <span className="px-4 sm:px-5 py-0.5 sm:py-1 print:py-1 rounded bg-[#15803d] text-white font-serif font-black text-base sm:text-lg print:text-lg tracking-wider">
                 Bill
               </span>
             </div>
 
             {/* Office Info */}
-            <div className="text-right text-[11px] text-slate-800 leading-tight max-w-[240px]">
+            <div className="text-center sm:text-right print:text-right text-[11px] text-slate-800 leading-tight max-w-[240px]">
               <div><strong>Office:</strong> Success Super Market,</div>
               <div>Sadar Police Fari, Ataikula Road, Pabna.</div>
               <div><strong>Mobile:</strong> 01975-703216, 01715-842083</div>
@@ -230,7 +233,7 @@ export default function InvoiceBillPage({
           </div>
 
           {/* Form Metadata Rows (Two-Column Dotted Grid matching MARSS) */}
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1 my-3 text-[12px] text-black">
+          <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-6 gap-y-1.5 sm:gap-y-1 print:gap-y-1 my-3 text-[12px] text-black">
             <div className="flex items-end">
               <span className="font-semibold whitespace-nowrap mr-1">Bill No:</span>
               <span className="flex-1 border-b border-dotted border-black font-bold font-mono pl-1">
@@ -273,7 +276,7 @@ export default function InvoiceBillPage({
               </span>
             </div>
 
-            <div className="col-span-2 flex items-end">
+            <div className="col-span-1 sm:col-span-2 print:col-span-2 flex items-end">
               <span className="font-semibold whitespace-nowrap mr-1">Address:</span>
               <span className="flex-1 border-b border-dotted border-black pl-1 truncate">
                 {invoice.customer?.address_details || "N/A"}
@@ -282,8 +285,8 @@ export default function InvoiceBillPage({
           </div>
 
           {/* Items Table (Bordered 1px solid black matching screenshot 5) */}
-          <div className="mt-2 mb-4">
-            <table className="w-full text-left border-collapse border border-black text-[12px]">
+          <div className="mt-2 mb-4 overflow-x-auto">
+            <table className="w-full text-left border-collapse border border-black text-[12px] min-w-[500px] sm:min-w-0 print:min-w-0">
               <thead>
                 <tr className="bg-slate-50 text-black font-bold text-center border-b border-black">
                   <th className="border border-black py-1 px-2 w-[50px]">Sl.No.</th>
@@ -310,22 +313,12 @@ export default function InvoiceBillPage({
                     <td className="border border-black py-1 px-2 text-right font-mono">
                       {item.selling_price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
-                    <td className="border border-black py-1 px-2 text-center font-bold">
-                      {item.quantity}
+                    <td className="border border-black py-1 px-2 text-center font-bold whitespace-nowrap">
+                      {formatTileOrItemQty(item.quantity, item)}
                     </td>
                     <td className="border border-black py-1 px-3 text-right font-mono font-bold">
                       {item.line_total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
-                  </tr>
-                ))}
-                {/* Empty padding rows if details count is small to preserve paper height */}
-                {Array.from({ length: Math.max(0, 5 - invoice.details.length) }).map((_, i) => (
-                  <tr key={`empty-${i}`} className="border-b border-black h-7">
-                    <td className="border border-black">&nbsp;</td>
-                    <td className="border border-black">&nbsp;</td>
-                    <td className="border border-black">&nbsp;</td>
-                    <td className="border border-black">&nbsp;</td>
-                    <td className="border border-black">&nbsp;</td>
                   </tr>
                 ))}
               </tbody>
@@ -335,9 +328,9 @@ export default function InvoiceBillPage({
 
         {/* 3. BOTTOM SUMMARY SECTION */}
         <div className="sheet-bottom-content mt-auto pt-2">
-          <div className="flex items-end justify-between gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row print:flex-row items-start sm:items-end print:items-end justify-between gap-4 mb-6">
             {/* In Words */}
-            <div className="w-[58%] text-[12px]">
+            <div className="w-full sm:w-[58%] print:w-[58%] text-[12px]">
               <div className="flex items-end">
                 <span className="font-semibold whitespace-nowrap mr-1">In Words:</span>
                 <span className="flex-1 border-b border-dotted border-black font-bold pl-1 italic">
@@ -352,7 +345,7 @@ export default function InvoiceBillPage({
             </div>
 
             {/* Totals Table matching screenshot 5 */}
-            <div className="w-[40%]">
+            <div className="w-full sm:w-[40%] print:w-[40%]">
               <table className="w-full border-collapse border border-black text-[12px]">
                 <tbody>
                   <tr className="border-b border-black">
@@ -409,17 +402,17 @@ export default function InvoiceBillPage({
           </div>
 
           {/* Signatures */}
-          <div className="flex justify-between items-end pt-8 pb-3 text-[12px] font-semibold text-black">
-            <div className="w-40 text-center border-t border-dotted border-black pt-1">
+          <div className="flex justify-between items-end pt-8 pb-3 text-[12px] font-semibold text-black gap-4">
+            <div className="w-36 sm:w-40 print:w-40 text-center border-t border-dotted border-black pt-1">
               Customer&apos;s Signature
             </div>
-            <div className="w-40 text-center border-t border-dotted border-black pt-1">
+            <div className="w-36 sm:w-40 print:w-40 text-center border-t border-dotted border-black pt-1">
               Authorized Signature
             </div>
           </div>
 
           {/* Bottom Dual Color Accent Bar matching MARSS screenshot 5 */}
-          <div className="flex h-3 w-full -mx-6 sm:-mx-8 -mb-6 sm:-mb-8" style={{ width: "calc(100% + 48px)" }}>
+          <div className="flex h-3 w-[calc(100%+2rem)] sm:w-[calc(100%+4rem)] -mx-4 sm:-mx-8 -mb-4 sm:-mb-8 mt-4">
             <div className="w-1/2 bg-[#dc2626]"></div>
             <div className="w-1/2 bg-[#15803d]"></div>
           </div>

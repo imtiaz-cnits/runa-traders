@@ -18,6 +18,7 @@ import {
 import { ChallanPrintReceipt, ChallanPrintData } from "@/components/challan/challan-print-receipt";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui";
+import { formatBoxAndPcs, formatTileOrItemQty, parseBoxAndPcs } from "@/lib/tiles-calculator";
 
 export default function ChallansPage() {
   const [challans, setChallans] = useState<any[]>([]);
@@ -69,6 +70,38 @@ export default function ChallansPage() {
     } catch (err) {
       console.error("Error fetching challan details:", err);
     }
+  };
+
+  const formatChallanQty = (c: any): string => {
+    if (!c.items || c.items.length === 0) {
+      return formatBoxAndPcs(c.total_quantity);
+    }
+    if (c.items.length === 1) {
+      return formatTileOrItemQty(c.items[0].quantity, c.items[0]);
+    }
+    let totalBoxes = 0;
+    let totalPcs = 0;
+    let allNonTiles = true;
+    for (const it of c.items) {
+      const isTile = Boolean(it.tile_size || it.pcs_per_box || (it.unit && it.unit.toLowerCase().includes("box")));
+      if (isTile) {
+        allNonTiles = false;
+        const { fullBoxes, pcs } = parseBoxAndPcs(it.quantity, it.pcs_per_box, it.tile_size);
+        totalBoxes += fullBoxes;
+        totalPcs += pcs;
+      }
+    }
+    if (allNonTiles) {
+      return `${c.total_quantity} Pcs`;
+    }
+    if (totalBoxes > 0 && totalPcs > 0) {
+      return `${totalBoxes} Boxes ${totalPcs} Pcs`;
+    } else if (totalBoxes > 0) {
+      return `${totalBoxes} Box${totalBoxes > 1 ? "es" : ""}`;
+    } else if (totalPcs > 0) {
+      return `${totalPcs} Pcs`;
+    }
+    return "0 Box";
   };
 
   return (
@@ -221,8 +254,8 @@ export default function ChallansPage() {
                           ? `${c.vehicle_no || ""} ${c.driver_name ? `(${c.driver_name})` : ""}`
                           : "Self Handover"}
                       </td>
-                      <td className="py-3 px-4 text-center font-bold font-mono text-slate-900 dark:text-white">
-                        {c.total_quantity}
+                      <td className="py-3 px-4 text-center font-bold font-mono text-slate-900 dark:text-white whitespace-nowrap">
+                        {formatChallanQty(c)}
                       </td>
                       <td className="py-3 px-4 text-center">
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-900">
@@ -271,7 +304,7 @@ export default function ChallansPage() {
                     <div>
                       <span className="text-[10px] text-slate-400">Quantity</span>
                       <p className="font-bold font-mono text-slate-900 dark:text-white">
-                        {c.total_quantity} Boxes
+                        {formatChallanQty(c)}
                       </p>
                     </div>
                   </div>

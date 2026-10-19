@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
+import { formatBoxAndPcs, formatTileOrItemQty } from "@/lib/tiles-calculator";
 import { ThermalReceiptModal } from "@/components/pos/thermal-receipt";
 import { ChallanModal } from "@/components/challan/challan-modal";
 import { CustomSelect, Pagination } from "@/components/ui";
@@ -58,7 +59,9 @@ interface Invoice {
     product_name: string;
     tile_size?: string | null;
     sqft_per_box?: number | null;
+    pcs_per_box?: number | null;
     grade?: string | null;
+    category?: string | null;
     quantity: number;
     selling_price: number;
     unit: string;
@@ -345,8 +348,8 @@ export default function InvoicesPage() {
                       <div className="text-[10px] text-slate-400">{inv.customer_mobile}</div>
                     </td>
                     <td className="py-3 px-3 text-center">
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-bold text-[11px] text-slate-700 dark:text-slate-300">
-                        {inv.total_items} Pcs
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-bold text-[11px] text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                        {inv.has_tiles ? formatBoxAndPcs(inv.total_items) : `${inv.total_items} Pcs`}
                       </span>
                     </td>
                     <td className="py-3 px-3 text-right font-black text-slate-900 dark:text-white">
@@ -693,8 +696,8 @@ export default function InvoicesPage() {
                             </div>
                           )}
                         </td>
-                        <td className="py-2 px-2 text-center font-bold">
-                          {d.quantity} {d.unit}
+                        <td className="py-2 px-2 text-center font-bold whitespace-nowrap">
+                          {formatTileOrItemQty(d.quantity, d)}
                         </td>
                         <td className="py-2 px-2 text-right">{d.selling_price.toFixed(2)}</td>
                         <td className="py-2 px-3 text-right font-bold">{d.line_total.toFixed(2)}</td>

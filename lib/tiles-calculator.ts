@@ -189,7 +189,7 @@ export function parseBoxAndPcs(
 
   let formatted = "";
   if (fullBoxes > 0 && pcs > 0) {
-    formatted = `${fullBoxes} Box, ${pcs} Pcs`;
+    formatted = `${fullBoxes} Box${fullBoxes > 1 ? "es" : ""} ${pcs} Pcs`;
   } else if (fullBoxes > 0) {
     formatted = `${fullBoxes} Box${fullBoxes > 1 ? "es" : ""}`;
   } else if (pcs > 0) {
@@ -203,8 +203,8 @@ export function parseBoxAndPcs(
 
 /**
  * Format boxes and remaining pieces cleanly
- * e.g. 75.25 boxes with 4 pcs/box => "75 Box, 1 Pcs"
- * e.g. 12.16 boxes with 25 pcs/box => "12 Box, 4 Pcs"
+ * e.g. 75.25 boxes with 4 pcs/box => "75 Boxes 1 Pcs"
+ * e.g. 12.16 boxes with 25 pcs/box => "12 Boxes 4 Pcs"
  * e.g. 10 boxes => "10 Boxes"
  */
 export function formatBoxAndPcs(
@@ -213,6 +213,44 @@ export function formatBoxAndPcs(
   tileSize?: string | null
 ): string {
   return parseBoxAndPcs(boxes, pcsPerBox, tileSize).formatted;
+}
+
+/**
+ * Universal helper for Tiles vs Non-Tiles products
+ * If Tiles: returns formatted "X Boxes Y Pcs", "4 Boxes", or "5 Pcs"
+ * If Non-Tiles: returns "X Pcs"
+ */
+export function formatTileOrItemQty(
+  qty: number | string | null | undefined,
+  item?: {
+    tile_size?: string | null;
+    pcs_per_box?: number | string | null;
+    unit?: string | null;
+    category?: string | null;
+    category_name?: string | null;
+    is_tiles?: boolean;
+    product_name?: string | null;
+  } | null
+): string {
+  const numQty = typeof qty === "number" ? qty : parseFloat(String(qty || 0));
+  const isTile = Boolean(
+    item?.is_tiles ||
+    item?.tile_size ||
+    item?.pcs_per_box ||
+    (item?.unit && item.unit.toLowerCase().includes("box")) ||
+    (item?.category && item.category.toLowerCase().includes("tile")) ||
+    (item?.category_name && item.category_name.toLowerCase().includes("tile"))
+  );
+
+  if (isNaN(numQty) || numQty <= 0) {
+    return isTile ? "0 Box" : "0 Pcs";
+  }
+
+  if (isTile) {
+    return formatBoxAndPcs(numQty, item?.pcs_per_box, item?.tile_size);
+  }
+
+  return `${numQty} Pcs`;
 }
 
 /**

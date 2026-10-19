@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
+import { formatBoxAndPcs, formatTileOrItemQty } from "@/lib/tiles-calculator";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
@@ -33,7 +34,9 @@ interface PurchaseItem {
   unit: string;
   tile_size?: string | null;
   sqft_per_box?: number | null;
+  pcs_per_box?: number | null;
   grade?: string | null;
+  category?: string | null;
 }
 
 interface Purchase {
@@ -59,6 +62,10 @@ interface Purchase {
     cost_price: number;
     subtotal: number;
     unit: string;
+    tile_size?: string | null;
+    sqft_per_box?: number | null;
+    pcs_per_box?: number | null;
+    grade?: string | null;
   }>;
   payments: Array<{
     id: number;
@@ -84,7 +91,12 @@ interface Product {
   unit: string;
   tile_size?: string | null;
   sqft_per_box?: number | null;
+  pcs_per_box?: number | null;
   grade?: string | null;
+  primary_code?: string;
+  display_codes?: string;
+  brand?: string;
+  category?: string;
 }
 
 export default function PurchasesPage() {
@@ -130,7 +142,7 @@ export default function PurchasesPage() {
       const [purRes, supRes, prodRes] = await Promise.all([
         fetch(`/api/purchases?search=${encodeURIComponent(search)}`),
         fetch("/api/suppliers"),
-        fetch("/api/products?limit=300"),
+        fetch("/api/products?limit=all"),
       ]);
 
       const [purData, supData, prodData] = await Promise.all([
@@ -203,6 +215,8 @@ export default function PurchasesPage() {
           product_name: prod.product_name,
           tile_size: prod.tile_size,
           sqft_per_box: prod.sqft_per_box,
+          pcs_per_box: prod.pcs_per_box,
+          category: prod.category,
           grade: prod.grade,
           quantity: qty,
           cost_price: cost,
@@ -665,11 +679,24 @@ export default function PurchasesPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                   <div className="sm:col-span-6">
                     <CustomSelect
-                      options={products.map((p) => ({
-                        value: p.id,
-                        label: `${p.product_name} ${p.tile_size ? `[${p.tile_size}]` : ""}`,
-                        subLabel: `Stock: ${p.quantity} ${p.unit}`,
-                      }))}
+                      options={products.map((p) => {
+                        const isTile = Boolean(
+                          p.tile_size ||
+                          p.pcs_per_box ||
+                          (p.unit && p.unit.toLowerCase().includes("box")) ||
+                          (p.category && p.category.toLowerCase().includes("tile"))
+                        );
+                        const stockDisplay = isTile
+                          ? formatBoxAndPcs(p.quantity, p.pcs_per_box, p.tile_size)
+                          : `${p.quantity} Pcs`;
+                        const codeStr = p.primary_code ? ` • ${p.primary_code}` : "";
+                        const brandStr = p.brand && p.brand !== "N/A" ? ` • ${p.brand}` : "";
+                        return {
+                          value: p.id,
+                          label: `${p.product_name} ${p.tile_size ? `[${p.tile_size}]` : ""}`,
+                          subLabel: `Stock: ${stockDisplay}${codeStr}${brandStr}`,
+                        };
+                      })}
                       value={selectedProdId}
                       onChange={(val) => {
                         setSelectedProdId(String(val));
@@ -745,7 +772,7 @@ export default function PurchasesPage() {
                             )}
                           </td>
                           <td className="py-2 px-2 text-center font-bold">
-                            {item.quantity} {item.unit}
+                            {formatTileOrItemQty(item.quantity, item)}
                           </td>
                           <td className="py-2 px-2 text-right font-medium">
                             {item.cost_price.toFixed(2)}
@@ -947,7 +974,7 @@ export default function PurchasesPage() {
                           {d.product_name}
                         </td>
                         <td className="py-2 px-2 text-center font-bold">
-                          {d.quantity} {d.unit}
+                          {formatTileOrItemQty(d.quantity, d)}
                         </td>
                         <td className="py-2 px-2 text-right">{d.cost_price.toFixed(2)}</td>
                         <td className="py-2 px-3 text-right font-bold">

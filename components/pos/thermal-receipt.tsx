@@ -1,6 +1,7 @@
 "use client";
 
 import { formatBdCurrency } from "@/lib/utils";
+import { formatTileOrItemQty } from "@/lib/tiles-calculator";
 import { Printer, X, Truck, Phone, MapPin, Calendar, FileText } from "lucide-react";
 
 interface ReceiptProps {
@@ -33,8 +34,10 @@ interface ReceiptProps {
       total: number;
       tile_size?: string | null;
       sqft_per_box?: number | null;
+      pcs_per_box?: number | null;
       grade?: string | null;
       category?: string | null;
+      unit?: string | null;
     }>;
   };
   onClose: () => void;
@@ -206,8 +209,8 @@ export function ThermalReceiptModal({ receiptData, onClose, onOpenChallan }: Rec
                         {item.sqft_per_box ? `(${(item.quantity * item.sqft_per_box).toFixed(1)} Sft)` : ""}
                         {item.grade ? ` [★${item.grade}]` : ""}
                       </td>
-                      <td className="py-2 px-3 text-center font-bold font-mono">
-                        {item.quantity}
+                      <td className="py-2 px-3 text-center font-bold font-mono whitespace-nowrap">
+                        {formatTileOrItemQty(item.quantity, item)}
                       </td>
                       <td className="py-2 px-3 text-right font-mono">
                         {item.price.toFixed(2)}

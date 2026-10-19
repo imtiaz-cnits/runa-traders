@@ -54,7 +54,7 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
 
   const formattedTotalDispatch =
     totalBoxes > 0 && totalPcs > 0
-      ? `${totalBoxes} Boxes, ${totalPcs} Pcs`
+      ? `${totalBoxes} Boxes ${totalPcs} Pcs`
       : totalBoxes > 0
       ? `${totalBoxes} Boxes`
       : totalPcs > 0
@@ -228,11 +228,24 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
                   </thead>
                   <tbody className="divide-y divide-slate-200 text-slate-800">
                     {challan.items.map((item, idx) => {
+                      const isTile = Boolean(
+                        item.tile_size ||
+                        item.pcs_per_box ||
+                        (item.unit && item.unit.toLowerCase().includes("box"))
+                      );
                       const { fullBoxes, pcs, formatted } = parseBoxAndPcs(
                         item.quantity,
                         item.pcs_per_box,
                         item.tile_size
                       );
+                      const displayQty = isTile ? formatted : `${item.quantity} Pcs`;
+                      const displayUnit = isTile
+                        ? fullBoxes > 0 && pcs > 0
+                          ? "Box, Pcs"
+                          : fullBoxes > 0
+                          ? "Box"
+                          : "Pcs"
+                        : item.unit || "Pcs";
                       return (
                         <tr key={item.id || idx} className="hover:bg-slate-50/50">
                           <td className="py-1.5 px-2 text-center text-slate-500 font-mono text-[10px]">
@@ -245,10 +258,10 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
                             {item.tile_size || "-"}
                           </td>
                           <td className="py-1.5 px-2 text-right font-bold font-mono text-slate-900 whitespace-nowrap">
-                            {formatted}
+                            {displayQty}
                           </td>
                           <td className="py-1.5 px-1.5 text-center text-slate-600 text-[10px] whitespace-nowrap">
-                            {fullBoxes > 0 && pcs > 0 ? "Box, Pcs" : fullBoxes > 0 ? "Box" : "Pcs"}
+                            {displayUnit}
                           </td>
                         </tr>
                       );

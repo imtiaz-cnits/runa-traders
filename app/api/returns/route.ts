@@ -58,7 +58,9 @@ export async function GET(req: NextRequest) {
         }
 
         const pNo = r.purchases?.purchase_id
-          ? `#${r.purchases.purchase_id}`
+          ? (String(r.purchases.purchase_id).startsWith("#")
+              ? r.purchases.purchase_id
+              : `#${r.purchases.purchase_id}`)
           : `#PurID${String(r.purchase_id).padStart(5, "0")}`;
 
         return {
@@ -66,6 +68,7 @@ export async function GET(req: NextRequest) {
           type: "purchase",
           record_no: pNo,
           purchase_id: Number(r.purchase_id),
+          supplier_id: r.supplier_id ? Number(r.supplier_id) : (r.suppliers?.id ? Number(r.suppliers.id) : null),
           party_name: r.suppliers?.name || r.suppliers?.company || "Supplier",
           party_mobile: r.suppliers?.mobile || "",
           product_id: Number(r.product_id),
@@ -162,13 +165,18 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        const oNo = r.orders?.order_no || `#ORD-${r.order_id}`;
+        const oNo = r.orders?.order_no
+          ? (String(r.orders.order_no).startsWith("#")
+              ? r.orders.order_no
+              : `#${r.orders.order_no}`)
+          : `#ORD-${r.order_id}`;
 
         return {
           id: Number(r.id),
           type: "sales",
           record_no: oNo,
           order_id: Number(r.order_id),
+          customer_id: r.customer_id ? Number(r.customer_id) : (r.customers?.id ? Number(r.customers.id) : null),
           party_name: r.customers?.customer_name || "Customer",
           party_mobile: r.customers?.mobile || "",
           product_id: r.product_id ? Number(r.product_id) : null,

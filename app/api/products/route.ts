@@ -83,6 +83,9 @@ export async function GET(req: NextRequest) {
         return (
           p.product_name.toLowerCase().includes(search) ||
           p.display_codes.toLowerCase().includes(search) ||
+          (p.brand && p.brand.toLowerCase().includes(search)) ||
+          (p.category && p.category.toLowerCase().includes(search)) ||
+          (p.tile_size && p.tile_size.toLowerCase().includes(search)) ||
           String(p.id) === search
         );
       });
