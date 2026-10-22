@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { CustomSelect } from "./custom-select";
 import {
   ChevronLeft,
   ChevronRight,
@@ -79,25 +80,28 @@ export function Pagination({
       {/* Left side: Showing X to Y of Z & Page Size dropdown */}
       <div className="flex flex-wrap items-center gap-3 text-slate-600 dark:text-slate-300 w-full md:w-auto justify-between md:justify-start">
         {showPageSizeSelector && onPageSizeChange && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
               Show
             </span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                const newSize = Number(e.target.value);
-                onPageSizeChange(newSize);
-                onPageChange(1); // Reset to page 1 on page size change
-              }}
-              className="h-[32px] px-2.5 py-0 rounded-lg bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-bold text-xs focus:outline-none focus:ring-2 focus:ring-rose-600/30 cursor-pointer transition-colors shadow-2xs"
-            >
-              {pageSizeOptions.map((opt) => (
-                <option key={opt} value={opt} className="bg-white dark:bg-slate-900">
-                  {opt}
-                </option>
-              ))}
-            </select>
+            <div className="w-[78px]">
+              <CustomSelect
+                value={String(pageSize)}
+                onChange={(val) => {
+                  const newSize = Number(val);
+                  onPageSizeChange(newSize);
+                  onPageChange(1); // Reset to page 1 on page size change
+                }}
+                options={pageSizeOptions.map((opt) => ({
+                  value: String(opt),
+                  label: String(opt),
+                }))}
+                searchThreshold={99}
+                minPopoverWidth={88}
+                placement="auto"
+                className="[&_button]:!h-[32px] [&_button]:!min-h-[32px] [&_button]:!py-0 [&_button]:!px-2.5 [&_button]:!rounded-lg [&_button]:!text-xs [&_button]:!font-bold [&_button]:!bg-slate-50 dark:[&_button]:!bg-slate-800/90 [&_button]:!border-slate-300 dark:[&_button]:!border-slate-700 shadow-2xs"
+              />
+            </div>
             <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
               entries
             </span>

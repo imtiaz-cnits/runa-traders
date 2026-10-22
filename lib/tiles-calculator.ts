@@ -143,9 +143,11 @@ export function getTilePcsPerBox(
     const parsedDim = parseTileDimension(tileSize);
     if (parsedDim) {
       const dimKey = `${parsedDim.width}x${parsedDim.height}`;
-      const dimMatch = POPULAR_TILE_SIZES.find(
-        (s) => s.value.replace(/"/g, '').toLowerCase() === dimKey
-      );
+      const revKey = `${parsedDim.height}x${parsedDim.width}`;
+      const dimMatch = POPULAR_TILE_SIZES.find((s) => {
+        const sVal = s.value.replace(/"/g, '').toLowerCase();
+        return sVal === dimKey || sVal === revKey;
+      });
       if (dimMatch && dimMatch.defaultPcsPerBox) return dimMatch.defaultPcsPerBox;
     }
   }
@@ -172,7 +174,7 @@ export function parseBoxAndPcs(
 
   const pcsNum = getTilePcsPerBox(pcsPerBox, tileSize);
   let fullBoxes = Math.floor(numBoxes);
-  const frac = numBoxes - fullBoxes;
+  const frac = parseFloat((numBoxes - fullBoxes).toFixed(4));
   
   let pcs = 0;
   if (pcsNum > 0) {
@@ -182,9 +184,15 @@ export function parseBoxAndPcs(
       pcs = pcs % pcsNum;
     }
   } else if (frac > 0) {
-    // If pieces per box is not defined, parse decimal digits cleanly (e.g. 12.4 -> 4 pcs, 12.6 -> 6 pcs)
-    const decStr = String(boxes).split('.')[1] || '';
-    pcs = parseInt(decStr, 10) || 0;
+    // Clean single-digit or clean fractional decimal safely without dumping 15-digit float noise
+    const cleanFrac = parseFloat(frac.toFixed(2));
+    if (cleanFrac > 0) {
+      if (Math.round(cleanFrac * 10) === cleanFrac * 10) {
+        pcs = Math.round(cleanFrac * 10);
+      } else {
+        pcs = Math.round(cleanFrac * 100);
+      }
+    }
   }
 
   let formatted = "";
@@ -285,3 +293,64 @@ export function calculateFromPcs(
   };
 }
 
+
+/**
+ * Break down multi-item order / invoice quantities dynamically:
+ * Dynamically calculates each tile line item by its exact pcs_per_box and tile dimensions
+ * e.g. 5 boxes + 18 pcs tiles => "5 Boxes 18 Pcs"
+ */
+export function formatOrderQty(
+  details?: Array<{
+    quantity?: number | string | null;
+    pcs_per_box?: number | string | null;
+    tile_size?: string | null;
+    unit?: string | null;
+    is_tiles?: boolean;
+    product_name?: string | null;
+  }> | null,
+  fallbackQty?: number | string | null,
+  hasTilesFlag?: boolean
+): string {
+  if (!details || details.length === 0) {
+    return hasTilesFlag ? formatBoxAndPcs(fallbackQty) : `${fallbackQty ?? 0} Pcs`;
+  }
+  if (details.length === 1) {
+    return formatTileOrItemQty(details[0].quantity, details[0]);
+  }
+
+  let totalBoxes = 0;
+  let totalPcs = 0;
+  let hasTiles = Boolean(hasTilesFlag);
+  let nonTileQty = 0;
+
+  for (const it of details) {
+    const isTile = Boolean(
+      it.tile_size ||
+      it.pcs_per_box ||
+      it.is_tiles ||
+      (it.unit && it.unit.toLowerCase().includes("box"))
+    );
+    if (isTile) {
+      hasTiles = true;
+      const { fullBoxes, pcs } = parseBoxAndPcs(it.quantity, it.pcs_per_box, it.tile_size);
+      totalBoxes += fullBoxes;
+      totalPcs += pcs;
+    } else {
+      nonTileQty += parseFloat(String(it.quantity || 0));
+    }
+  }
+
+  if (!hasTiles) {
+    const cleanQty = fallbackQty ?? nonTileQty;
+    return `${cleanQty} Pcs`;
+  }
+
+  if (totalBoxes > 0 && totalPcs > 0) {
+    return `${totalBoxes} Box${totalBoxes > 1 ? "es" : ""} ${totalPcs} Pcs`;
+  } else if (totalBoxes > 0) {
+    return `${totalBoxes} Box${totalBoxes > 1 ? "es" : ""}`;
+  } else if (totalPcs > 0) {
+    return `${totalPcs} Pcs`;
+  }
+  return "0 Box";
+}

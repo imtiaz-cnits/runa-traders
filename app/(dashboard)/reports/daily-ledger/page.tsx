@@ -266,6 +266,7 @@ export default function DailyLedgerPage() {
         <table className="w-full text-left text-xs border-collapse">
           <thead>
             <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
+              <th className="py-3 px-3 text-center w-[50px]">SL</th>
               <th className="py-3 px-4 w-36">Date & Time</th>
               <th className="py-3 px-4">Particulars / বিবরণ</th>
               <th className="py-3 px-3">Party / Category</th>
@@ -278,23 +279,26 @@ export default function DailyLedgerPage() {
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {loading ? (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-slate-400">
+                <td colSpan={8} className="py-10 text-center text-slate-400">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                   <span>Loading daily ledger transactions...</span>
                 </td>
               </tr>
             ) : filteredLedger.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-slate-400 font-bold">
+                <td colSpan={8} className="py-10 text-center text-slate-400 font-bold">
                   No cashbook transactions found for the selected date range.
                 </td>
               </tr>
             ) : (
-              displayedLedger.map((tx) => (
+              displayedLedger.map((tx, idx) => (
                 <tr
                   key={tx.id}
                   className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
+                  <td className="py-3 px-3 text-center font-bold text-slate-500">
+                    {startIndex + idx + 1}
+                  </td>
                   <td className="py-3 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
                     {tx.date_formatted}
                   </td>

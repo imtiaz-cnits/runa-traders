@@ -210,6 +210,7 @@ export default function ChallansPage() {
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white font-bold whitespace-nowrap">
+                    <th className="py-3 px-3 text-center w-[50px]">SL</th>
                     <th className="py-3 px-4">Challan No</th>
                     <th className="py-3 px-4">Invoice Ref</th>
                     <th className="py-3 px-4">Date</th>
@@ -222,11 +223,12 @@ export default function ChallansPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
-                  {challans.map((c) => (
+                  {challans.map((c, idx) => (
                     <tr
                       key={c.id}
                       className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors"
                     >
+                      <td className="py-3 px-3 text-center font-bold text-slate-500">{(page - 1) * limit + idx + 1}</td>
                       <td className="py-3 px-4 font-mono font-bold text-rose-800 dark:text-rose-400">
                         {c.challan_no}
                       </td>

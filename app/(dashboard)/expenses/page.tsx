@@ -471,6 +471,7 @@ export default function ExpensesPage() {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
+                <th className="py-3 px-3 text-center w-[50px]">SL</th>
                 <th className="py-3 px-4">Date / Entry ID</th>
                 <th className="py-3 px-3">Expense Category</th>
                 <th className="py-3 px-3">Staff / Beneficiary</th>
@@ -482,23 +483,26 @@ export default function ExpensesPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-slate-400">
+                  <td colSpan={7} className="py-10 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                     <span>Loading expense records...</span>
                   </td>
                 </tr>
               ) : expenses.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-slate-400 font-bold">
+                  <td colSpan={7} className="py-10 text-center text-slate-400 font-bold">
                     No expense records found. Click "+ Add Expense" to record one.
                   </td>
                 </tr>
               ) : (
-                displayedExpenses.map((exp) => (
+                displayedExpenses.map((exp, idx) => (
                   <tr
                     key={exp.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
+                    <td className="py-3 px-3 text-center font-bold text-slate-500">
+                      {startIndex + idx + 1}
+                    </td>
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-800 dark:text-slate-100 text-xs flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-slate-400" />

@@ -394,6 +394,7 @@ export default function PurchasesPage() {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
+                <th className="py-3 px-3 text-center w-[50px]">SL</th>
                 <th className="py-3 px-4">Purchase ID / Date</th>
                 <th className="py-3 px-3">Supplier / Company</th>
                 <th className="py-3 px-3">Ref Memo No</th>
@@ -407,23 +408,26 @@ export default function PurchasesPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400">
+                  <td colSpan={9} className="py-10 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                     <span>Loading purchases...</span>
                   </td>
                 </tr>
               ) : filteredPurchases.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400 font-bold">
+                  <td colSpan={9} className="py-10 text-center text-slate-400 font-bold">
                     No purchases recorded yet. Click "+ New Purchase" to inward stock.
                   </td>
                 </tr>
               ) : (
-                displayedPurchases.map((p) => (
+                displayedPurchases.map((p, idx) => (
                   <tr
                     key={p.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
+                    <td className="py-3 px-3 text-center font-bold text-slate-500">
+                      {startIndex + idx + 1}
+                    </td>
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-800 dark:text-slate-100 font-mono text-xs">
                         {p.purchase_id}

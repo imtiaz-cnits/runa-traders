@@ -179,6 +179,7 @@ export default function CustomerDuesPage() {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
+                <th className="py-3 px-3 text-center w-[50px]">SL</th>
                 <th className="py-3 px-4">Customer Name / ID</th>
                 <th className="py-3 px-3">Mobile Phone</th>
                 <th className="py-3 px-3">Address / Area</th>
@@ -189,24 +190,27 @@ export default function CustomerDuesPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-slate-400">
+                  <td colSpan={6} className="py-10 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                     <span>Loading customer dues...</span>
                   </td>
                 </tr>
               ) : filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400 font-bold">
+                  <td colSpan={6} className="py-12 text-center text-slate-400 font-bold">
                     <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-80" />
                     <span>Zero customer dues! All balances are fully cleared.</span>
                   </td>
                 </tr>
               ) : (
-                displayedCustomers.map((c) => (
+                displayedCustomers.map((c, idx) => (
                   <tr
                     key={c.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
+                    <td className="py-3 px-3 text-center font-bold text-slate-500">
+                      {startIndex + idx + 1}
+                    </td>
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-800 dark:text-slate-100 text-xs">
                         <Link

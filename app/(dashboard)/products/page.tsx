@@ -827,7 +827,7 @@ export default function ProductsPage() {
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
                   >
                     <td className="p-[10px] text-center font-bold text-slate-500">
-                      {idx + 1}
+                      {startIndex + idx + 1}
                     </td>
                     <td className="p-[10px]">
                       <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">

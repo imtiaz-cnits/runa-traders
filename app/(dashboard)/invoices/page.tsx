@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
-import { formatBoxAndPcs, formatTileOrItemQty } from "@/lib/tiles-calculator";
+import { formatBoxAndPcs, formatTileOrItemQty, formatOrderQty } from "@/lib/tiles-calculator";
 import { ThermalReceiptModal } from "@/components/pos/thermal-receipt";
 import { ChallanModal } from "@/components/challan/challan-modal";
 import { CustomSelect, Pagination } from "@/components/ui";
@@ -302,6 +302,7 @@ export default function InvoicesPage() {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
+                <th className="py-3 px-3 text-center w-[50px]">SL</th>
                 <th className="py-3 px-4">Invoice # / Date</th>
                 <th className="py-3 px-3">Customer</th>
                 <th className="py-3 px-3 text-center">Items</th>
@@ -315,23 +316,26 @@ export default function InvoicesPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400">
+                  <td colSpan={9} className="py-10 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-rose-600" />
                     <span>Loading invoices...</span>
                   </td>
                 </tr>
               ) : filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400 font-bold">
+                  <td colSpan={9} className="py-10 text-center text-slate-400 font-bold">
                     No invoices matching the search criteria.
                   </td>
                 </tr>
               ) : (
-                displayedInvoices.map((inv) => (
+                displayedInvoices.map((inv, idx) => (
                   <tr
                     key={inv.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
+                    <td className="py-3 px-3 text-center font-bold text-slate-500">
+                      {startIndex + idx + 1}
+                    </td>
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-800 dark:text-slate-100 font-mono text-xs">
                         {inv.order_no}
@@ -349,7 +353,7 @@ export default function InvoicesPage() {
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-bold text-[11px] text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                        {inv.has_tiles ? formatBoxAndPcs(inv.total_items) : `${inv.total_items} Pcs`}
+                        {formatOrderQty(inv.details, inv.total_items, inv.has_tiles)}
                       </span>
                     </td>
                     <td className="py-3 px-3 text-right font-black text-slate-900 dark:text-white">

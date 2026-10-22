@@ -323,6 +323,7 @@ export default function SuppliersPage() {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
+                <th className="py-3 px-3 text-center w-[50px]">SL</th>
                 <th className="py-3 px-4">Supplier / ID</th>
                 <th className="py-3 px-3">Company</th>
                 <th className="py-3 px-3">Contact</th>
@@ -335,23 +336,26 @@ export default function SuppliersPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-slate-400">
+                  <td colSpan={8} className="py-10 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                     <span>Loading suppliers...</span>
                   </td>
                 </tr>
               ) : suppliers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-slate-400 font-bold">
+                  <td colSpan={8} className="py-10 text-center text-slate-400 font-bold">
                     No suppliers found. Click "+ Add Supplier" to create one.
                   </td>
                 </tr>
               ) : (
-                displayedSuppliers.map((s) => (
+                displayedSuppliers.map((s, idx) => (
                   <tr
                     key={s.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
+                    <td className="py-3 px-3 text-center font-bold text-slate-500">
+                      {startIndex + idx + 1}
+                    </td>
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-800 dark:text-slate-100 text-xs">
                         <Link
