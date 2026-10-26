@@ -45,6 +45,9 @@ export async function POST(req: NextRequest) {
       const prevDue = parseFloat(customer.previous_due_amount || "0");
       const newCustomerDue = Math.max(0, prevDue - totalDeduction);
 
+      const colDate = body.due_collection_date ? new Date(body.due_collection_date) : new Date();
+      const colDateStr = colDate.toISOString().split("T")[0];
+
       // Update customer previous due amount
       await tx.customers.update({
         where: { id: custId },
@@ -64,25 +67,32 @@ export async function POST(req: NextRequest) {
           payment_method: payment_method || "Cash",
           transaction_id: transaction_id || null,
           payment_status: newCustomerDue <= 0 ? "Paid" : "Partial",
-          due_collection_date: body.due_collection_date ? new Date(body.due_collection_date) : new Date(),
+          due_collection_date: colDate,
           user_id: BigInt(userId),
         },
       });
 
-      // If specific order is attached, adjust order and add payment detail
+      // Apply payment to customer's order(s) so invoice balances and paid amounts remain perfectly synchronized
+      let remainingDeduction = totalDeduction;
+      let remainingPaid = paidNum;
+
+      // 1. If a specific order is targeted (e.g. from Invoices List), apply to it first
       if (order_id) {
-        const order = await tx.orders.findUnique({
+        const specificOrder = await tx.orders.findUnique({
           where: { id: BigInt(order_id) },
         });
 
-        if (order) {
-          const currentOrderPaid = Number(order.paid_amount || 0);
-          const currentOrderDue = Number(order.due_amount || 0);
-          const newOrderPaid = currentOrderPaid + paidNum;
-          const newOrderDue = Math.max(0, currentOrderDue - totalDeduction);
+        if (specificOrder) {
+          const curOrderDue = Number(specificOrder.due_amount || 0);
+          const curOrderPaid = Number(specificOrder.paid_amount || 0);
+          const toDeduct = Math.min(curOrderDue, remainingDeduction);
+          const toPay = Math.min(remainingPaid, toDeduct);
+          const toDisc = Math.round((toDeduct - toPay) * 100) / 100;
+          const newOrderPaid = Math.round((curOrderPaid + toPay) * 100) / 100;
+          const newOrderDue = Math.max(0, Math.round((curOrderDue - toDeduct) * 100) / 100);
 
           await tx.orders.update({
-            where: { id: BigInt(order_id) },
+            where: { id: specificOrder.id },
             data: {
               paid_amount: newOrderPaid,
               due_amount: newOrderDue,
@@ -91,15 +101,68 @@ export async function POST(req: NextRequest) {
 
           await tx.order_payment_details.create({
             data: {
-              order_id: BigInt(order_id),
-              paid_amount: paidNum,
+              order_id: specificOrder.id,
+              paid_amount: toPay,
+              discount_amount: toDisc > 0 ? toDisc : null,
               payment_method: payment_method || "Cash",
               transaction_id: transaction_id || null,
               payment_status: newOrderDue <= 0 ? "Paid" : "Due",
-              due_collection_date: new Date().toISOString().split("T")[0],
+              due_collection_date: colDateStr,
               user_id: BigInt(userId),
             },
           });
+
+          remainingDeduction = Math.round((remainingDeduction - toDeduct) * 100) / 100;
+          remainingPaid = Math.round((remainingPaid - toPay) * 100) / 100;
+        }
+      }
+
+      // 2. Distribute remaining payment to any other due orders of this customer (oldest first)
+      if (remainingDeduction > 0) {
+        const dueOrders = await tx.orders.findMany({
+          where: {
+            customer_id: custId,
+            due_amount: { gt: 0 },
+            ...(order_id ? { id: { not: BigInt(order_id) } } : {}),
+          },
+          orderBy: { id: "asc" },
+        });
+
+        for (const ord of dueOrders) {
+          if (remainingDeduction <= 0) break;
+          const curOrderDue = Number(ord.due_amount || 0);
+          if (curOrderDue <= 0) continue;
+
+          const toDeduct = Math.min(curOrderDue, remainingDeduction);
+          const toPay = Math.min(remainingPaid, toDeduct);
+          const toDisc = Math.round((toDeduct - toPay) * 100) / 100;
+          const curOrderPaid = Number(ord.paid_amount || 0);
+          const newOrderPaid = Math.round((curOrderPaid + toPay) * 100) / 100;
+          const newOrderDue = Math.max(0, Math.round((curOrderDue - toDeduct) * 100) / 100);
+
+          await tx.orders.update({
+            where: { id: ord.id },
+            data: {
+              paid_amount: newOrderPaid,
+              due_amount: newOrderDue,
+            },
+          });
+
+          await tx.order_payment_details.create({
+            data: {
+              order_id: ord.id,
+              paid_amount: toPay,
+              discount_amount: toDisc > 0 ? toDisc : null,
+              payment_method: payment_method || "Cash",
+              transaction_id: transaction_id || null,
+              payment_status: newOrderDue <= 0 ? "Paid" : "Due",
+              due_collection_date: colDateStr,
+              user_id: BigInt(userId),
+            },
+          });
+
+          remainingDeduction = Math.round((remainingDeduction - toDeduct) * 100) / 100;
+          remainingPaid = Math.round((remainingPaid - toPay) * 100) / 100;
         }
       }
 

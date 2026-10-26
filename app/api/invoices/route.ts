@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
             products: {
               select: {
                 id: true,
+                product_code: true,
                 product_name: true,
                 tile_size: true,
                 sqft_per_box: true,
@@ -138,22 +139,46 @@ export async function GET(req: NextRequest) {
         has_challan: !!o.challans,
         challan_id: o.challans?.id ? Number(o.challans.id) : null,
         challan_no: o.challans?.challan_no || null,
-        details: o.order_details.map((d) => ({
-          id: Number(d.id),
-          product_id: Number(d.product_id),
-          product_name: d.products?.product_name || "N/A",
-          tile_size: d.products?.tile_size || null,
-          sqft_per_box: d.products?.sqft_per_box ? parseFloat(d.products.sqft_per_box) : null,
-          pcs_per_box: d.products?.pcs_per_box ? parseInt(d.products.pcs_per_box) : null,
-          grade: d.products?.grade || null,
-          surface_finish: d.products?.surface_finish || null,
-          quantity: parseFloat(d.quantity || "0"),
-          price: parseFloat(d.price || "0"),
-          selling_price: parseFloat(d.selling_price || "0"),
-          unit: d.products?.units?.unit_name || "Pcs",
-          stock_lifecycle_state: d.stock_lifecycle_state || "DEDUCTED_AT_INVOICE",
-          line_total: parseFloat(d.selling_price || "0") * parseFloat(d.quantity || "0"),
-        })),
+        details: o.order_details.map((d) => {
+          let code = "N/A";
+          if (d.products?.product_code) {
+            try {
+              const parsed = Array.isArray(d.products.product_code)
+                ? d.products.product_code
+                : JSON.parse(String(d.products.product_code));
+              code = parsed[0] || "N/A";
+            } catch {
+              code = String(d.products.product_code);
+            }
+          }
+          const isTile = Boolean(
+            d.products?.tile_size ||
+            d.products?.sqft_per_box ||
+            (d.products?.pcs_per_box && parseInt(d.products.pcs_per_box, 10) > 0) ||
+            (d.products?.product_name && d.products.product_name.toLowerCase().includes("tile")) ||
+            (d.products?.categories?.category_name && d.products.categories.category_name.toLowerCase().includes("tile")) ||
+            d.stock_lifecycle_state === "PENDING_CHALLAN" ||
+            d.stock_lifecycle_state === "DEDUCTED_AT_CHALLAN"
+          );
+          return {
+            id: Number(d.id),
+            product_id: Number(d.product_id),
+            product_name: d.products?.product_name || "N/A",
+            product_code: code,
+            tile_size: d.products?.tile_size || null,
+            sqft_per_box: d.products?.sqft_per_box ? parseFloat(d.products.sqft_per_box) : null,
+            pcs_per_box: d.products?.pcs_per_box ? parseInt(d.products.pcs_per_box, 10) : null,
+            grade: d.products?.grade || null,
+            surface_finish: d.products?.surface_finish || null,
+            is_tiles: isTile,
+            quantity: parseFloat(d.quantity || "0"),
+            price: parseFloat(d.price || "0"),
+            selling_price: parseFloat(d.selling_price || "0"),
+            unit: d.products?.units?.unit_name || "Pcs",
+            stock_lifecycle_state: d.stock_lifecycle_state || "DEDUCTED_AT_INVOICE",
+            line_total: Math.round(parseFloat(d.selling_price || "0") * parseFloat(d.quantity || "0") * 100) / 100,
+          };
+        }),
         payments: o.order_payment_details.map((p) => ({
           id: Number(p.id),
           paid_amount: Number(p.paid_amount || 0),

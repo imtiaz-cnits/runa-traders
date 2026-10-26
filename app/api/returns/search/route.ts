@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getTilePcsPerBox } from "@/lib/tiles-calculator";
 
 export const dynamic = "force-dynamic";
 
@@ -160,7 +161,12 @@ export async function GET(req: NextRequest) {
           customers: true,
           order_details: {
             include: {
-              products: true,
+              products: {
+                include: {
+                  categories: true,
+                  units: true,
+                },
+              },
             },
           },
         },
@@ -176,7 +182,12 @@ export async function GET(req: NextRequest) {
               customers: true,
               order_details: {
                 include: {
-                  products: true,
+                  products: {
+                    include: {
+                      categories: true,
+                      units: true,
+                    },
+                  },
                 },
               },
             },
@@ -191,25 +202,36 @@ export async function GET(req: NextRequest) {
         );
       }
 
-      // Fetch existing product returns for this order to calculate remaining returnable quantity
+      // Fetch existing product returns for this order to calculate remaining returnable quantity & returned amount
       const existingReturns = await prisma.product_returns.findMany({
         where: { order_id: order.id },
       });
 
       const returnedQtyByProduct = new Map<string, number>();
+      const returnedAmountByProduct = new Map<string, number>();
       for (const ret of existingReturns) {
         if (ret.product_id) {
           const pKey = ret.product_id.toString();
           returnedQtyByProduct.set(pKey, (returnedQtyByProduct.get(pKey) || 0) + (ret.quantity || 0));
+          returnedAmountByProduct.set(
+            pKey,
+            (returnedAmountByProduct.get(pKey) || 0) + parseFloat(String(ret.amount || 0))
+          );
         }
       }
 
       const items = order.order_details.map((detail: any) => {
         const prod = detail.products;
         const pIdStr = detail.product_id.toString();
-        const purchasedQty = parseInt(String(detail.quantity || 0), 10);
-        const alreadyReturnedQty = returnedQtyByProduct.get(pIdStr) || 0;
-        const remainingQty = Math.max(0, purchasedQty - alreadyReturnedQty);
+        const purchasedQty = parseFloat(String(detail.quantity || 0));
+
+        const pcsPerBox = getTilePcsPerBox(prod?.pcs_per_box, prod?.tile_size) || (prod?.pcs_per_box ? parseInt(prod.pcs_per_box, 10) : 0);
+        const isTiles = Boolean(
+          prod?.tile_size ||
+          pcsPerBox > 0 ||
+          prod?.units?.unit_name?.toLowerCase().includes("box") ||
+          prod?.categories?.category_name?.toLowerCase().includes("tile")
+        );
 
         let code = "N/A";
         if (prod?.product_code) {
@@ -223,8 +245,27 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        const sellingPrice = parseFloat(String(detail.selling_price || 0));
-        const unitPrice = purchasedQty > 0 ? sellingPrice / purchasedQty : 0;
+        const boxSellingPrice = parseFloat(String(detail.selling_price || 0));
+        const pcsFactor = (isTiles && pcsPerBox > 0) ? pcsPerBox : 1;
+
+        // Total pieces purchased
+        const totalPurchasedPcs = isTiles ? Math.round(purchasedQty * pcsFactor) : Math.round(purchasedQty);
+        
+        // Already returned pieces
+        const alreadyReturnedPcs = returnedQtyByProduct.get(pIdStr) || 0;
+        
+        // Eligible pieces to return
+        const returnablePcs = Math.max(0, totalPurchasedPcs - alreadyReturnedPcs);
+
+        // Unit price per piece (for tiles, price per box divided by pcs per box)
+        const unitPricePerPc = pcsFactor > 0 ? boxSellingPrice / pcsFactor : boxSellingPrice;
+
+        const totalSellingPrice = Math.round(purchasedQty * boxSellingPrice * 100) / 100;
+        const alreadyReturnedAmt = returnedAmountByProduct.get(pIdStr) || 0;
+        const remainingLineTotal = Math.max(
+          0,
+          Math.round((totalSellingPrice - alreadyReturnedAmt) * 100) / 100
+        );
 
         return {
           detail_id: Number(detail.id),
@@ -232,14 +273,24 @@ export async function GET(req: NextRequest) {
           product_name: prod?.product_name || "Product",
           product_code: code,
           tile_size: prod?.tile_size || null,
-          pcs_per_box: prod?.pcs_per_box ? parseInt(prod.pcs_per_box, 10) : null,
+          pcs_per_box: pcsFactor > 1 ? pcsFactor : (prod?.pcs_per_box ? parseInt(prod.pcs_per_box, 10) : null),
           grade: prod?.grade || null,
           surface_finish: prod?.surface_finish || null,
+          unit: prod?.units?.unit_name || (isTiles ? "Box" : "Pcs"),
+          is_tiles: isTiles,
           purchased_quantity: purchasedQty,
-          already_returned_quantity: alreadyReturnedQty,
-          returnable_quantity: remainingQty,
-          unit_price: Math.round(unitPrice * 100) / 100,
-          total_selling_price: sellingPrice,
+          total_purchased_pcs: totalPurchasedPcs,
+          already_returned_quantity: alreadyReturnedPcs,
+          returnable_quantity: returnablePcs,
+          unit_price:
+            isTiles && (unitPricePerPc * 100) % 1 !== 0
+              ? parseFloat(unitPricePerPc.toFixed(4))
+              : Math.round(unitPricePerPc * 100) / 100,
+          raw_unit_price: unitPricePerPc,
+          box_price: boxSellingPrice,
+          total_selling_price: totalSellingPrice,
+          already_returned_amount: alreadyReturnedAmt,
+          remaining_line_total: remainingLineTotal,
         };
       });
 

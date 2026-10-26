@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { getTilePcsPerBox } from "@/lib/tiles-calculator";
 
 export const dynamic = "force-dynamic";
 
@@ -138,12 +139,9 @@ export async function GET(req: NextRequest) {
       if (productIds.length > 0) {
         const prods = await prisma.products.findMany({
           where: { id: { in: productIds } },
-          select: {
-            id: true,
-            product_name: true,
-            product_code: true,
-            tile_size: true,
-            pcs_per_box: true,
+          include: {
+            categories: true,
+            units: true,
           },
         });
         for (const p of prods) {
@@ -165,6 +163,14 @@ export async function GET(req: NextRequest) {
           }
         }
 
+        const pcsPerBox = getTilePcsPerBox(prod?.pcs_per_box, prod?.tile_size) || (prod?.pcs_per_box ? parseInt(prod.pcs_per_box, 10) : 0);
+        const isTiles = Boolean(
+          prod?.tile_size ||
+          pcsPerBox > 0 ||
+          prod?.units?.unit_name?.toLowerCase().includes("box") ||
+          prod?.categories?.category_name?.toLowerCase().includes("tile")
+        );
+
         const oNo = r.orders?.order_no
           ? (String(r.orders.order_no).startsWith("#")
               ? r.orders.order_no
@@ -183,7 +189,9 @@ export async function GET(req: NextRequest) {
           product_name: prod?.product_name || "Returned Product",
           product_code: code,
           tile_size: prod?.tile_size || null,
-          pcs_per_box: prod?.pcs_per_box ? parseInt(prod.pcs_per_box, 10) : null,
+          pcs_per_box: pcsPerBox > 0 ? pcsPerBox : (prod?.pcs_per_box ? parseInt(prod.pcs_per_box, 10) : null),
+          unit: prod?.units?.unit_name || (isTiles ? "Box" : "Pcs"),
+          is_tiles: isTiles,
           quantity: r.quantity || 1,
           amount: parseFloat(String(r.amount || 0)),
           discount_amount: parseFloat(String(r.discount_amount || 0)),
@@ -402,15 +410,20 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Fetch prior returns for this order to validate remaining eligible return quantities
+      // Fetch prior returns for this order to validate remaining eligible return quantities & amounts
       const existingReturns = await prisma.product_returns.findMany({
         where: { order_id: BigInt(order_id) },
       });
       const returnedQtyByProduct = new Map<string, number>();
+      const returnedAmountByProduct = new Map<string, number>();
       for (const ret of existingReturns) {
         if (ret.product_id) {
           const pKey = ret.product_id.toString();
           returnedQtyByProduct.set(pKey, (returnedQtyByProduct.get(pKey) || 0) + (ret.quantity || 0));
+          returnedAmountByProduct.set(
+            pKey,
+            (returnedAmountByProduct.get(pKey) || 0) + parseFloat(String(ret.amount || 0))
+          );
         }
       }
 
@@ -443,27 +456,61 @@ export async function POST(req: NextRequest) {
             throw new Error(`Order detail line item not found for product.`);
           }
 
-          const purchasedQty = parseInt(String(detail.quantity || 0), 10);
+          // Fetch product info to check isTiles and pcs_per_box
+          const prod: any = await tx.products.findUnique({
+            where: { id: productId },
+            include: { categories: true, units: true },
+          });
+
+          const pcsPerBox = getTilePcsPerBox(prod?.pcs_per_box, prod?.tile_size) || (prod?.pcs_per_box ? parseInt(prod.pcs_per_box, 10) : 0);
+          const isTiles = Boolean(
+            prod?.tile_size ||
+            pcsPerBox > 0 ||
+            prod?.units?.unit_name?.toLowerCase().includes("box") ||
+            prod?.categories?.category_name?.toLowerCase().includes("tile")
+          );
+
+          const pcsFactor = (isTiles && pcsPerBox > 0) ? pcsPerBox : 1;
+          const purchasedBoxes = parseFloat(String(detail.quantity || 0));
+          const totalPurchasedPcs = isTiles ? Math.round(purchasedBoxes * pcsFactor) : Math.round(purchasedBoxes);
           const alreadyReturned = returnedQtyByProduct.get(productId.toString()) || 0;
-          const eligibleQty = Math.max(0, purchasedQty - alreadyReturned);
+          const eligibleQty = Math.max(0, totalPurchasedPcs - alreadyReturned);
 
           if (returnQty > eligibleQty) {
             throw new Error(
-              `Return quantity (${returnQty}) exceeds remaining purchased quantity (${eligibleQty}) for product.`
+              `Return quantity (${returnQty} Pcs) exceeds remaining returnable quantity (${eligibleQty} Pcs) for product.`
             );
           }
 
-          // Calculate return values proportionally
-          const lineSellingPrice = parseFloat(String(detail.selling_price || 0));
-          const unitPrice = purchasedQty > 0 ? lineSellingPrice / purchasedQty : 0;
-          const returnAmount = Math.round(returnQty * unitPrice * 100) / 100;
+          // Calculate return values based on pieces with exact remaining line total protection
+          const boxSellingPrice = parseFloat(String(detail.selling_price || 0));
+          const lineSellingPrice = Math.round(purchasedBoxes * boxSellingPrice * 100) / 100;
+          const alreadyReturnedAmt = returnedAmountByProduct.get(productId.toString()) || 0;
+          const remainingLineTotal = Math.max(0, Math.round((lineSellingPrice - alreadyReturnedAmt) * 100) / 100);
 
-          // Proportional discount and due reduction (Strict Marss Corp Formula)
-          const discountToReduce =
-            totalOrderQty > 0 ? (returnQty * totalOrderDiscount) / totalOrderQty : 0;
-          const dueToReduce = totalOrderQty > 0 ? (returnQty * totalOrderDue) / totalOrderQty : 0;
+          const unitPrice = pcsFactor > 0 ? boxSellingPrice / pcsFactor : boxSellingPrice;
+          
+          let returnAmount: number;
+          if (returnQty >= eligibleQty) {
+            returnAmount = remainingLineTotal;
+          } else {
+            returnAmount = Math.min(
+              remainingLineTotal,
+              Math.round(returnQty * unitPrice * 100) / 100
+            );
+          }
 
-          // 1. Create product_returns record
+          // Due reduction: Return directly reduces invoice due debt up to current due
+          const curOrderDue = parseFloat(String(order.due_amount || 0));
+          const remainingDueInOrder = Math.max(0, curOrderDue - totalDueToReduce);
+          const dueToReduce = Math.min(remainingDueInOrder, returnAmount);
+
+          // Proportional discount reduction if discount was present
+          const orderSubTotal = parseFloat(String(order.sub_total || 0));
+          const returnRatio = orderSubTotal > 0 ? Math.min(1, returnAmount / orderSubTotal) : 0;
+          const discountToReduce = Math.round(returnRatio * totalOrderDiscount * 100) / 100;
+
+          // 1. Create product_returns record (quantity saved in pcs)
           await tx.product_returns.create({
             data: {
               order_id: BigInt(order_id),
@@ -479,13 +526,11 @@ export async function POST(req: NextRequest) {
           });
 
           // 2. Restore product stock in physical warehouse
-          const [prod]: any = await tx.$queryRawUnsafe(
-            "SELECT id, quantity FROM products WHERE id = ? FOR UPDATE",
-            productId
-          );
           if (prod) {
             const currentStock = parseFloat(String(prod.quantity || 0));
-            const newStock = currentStock + returnQty;
+            // For tiles, stock is maintained in boxes, so returning X pieces adds X / pcsFactor boxes
+            const stockToAdd = isTiles ? (returnQty / pcsFactor) : returnQty;
+            const newStock = Math.round((currentStock + stockToAdd) * 10000) / 10000;
             await tx.products.update({
               where: { id: productId },
               data: { quantity: String(newStock) },
@@ -496,12 +541,13 @@ export async function POST(req: NextRequest) {
           totalDiscountToReduce += discountToReduce;
           totalDueToReduce += dueToReduce;
           returnedQtyByProduct.set(productId.toString(), alreadyReturned + returnQty);
+          returnedAmountByProduct.set(productId.toString(), alreadyReturnedAmt + returnAmount);
         }
 
         // 3. Update orders return adjustment and remaining due
         const curReturnAdj = parseFloat(String(order.return_adjustment_amount || 0));
         const curDue = parseFloat(String(order.due_amount || 0));
-        const newDue = Math.max(0, curDue - totalDueToReduce);
+        const newDue = Math.max(0, Math.round((curDue - totalDueToReduce) * 100) / 100);
 
         await tx.orders.update({
           where: { id: BigInt(order_id) },
@@ -510,6 +556,21 @@ export async function POST(req: NextRequest) {
             due_amount: newDue,
           },
         });
+
+        // 4. Update customer previous_due_amount if customer exists
+        if (order.customer_id) {
+          const customer = await tx.customers.findUnique({
+            where: { id: order.customer_id },
+          });
+          if (customer) {
+            const curPrevDue = parseFloat(customer.previous_due_amount || "0");
+            const newPrevDue = Math.max(0, Math.round((curPrevDue - totalDueToReduce) * 100) / 100);
+            await tx.customers.update({
+              where: { id: order.customer_id },
+              data: { previous_due_amount: String(newPrevDue) },
+            });
+          }
+        }
 
         return { totalReturnAmount, totalDueToReduce };
       });

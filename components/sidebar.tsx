@@ -22,6 +22,7 @@ import {
   X,
   AlertTriangle,
   User,
+  Ban,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 
@@ -73,6 +74,7 @@ export const NAV_ITEMS: NavItem[] = [
       { label: "Invoices List", href: "/invoices", icon: Receipt },
       { label: "Challan List", href: "/challans", icon: FileSpreadsheet },
       { label: "Sales Return", href: "/returns", icon: RotateCcw },
+      { label: "Cancel Tiles", href: "/cancelled-tiles", icon: Ban },
     ],
   },
   {

@@ -46,6 +46,8 @@ interface ReturnItem {
   product_code: string;
   tile_size?: string | null;
   pcs_per_box?: number | null;
+  unit?: string | null;
+  is_tiles?: boolean;
   quantity: number;
   amount: number;
   discount_amount: number;
@@ -68,11 +70,19 @@ interface SearchItemLine {
   tile_size?: string | null;
   pcs_per_box?: number | null;
   grade?: string | null;
+  surface_finish?: string | null;
+  unit?: string | null;
+  is_tiles?: boolean;
   purchased_quantity: number;
+  total_purchased_pcs?: number;
   already_returned_quantity: number;
   returnable_quantity: number;
   unit_price: number;
+  raw_unit_price?: number;
+  box_price?: number;
   total_selling_price?: number;
+  already_returned_amount?: number;
+  remaining_line_total?: number;
   subtotal?: number;
 }
 
@@ -94,6 +104,20 @@ interface SearchRecordData {
   due_amount: number;
   discount_amount?: number;
   items: SearchItemLine[];
+}
+
+function formatReturnDisplayQty(item: {
+  type: "sales" | "purchase";
+  quantity: number;
+  tile_size?: string | null;
+  pcs_per_box?: number | null;
+  unit?: string | null;
+  is_tiles?: boolean;
+}) {
+  if (item.type === "sales") {
+    return `${item.quantity} Pcs`;
+  }
+  return formatTileOrItemQty(item.quantity, item);
 }
 
 function ReturnsManagementContent() {
@@ -297,10 +321,27 @@ function ReturnsManagementContent() {
 
   // Quantity Change Handler
   const handleQuantityChange = (detailId: number, val: number, maxQty: number) => {
-    const clamped = Math.max(1, Math.min(val, maxQty));
+    const num = isNaN(val) ? 0 : val;
+    const clamped = num <= 0 ? 0 : Math.min(num, maxQty);
     setReturnQuantities((prev) => ({ ...prev, [detailId]: clamped }));
-    // Auto-check if quantity > 0
-    setSelectedItems((prev) => ({ ...prev, [detailId]: true }));
+    if (clamped > 0) {
+      setSelectedItems((prev) => ({ ...prev, [detailId]: true }));
+    }
+  };
+
+  // Helper to calculate exact refund amount for an item to prevent missing poysha
+  const getItemRefundAmount = (item: SearchItemLine, returnQty: number): number => {
+    if (!returnQty || returnQty <= 0) return 0;
+    // When returning all remaining returnable units, return the exact remaining line balance
+    if (returnQty >= item.returnable_quantity && item.remaining_line_total !== undefined) {
+      return item.remaining_line_total;
+    }
+    const price = item.raw_unit_price || item.unit_price || 0;
+    const calc = Math.round(returnQty * price * 100) / 100;
+    if (item.remaining_line_total !== undefined) {
+      return Math.min(calc, item.remaining_line_total);
+    }
+    return calc;
   };
 
   // Recalculate Grand Refund Total
@@ -310,7 +351,7 @@ function ReturnsManagementContent() {
     loadedRecord.items.forEach((item) => {
       if (selectedItems[item.detail_id]) {
         const qty = returnQuantities[item.detail_id] || 0;
-        total += qty * (item.unit_price || 0);
+        total += getItemRefundAmount(item, qty);
       }
     });
     return Math.round(total * 100) / 100;
@@ -677,7 +718,7 @@ function ReturnsManagementContent() {
                       </td>
                       <td className="p-3 text-center font-bold text-slate-800 dark:text-white">
                         <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-bold text-xs whitespace-nowrap">
-                          {formatTileOrItemQty(item.quantity, item)}
+                          {formatReturnDisplayQty(item)}
                         </span>
                       </td>
                       <td className="p-3 text-right font-black text-rose-700 dark:text-rose-400 text-xs">
@@ -848,7 +889,7 @@ function ReturnsManagementContent() {
                     <div>
                       <span className="text-[10px] text-slate-400 block font-bold uppercase">Qty</span>
                       <span className="font-bold text-slate-800 dark:text-white whitespace-nowrap">
-                        {formatTileOrItemQty(item.quantity, item)}
+                        {formatReturnDisplayQty(item)}
                       </span>
                     </div>
                     <div className="text-right">
@@ -1058,9 +1099,9 @@ function ReturnsManagementContent() {
                             />
                           </th>
                           <th className="p-2.5">Product Name</th>
-                          <th className="p-2.5 text-center w-[100px]">Purchased</th>
+                          <th className="p-2.5 text-center w-[120px]">Purchased</th>
                           <th className="p-2.5 text-right w-[110px]">Unit Price</th>
-                          <th className="p-2.5 text-center w-[120px]">Return Qty</th>
+                          <th className="p-2.5 text-center w-[130px]">Return Qty</th>
                           <th className="p-2.5 text-right w-[120px] pr-4">Refund Total</th>
                         </tr>
                       </thead>
@@ -1068,7 +1109,7 @@ function ReturnsManagementContent() {
                         {loadedRecord.items.map((item) => {
                           const isChecked = Boolean(selectedItems[item.detail_id]);
                           const returnQty = returnQuantities[item.detail_id] || 0;
-                          const lineRefund = Math.round(returnQty * item.unit_price * 100) / 100;
+                          const lineRefund = getItemRefundAmount(item, returnQty);
                           const isEligible = item.returnable_quantity > 0;
 
                           return (
@@ -1108,38 +1149,62 @@ function ReturnsManagementContent() {
                                   )}
                                   {item.already_returned_quantity > 0 && (
                                     <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
-                                      Returned: {item.already_returned_quantity}
+                                      Returned: {item.already_returned_quantity} Pcs
                                     </span>
                                   )}
                                 </div>
                               </td>
                               <td className="p-2.5 text-center font-bold text-slate-700 dark:text-slate-300">
-                                <div className="whitespace-nowrap">{formatTileOrItemQty(item.purchased_quantity, item)}</div>
-                                {item.returnable_quantity < item.purchased_quantity && (
-                                  <div className="text-[10px] text-emerald-600 whitespace-nowrap">
-                                    Eligible: {formatTileOrItemQty(item.returnable_quantity, item)}
+                                <div className="whitespace-nowrap font-bold">
+                                  {formatTileOrItemQty(item.purchased_quantity, item)}
+                                </div>
+                                {item.is_tiles && item.total_purchased_pcs ? (
+                                  <div className="mt-1">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                      Total: {item.total_purchased_pcs.toLocaleString()} Pcs
+                                    </span>
+                                  </div>
+                                ) : null}
+                                {item.returnable_quantity < (item.total_purchased_pcs || item.purchased_quantity) && (
+                                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold whitespace-nowrap mt-0.5">
+                                    Eligible: {item.returnable_quantity.toLocaleString()} Pcs
                                   </div>
                                 )}
                               </td>
                               <td className="p-2.5 text-right font-semibold text-slate-700 dark:text-slate-300">
-                                {formatBdCurrency(item.unit_price)}
+                                <div className="font-bold">
+                                  {item.is_tiles && item.unit_price && (item.unit_price * 100) % 1 !== 0
+                                    ? `৳ ${parseFloat(item.unit_price.toFixed(4))}`
+                                    : formatBdCurrency(item.unit_price)}
+                                </div>
+                                {item.is_tiles && (
+                                  <div className="text-[10px] text-slate-400 font-normal">/ pc</div>
+                                )}
                               </td>
                               <td className="p-2.5 text-center">
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max={item.returnable_quantity}
-                                  disabled={!isChecked || !isEligible}
-                                  value={isChecked ? returnQty : 0}
-                                  onChange={(e) =>
-                                    handleQuantityChange(
-                                      item.detail_id,
-                                      parseInt(e.target.value) || 0,
-                                      item.returnable_quantity
-                                    )
-                                  }
-                                  className="w-20 h-[34px] px-2 text-center font-bold text-slate-800 dark:text-white bg-white dark:bg-slate-800 rounded-lg border border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600 disabled:opacity-40 disabled:cursor-not-allowed"
-                                />
+                                <div className="inline-flex items-center justify-center">
+                                  <div className="inline-flex items-center rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 overflow-hidden focus-within:border-rose-600 shadow-2xs">
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      max={item.returnable_quantity}
+                                      disabled={!isChecked || !isEligible}
+                                      value={isChecked ? (returnQty > 0 ? returnQty : "") : 0}
+                                      onChange={(e) =>
+                                        handleQuantityChange(
+                                          item.detail_id,
+                                          parseInt(e.target.value) || 0,
+                                          item.returnable_quantity
+                                        )
+                                      }
+                                      placeholder="0"
+                                      className="w-16 h-[34px] px-2 text-center font-bold text-slate-800 dark:text-white bg-transparent focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed text-xs"
+                                    />
+                                    <span className="px-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 border-l border-[#cbd5e1] dark:border-[#334155] h-[34px] flex items-center select-none uppercase">
+                                      {item.is_tiles ? "Pcs" : (item.unit || "Pcs")}
+                                    </span>
+                                  </div>
+                                </div>
                               </td>
                               <td className="p-2.5 text-right pr-4 font-bold text-rose-700 dark:text-rose-400">
                                 {isChecked ? formatBdCurrency(lineRefund) : "৳ 0.00"}
@@ -1282,7 +1347,7 @@ function ReturnsManagementContent() {
                     Returned Qty
                   </span>
                   <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
-                    {formatTileOrItemQty(selectedReturnForQuickView.quantity, selectedReturnForQuickView)}
+                    {formatReturnDisplayQty(selectedReturnForQuickView)}
                   </span>
                 </div>
 
@@ -1410,7 +1475,7 @@ function ReturnsManagementContent() {
                   <div className="grid grid-cols-3 px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50">
                     <span className="font-semibold text-slate-500 dark:text-slate-400">Return Quantity:</span>
                     <span className="col-span-2 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
-                      {formatTileOrItemQty(selectedReturnForQuickView.quantity, selectedReturnForQuickView)}
+                      {formatReturnDisplayQty(selectedReturnForQuickView)}
                     </span>
                   </div>
                   <div className="grid grid-cols-3 px-5 py-2.5 bg-white dark:bg-slate-800/90">
@@ -1468,7 +1533,7 @@ function ReturnsManagementContent() {
                         )}
                       </td>
                       <td className="p-2.5 text-center font-bold whitespace-nowrap">
-                        {formatTileOrItemQty(selectedReturnForQuickView.quantity, selectedReturnForQuickView)}
+                        {formatReturnDisplayQty(selectedReturnForQuickView)}
                       </td>
                       <td className="p-2.5 text-right font-medium">
                         {formatBdCurrency(
@@ -1488,7 +1553,7 @@ function ReturnsManagementContent() {
                         Total Returned:
                       </td>
                       <td className="p-2.5 text-center font-bold whitespace-nowrap">
-                        {formatTileOrItemQty(selectedReturnForQuickView.quantity, selectedReturnForQuickView)}
+                        {formatReturnDisplayQty(selectedReturnForQuickView)}
                       </td>
                       <td className="p-2.5 text-right text-slate-500 uppercase text-[10px]">
                         Total Value:
@@ -1694,7 +1759,7 @@ function ReturnsManagementContent() {
                         </div>
                       </td>
                       <td className="p-2.5 text-center font-bold whitespace-nowrap">
-                        {formatTileOrItemQty(selectedReturnForPrint.quantity, selectedReturnForPrint)}
+                        {formatReturnDisplayQty(selectedReturnForPrint)}
                       </td>
                       <td className="p-2.5 text-right">
                         {formatBdCurrency(
@@ -1714,7 +1779,7 @@ function ReturnsManagementContent() {
                         Total Returned Quantity:
                       </td>
                       <td className="p-2.5 text-center whitespace-nowrap">
-                        {formatTileOrItemQty(selectedReturnForPrint.quantity, selectedReturnForPrint)}
+                        {formatReturnDisplayQty(selectedReturnForPrint)}
                       </td>
                       <td className="p-2.5 text-right uppercase text-[11px] text-slate-600">
                         Total Amount:

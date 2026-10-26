@@ -100,6 +100,13 @@ export default function ExpensesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Quick Add Category Modal State
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatStatus, setNewCatStatus] = useState("Active");
+  const [savingNewCat, setSavingNewCat] = useState(false);
+  const [newCatError, setNewCatError] = useState("");
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -207,6 +214,52 @@ export default function ExpensesPage() {
       setErrorMsg(err?.message || "Communication error");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveNewCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) {
+      setNewCatError("Category name is required");
+      return;
+    }
+
+    setSavingNewCat(true);
+    setNewCatError("");
+    try {
+      const res = await fetch("/api/expense-types", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type_name: newCatName.trim(),
+          status: newCatStatus,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.status === "success") {
+        toast.success("Expense category created successfully!");
+        const newType = data.data;
+        setExpenseTypes((prev) => [
+          { id: Number(newType.id), type_name: newType.type_name },
+          ...prev,
+        ]);
+        setFormData((prev) => ({ ...prev, expense_type_id: String(newType.id) }));
+        setIsAddCategoryOpen(false);
+        setNewCatName("");
+        setNewCatStatus("Active");
+        fetch("/api/expense-types")
+          .then((r) => r.json())
+          .then((t) => {
+            if (t.status === "success") setExpenseTypes(t.data);
+          })
+          .catch(() => {});
+      } else {
+        setNewCatError(data.message || "Failed to create category");
+      }
+    } catch (err: any) {
+      setNewCatError(err?.message || "Failed to create category");
+    } finally {
+      setSavingNewCat(false);
     }
   };
 
@@ -669,12 +722,29 @@ export default function ExpensesPage() {
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   Expense Category / Head <span className="text-red-500">*</span>
                 </label>
-                <CustomSelect
-                  options={expenseTypes.map((t) => ({ value: t.id, label: t.type_name }))}
-                  value={formData.expense_type_id}
-                  onChange={(val) => setFormData({ ...formData, expense_type_id: String(val) })}
-                  placeholder="Select Category..."
-                />
+                <div className="flex items-center gap-1.5">
+                  <div className="flex-1 min-w-0">
+                    <CustomSelect
+                      options={expenseTypes.map((t) => ({ value: t.id, label: t.type_name }))}
+                      value={formData.expense_type_id}
+                      onChange={(val) => setFormData({ ...formData, expense_type_id: String(val) })}
+                      placeholder="Select Category..."
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewCatName("");
+                      setNewCatStatus("Active");
+                      setNewCatError("");
+                      setIsAddCategoryOpen(true);
+                    }}
+                    className="h-[42px] w-[42px] rounded-xl bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] hover:from-[#700f2b] hover:to-[#991b1b] text-white flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs border border-rose-800"
+                    title="Add New Category"
+                  >
+                    <Plus className="w-5 h-5 text-white" />
+                  </button>
+                </div>
               </div>
 
               {/* Amount & Date */}
@@ -839,6 +909,90 @@ export default function ExpensesPage() {
                 >
                   {savingOpening && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>Save Float</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 8. QUICK ADD EXPENSE CATEGORY MODAL (Stacked on top of current modal) */}
+      {isAddCategoryOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-[#0f172a] rounded-[16px] shadow-2xl overflow-hidden border border-[#cbd5e1] dark:border-[#334155] max-h-[90vh] flex flex-col">
+            {/* Header: Solid brand gradient with Tag icon & red circular close button */}
+            <div className="modal-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-5 py-3.5 flex items-center justify-between text-white shrink-0">
+              <div className="flex items-center gap-2">
+                <Tag className="w-5 h-5 text-white" />
+                <h3 className="text-sm font-bold tracking-wide uppercase m-0 text-white">
+                  Add Expense Category
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddCategoryOpen(false)}
+                className="w-[28px] h-[28px] rounded-full bg-[#dc2626] hover:bg-red-700 text-white flex items-center justify-center cursor-pointer transition-colors shadow-xs"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveNewCategory} className="p-5 space-y-4 flex-1 overflow-y-auto">
+              {newCatError && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 text-red-600 text-xs rounded-xl font-medium">
+                  {newCatError}
+                </div>
+              )}
+
+              {/* Category Name */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Category Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Electricity Bill, Shop Rent, Staff Conveyance"
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-rose-600"
+                  autoFocus
+                />
+              </div>
+
+              {/* Status */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Status
+                </label>
+                <CustomSelect
+                  value={newCatStatus}
+                  onChange={(val) => setNewCatStatus(val)}
+                  options={[
+                    { value: "Active", label: "Active" },
+                    { value: "Inactive", label: "Inactive" },
+                  ]}
+                  placeholder="Select Status"
+                />
+              </div>
+
+              {/* Sticky Footer: Cancel Red #dc2626, Save Brand Red */}
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsAddCategoryOpen(false)}
+                  disabled={savingNewCat}
+                  className="h-[38px] px-4 rounded-xl bg-[#dc2626] hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingNewCat}
+                  className="h-[38px] px-5 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                >
+                  {savingNewCat && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Save Category</span>
                 </button>
               </div>
             </form>

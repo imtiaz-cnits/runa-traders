@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       supplier_id,
+      purchase_id,
       paid_amount,
       discount_amount,
       payment_method,
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
     const suppId = BigInt(supplier_id);
     const paidNum = parseFloat(String(paid_amount || "0"));
     const discNum = parseFloat(String(discount_amount || "0"));
+    const totalDeduction = Math.round((paidNum + discNum) * 100) / 100;
     const colDate = due_collection_date ? new Date(due_collection_date) : new Date();
 
     const result = await prisma.$transaction(async (tx) => {
@@ -42,8 +44,7 @@ export async function POST(req: NextRequest) {
       }
 
       const currentDue = parseFloat(supplier.purchase_payable_amount || "0");
-      const deduction = paidNum + discNum;
-      const newDue = Math.max(0, currentDue - deduction);
+      const newDue = Math.max(0, Math.round((currentDue - totalDeduction) * 100) / 100);
 
       // Create due collection record
       const collection = await tx.supplier_due_collections.create({
@@ -68,6 +69,99 @@ export async function POST(req: NextRequest) {
           purchase_payable_amount: String(newDue),
         },
       });
+
+      // Apply payment to supplier's purchase(s) so purchase bills and ledger remain perfectly synchronized
+      let remainingDeduction = totalDeduction;
+      let remainingPaid = paidNum;
+
+      // 1. If a specific purchase is targeted, apply to it first
+      if (purchase_id) {
+        const specificPurchase = await tx.purchases.findUnique({
+          where: { id: BigInt(purchase_id) },
+        });
+
+        if (specificPurchase) {
+          const curPurchDue = parseFloat(specificPurchase.due_amount || "0");
+          const curPurchPaid = parseFloat(specificPurchase.paid_amount || "0");
+          const toDeduct = Math.min(curPurchDue, remainingDeduction);
+          const toPay = Math.min(remainingPaid, toDeduct);
+          const toDisc = Math.round((toDeduct - toPay) * 100) / 100;
+          const newPurchPaid = Math.round((curPurchPaid + toPay) * 100) / 100;
+          const newPurchDue = Math.max(0, Math.round((curPurchDue - toDeduct) * 100) / 100);
+
+          await tx.purchases.update({
+            where: { id: specificPurchase.id },
+            data: {
+              paid_amount: String(newPurchPaid),
+              due_amount: String(newPurchDue),
+            },
+          });
+
+          await tx.purchase_payment_details.create({
+            data: {
+              purchases_id: specificPurchase.id,
+              paid_amount: toPay,
+              discount_amount: toDisc > 0 ? toDisc : null,
+              payment_method: payment_method || "Cash",
+              transaction_id: transaction_id || null,
+              payment_status: newPurchDue <= 0 ? "Paid" : "Due",
+              purchase_due_collection_date: colDate,
+              user_id: BigInt(userId),
+            },
+          });
+
+          remainingDeduction = Math.round((remainingDeduction - toDeduct) * 100) / 100;
+          remainingPaid = Math.round((remainingPaid - toPay) * 100) / 100;
+        }
+      }
+
+      // 2. Distribute remaining payment to any other due purchases of this supplier (oldest first)
+      if (remainingDeduction > 0) {
+        const allPurchases = await tx.purchases.findMany({
+          where: {
+            supplier_id: suppId,
+            ...(purchase_id ? { id: { not: BigInt(purchase_id) } } : {}),
+          },
+          orderBy: { id: "asc" },
+        });
+
+        for (const purch of allPurchases) {
+          if (remainingDeduction <= 0) break;
+          const curPurchDue = parseFloat(purch.due_amount || "0");
+          if (curPurchDue <= 0) continue;
+
+          const toDeduct = Math.min(curPurchDue, remainingDeduction);
+          const toPay = Math.min(remainingPaid, toDeduct);
+          const toDisc = Math.round((toDeduct - toPay) * 100) / 100;
+          const curPurchPaid = parseFloat(purch.paid_amount || "0");
+          const newPurchPaid = Math.round((curPurchPaid + toPay) * 100) / 100;
+          const newPurchDue = Math.max(0, Math.round((curPurchDue - toDeduct) * 100) / 100);
+
+          await tx.purchases.update({
+            where: { id: purch.id },
+            data: {
+              paid_amount: String(newPurchPaid),
+              due_amount: String(newPurchDue),
+            },
+          });
+
+          await tx.purchase_payment_details.create({
+            data: {
+              purchases_id: purch.id,
+              paid_amount: toPay,
+              discount_amount: toDisc > 0 ? toDisc : null,
+              payment_method: payment_method || "Cash",
+              transaction_id: transaction_id || null,
+              payment_status: newPurchDue <= 0 ? "Paid" : "Due",
+              purchase_due_collection_date: colDate,
+              user_id: BigInt(userId),
+            },
+          });
+
+          remainingDeduction = Math.round((remainingDeduction - toDeduct) * 100) / 100;
+          remainingPaid = Math.round((remainingPaid - toPay) * 100) / 100;
+        }
+      }
 
       return { collection, newDue };
     });
