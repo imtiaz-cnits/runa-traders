@@ -37,6 +37,8 @@ interface CancelledItemDetail {
   unit?: string | null;
   category?: string | null;
   quantity: number;
+  cancelled_boxes?: number;
+  cancelled_pcs?: number;
   price: number;
   selling_price: number;
   line_total: number;
@@ -56,6 +58,36 @@ interface CancelledRecord {
   cancelled_at: string;
   created_at: string;
   items: CancelledItemDetail[];
+}
+
+function formatItemBoxPcs(item: CancelledItemDetail): string {
+  if (
+    typeof item.cancelled_boxes === "number" &&
+    typeof item.cancelled_pcs === "number"
+  ) {
+    if (item.cancelled_boxes > 0 && item.cancelled_pcs > 0) {
+      return `${item.cancelled_boxes} Box${item.cancelled_boxes > 1 ? "es" : ""} ${item.cancelled_pcs} Pcs`;
+    } else if (item.cancelled_boxes > 0) {
+      return `${item.cancelled_boxes} Box${item.cancelled_boxes > 1 ? "es" : ""}`;
+    } else if (item.cancelled_pcs > 0) {
+      return `${item.cancelled_pcs} Pcs`;
+    }
+    return "0 Box";
+  }
+  return formatBoxAndPcs(item.quantity, item.pcs_per_box || 1, item.tile_size);
+}
+
+function formatRecordCancelledSummary(r: CancelledRecord): string {
+  if (!r.items || r.items.length === 0) {
+    return formatBoxAndPcs(r.total_items, 1);
+  }
+
+  if (r.items.length === 1) {
+    return formatItemBoxPcs(r.items[0]);
+  }
+
+  const parts = r.items.map((it) => formatItemBoxPcs(it));
+  return `${r.items.length} Products (${parts.join(", ")})`;
 }
 
 export default function CancelledTilesPage() {
@@ -275,7 +307,7 @@ export default function CancelledTilesPage() {
 
                     <td className="py-3 px-3 text-center">
                       <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 font-bold text-[11px] whitespace-nowrap border border-rose-200 dark:border-rose-900/40">
-                        {r.items.length} Product{r.items.length > 1 ? "s" : ""} ({r.total_items} Box{r.total_items > 1 ? "es" : ""})
+                        {formatRecordCancelledSummary(r)}
                       </span>
                     </td>
 
@@ -367,9 +399,9 @@ export default function CancelledTilesPage() {
 
             <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-[#1e293b] p-2 rounded-xl">
               <div>
-                <span className="text-[10px] text-slate-400 block">Items Count:</span>
+                <span className="text-[10px] text-slate-400 block">Cancelled Items:</span>
                 <span className="font-bold text-slate-700 dark:text-slate-200">
-                  {r.items.length} Products ({r.total_items} Box)
+                  {formatRecordCancelledSummary(r)}
                 </span>
               </div>
               <div className="text-right">
@@ -546,7 +578,7 @@ export default function CancelledTilesPage() {
                           {item.grade && (
                             <span>• Grade: <strong className="text-slate-600 dark:text-slate-300">{item.grade}</strong></span>
                           )}
-                          <span>• Qty: <strong className="text-slate-700 dark:text-slate-200">{formatBoxAndPcs(item.quantity, item.pcs_per_box || 1)}</strong></span>
+                          <span>• Qty: <strong className="text-slate-700 dark:text-slate-200">{formatItemBoxPcs(item)}</strong></span>
                         </div>
                       </div>
 

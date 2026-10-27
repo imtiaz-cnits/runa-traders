@@ -40,7 +40,10 @@ export async function POST(
 
       let items: any[] = [];
       try {
-        items = typeof record.items_data === "string" ? JSON.parse(record.items_data) : record.items_data;
+        items =
+          typeof record.items_data === "string"
+            ? JSON.parse(record.items_data)
+            : record.items_data;
       } catch {
         items = [];
       }
@@ -56,10 +59,12 @@ export async function POST(
       });
 
       if (!order) {
-        throw new Error(`Original invoice (${record.order_no}) no longer exists in the system.`);
+        throw new Error(
+          `Original invoice (${record.order_no}) no longer exists in the system.`
+        );
       }
 
-      // 3. Re-create order_details items
+      // 3. Restore order_details items (merge with existing if partial, or create new if removed)
       let totalRestoredAmount = 0;
       for (const item of items) {
         const qty = parseFloat(String(item.quantity || "1"));
@@ -67,27 +72,74 @@ export async function POST(
         const sellingPrice = parseFloat(String(item.selling_price || "0"));
         totalRestoredAmount += Math.round(qty * sellingPrice * 100) / 100;
 
-        await tx.order_details.create({
-          data: {
-            order_id: orderIdBig,
-            product_id: BigInt(item.product_id),
-            quantity: String(qty),
-            price: String(price),
-            selling_price: String(sellingPrice),
-            stock_lifecycle_state: item.stock_lifecycle_state || "PENDING_CHALLAN",
-            user_id: BigInt(userId),
-          },
-        });
+        let existingDetail = null;
+        if (item.order_detail_id) {
+          existingDetail = await tx.order_details.findFirst({
+            where: {
+              id: BigInt(item.order_detail_id),
+              order_id: orderIdBig,
+            },
+          });
+        }
+
+        if (!existingDetail) {
+          existingDetail = await tx.order_details.findFirst({
+            where: {
+              order_id: orderIdBig,
+              product_id: BigInt(item.product_id),
+            },
+          });
+        }
+
+        if (existingDetail) {
+          const curQty = parseFloat(String(existingDetail.quantity || "0"));
+          const newQty = curQty + qty;
+          await tx.order_details.update({
+            where: { id: existingDetail.id },
+            data: { quantity: String(newQty) },
+          });
+        } else {
+          await tx.order_details.create({
+            data: {
+              order_id: orderIdBig,
+              product_id: BigInt(item.product_id),
+              quantity: String(qty),
+              price: String(price),
+              selling_price: String(sellingPrice),
+              stock_lifecycle_state:
+                item.stock_lifecycle_state || "PENDING_CHALLAN",
+              user_id: BigInt(userId),
+            },
+          });
+        }
+
+        // If stock was returned to warehouse physical stock upon cancellation, re-deduct it
+        if (item.was_stock_returned) {
+          const [currProd]: any = await tx.$queryRawUnsafe(
+            "SELECT quantity FROM products WHERE id = ?",
+            BigInt(item.product_id)
+          );
+          const curStock = parseFloat(currProd?.quantity || "0");
+          const newStock = Math.max(0, curStock - qty);
+          await tx.products.update({
+            where: { id: BigInt(item.product_id) },
+            data: { quantity: String(newStock) },
+          });
+        }
       }
       totalRestoredAmount = Math.round(totalRestoredAmount * 100) / 100;
 
       // 4. Recalculate order finances
       const curSubTotal = Number(order.sub_total || 0);
-      const newSubTotal = Math.round((curSubTotal + totalRestoredAmount) * 100) / 100;
+      const newSubTotal =
+        Math.round((curSubTotal + totalRestoredAmount) * 100) / 100;
       const delivery = Number(order.delivery_charge || 0);
       const discount = Number(order.discount_amount || 0);
       const returnAdj = Number(order.return_adjustment_amount || 0);
-      const newNetPayable = Math.max(0, Math.round((newSubTotal + delivery - discount - returnAdj) * 100) / 100);
+      const newNetPayable = Math.max(
+        0,
+        Math.round((newSubTotal + delivery - discount - returnAdj) * 100) / 100
+      );
       const curPaid = Number(order.paid_amount || 0);
       const curDue = Number(order.due_amount || 0);
       const newDue = Math.max(0, Math.round((newNetPayable - curPaid) * 100) / 100);
@@ -95,7 +147,10 @@ export async function POST(
 
       // Reset challan status to PENDING if it was NOT_REQUIRED or CANCELLED
       let updatedChallanStatus = order.challan_status || "PENDING";
-      if (updatedChallanStatus === "NOT_REQUIRED" || updatedChallanStatus === "CANCELLED") {
+      if (
+        updatedChallanStatus === "NOT_REQUIRED" ||
+        updatedChallanStatus === "CANCELLED"
+      ) {
         updatedChallanStatus = "PENDING";
       }
 
@@ -144,7 +199,7 @@ export async function POST(
 
     return NextResponse.json({
       status: "success",
-      message: `${result.restoredCount} tiles item(s) restored back to invoice ${result.order_no} successfully.`,
+      message: `${result.restoredCount} tiles item(s) restored back into invoice #${result.order_no}.`,
       data: result,
     });
   } catch (error: any) {

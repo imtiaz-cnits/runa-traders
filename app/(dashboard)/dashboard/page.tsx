@@ -1,6 +1,8 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
-import prisma from "@/lib/prisma";
 import {
   TrendingUp,
   Receipt,
@@ -14,66 +16,88 @@ import {
   AlertCircle,
   Clock,
   ArrowRight,
+  RefreshCw,
 } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+interface RecentOrder {
+  id: number;
+  order_no: string;
+  customer_name: string;
+  sub_total: number;
+  paid_amount: number;
+  due_amount: number;
+  invoice_date?: string | null;
+  created_at: string;
+}
 
-export default async function DashboardPage() {
-  const today = new Date();
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+interface DashboardStats {
+  todaySales: number;
+  todayInvoicesCount: number;
+  todayPaid: number;
+  totalCustomerDue: number;
+  totalSupplierDue: number;
+  totalProducts: number;
+  totalCustomers: number;
+  totalSuppliers: number;
+  totalOrders: number;
+  todayExpense: number;
+  recentOrders: RecentOrder[];
+}
 
-  const [
+export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats>({
+    todaySales: 0,
+    todayInvoicesCount: 0,
+    todayPaid: 0,
+    totalCustomerDue: 0,
+    totalSupplierDue: 0,
+    totalProducts: 0,
+    totalCustomers: 0,
+    totalSuppliers: 0,
+    totalOrders: 0,
+    todayExpense: 0,
+    recentOrders: [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/dashboard/stats", { cache: "no-store" });
+      const data = await res.json();
+      if (data.status === "success") {
+        setStats(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to load dashboard stats:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+
+    // Re-fetch when page is focused to ensure always up-to-date
+    const handleFocus = () => {
+      fetchStats();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
+  const {
+    todaySales,
+    todayInvoicesCount,
+    todayPaid,
+    totalCustomerDue,
+    totalSupplierDue,
     totalProducts,
     totalCustomers,
     totalSuppliers,
-    totalOrders,
+    todayExpense,
     recentOrders,
-    ordersToday,
-    expensesToday,
-    customerDues,
-    supplierDues,
-  ] = await Promise.all([
-    prisma.products.count(),
-    prisma.customers.count(),
-    prisma.suppliers.count(),
-    prisma.orders.count(),
-    prisma.orders.findMany({
-      take: 10,
-      orderBy: { id: "desc" },
-      include: {
-        customers: true,
-      },
-    }),
-    prisma.orders.findMany({
-      where: {
-        created_at: { gte: todayStart, lte: todayEnd },
-      },
-      select: {
-        sub_total: true,
-        paid_amount: true,
-        due_amount: true,
-      },
-    }),
-    prisma.expenses.findMany({
-      where: {
-        created_at: { gte: todayStart, lte: todayEnd },
-      },
-      select: { expense_amount: true },
-    }),
-    prisma.orders.aggregate({
-      _sum: { due_amount: true },
-    }),
-    prisma.purchases.findMany({
-      select: { due_amount: true },
-    }),
-  ]);
-
-  const todaySales = ordersToday.reduce((acc, curr) => acc + Number(curr.sub_total || 0), 0);
-  const todayPaid = ordersToday.reduce((acc, curr) => acc + Number(curr.paid_amount || 0), 0);
-  const todayExpense = expensesToday.reduce((acc, curr) => acc + Number(curr.expense_amount || 0), 0);
-  const totalCustomerDue = Number(customerDues._sum.due_amount || 0);
-  const totalSupplierDue = supplierDues.reduce((acc, curr) => acc + Number(curr.due_amount || 0), 0);
+  } = stats;
 
   return (
     <div className="space-y-6">
@@ -95,6 +119,15 @@ export default async function DashboardPage() {
 
         {/* Quick Launch Buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={fetchStats}
+            title="Refresh Live Metrics"
+            disabled={loading}
+            className="h-[38px] w-[38px] rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-rose-600 flex items-center justify-center transition-all shadow-xs disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 text-slate-600 dark:text-slate-300 ${loading ? "animate-spin text-rose-600" : ""}`} />
+          </button>
           <Link
             href="/pos"
             className="h-[38px] px-4 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white font-bold text-xs flex items-center gap-2 shadow-xs hover:shadow-sm transition-all"
@@ -129,7 +162,7 @@ export default async function DashboardPage() {
           </div>
           <div className="flex items-center gap-1.5 mt-2 text-[11px] text-emerald-600 font-bold">
             <Clock className="w-3.5 h-3.5" />
-            <span>{ordersToday.length} Invoices Created</span>
+            <span>{todayInvoicesCount} Invoices Created</span>
           </div>
         </div>
 
@@ -282,7 +315,7 @@ export default async function DashboardPage() {
               {recentOrders.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
-                    No orders recorded yet. Launch the POS terminal to start ringing sales!
+                    {loading ? "Loading transactions..." : "No orders recorded yet. Launch the POS terminal to start ringing sales!"}
                   </td>
                 </tr>
               ) : (
@@ -303,7 +336,7 @@ export default async function DashboardPage() {
                         {order.order_no || `ORD-${order.id}`}
                       </td>
                       <td className="p-[10px] font-medium">
-                        {order.customers?.customer_name || "Walking Customer"}
+                        {order.customer_name || "Walking Customer"}
                       </td>
                       <td className="p-[10px] text-right font-bold text-slate-800 dark:text-white">
                         {formatBdCurrency(order.sub_total)}
@@ -342,7 +375,7 @@ export default async function DashboardPage() {
         <div className="block md:hidden p-3 space-y-3">
           {recentOrders.length === 0 ? (
             <div className="p-6 text-center text-slate-400 text-xs font-medium">
-              No orders recorded yet.
+              {loading ? "Loading transactions..." : "No orders recorded yet."}
             </div>
           ) : (
             recentOrders.map((order) => {
@@ -373,7 +406,7 @@ export default async function DashboardPage() {
                   </div>
 
                   <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-                    {order.customers?.customer_name || "Walking Customer"}
+                    {order.customer_name || "Walking Customer"}
                   </p>
 
                   {/* 2-Column Financial Grid (Strict Rule 8.5) */}

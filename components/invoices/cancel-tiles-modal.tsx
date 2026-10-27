@@ -14,7 +14,7 @@ import {
   Check,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
-import { formatBoxAndPcs } from "@/lib/tiles-calculator";
+import { formatBoxAndPcs, parseBoxAndPcs } from "@/lib/tiles-calculator";
 import { InvoiceActionData, InvoiceActionDetail } from "./invoice-action-menu";
 
 interface CancelTilesModalProps {
@@ -24,6 +24,11 @@ interface CancelTilesModalProps {
   onSuccess: () => void;
 }
 
+interface CancelItemQuantity {
+  boxes: number;
+  pcs: number;
+}
+
 export function CancelTilesModal({
   invoice,
   isOpen,
@@ -31,6 +36,7 @@ export function CancelTilesModal({
   onSuccess,
 }: CancelTilesModalProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [cancelQuantities, setCancelQuantities] = useState<Record<number, CancelItemQuantity>>({});
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,14 +56,25 @@ export function CancelTilesModal({
     });
   }, [invoice]);
 
-  // When modal opens or invoice changes, auto-select all tiles items
+  // When modal opens or invoice changes, auto-select all tiles items and initialize box/pcs quantities
   useEffect(() => {
     if (isOpen && tilesItems.length > 0) {
       setSelectedIds(tilesItems.map((item) => item.id));
+      const initialQty: Record<number, CancelItemQuantity> = {};
+      tilesItems.forEach((it) => {
+        const pcsPerBox = it.pcs_per_box || 1;
+        const { fullBoxes, pcs } = parseBoxAndPcs(it.quantity, pcsPerBox, it.tile_size);
+        initialQty[it.id] = {
+          boxes: fullBoxes,
+          pcs: pcs,
+        };
+      });
+      setCancelQuantities(initialQty);
       setReason("");
       setError(null);
     } else {
       setSelectedIds([]);
+      setCancelQuantities({});
       setReason("");
       setError(null);
     }
@@ -84,12 +101,76 @@ export function CancelTilesModal({
     }
   };
 
+  // Helper to compute item cancel figures
+  const getItemCancelData = (item: InvoiceActionDetail) => {
+    const pcsPerBox = item.pcs_per_box || 1;
+    const maxTotalPcs = Math.round(Number(item.quantity) * pcsPerBox);
+    const qty = cancelQuantities[item.id] || { boxes: 0, pcs: 0 };
+    const currentTotalPcs = Math.min(
+      maxTotalPcs,
+      Math.max(0, qty.boxes * pcsPerBox + qty.pcs)
+    );
+    const currentBoxes = Math.floor(currentTotalPcs / pcsPerBox);
+    const currentPcs = currentTotalPcs % pcsPerBox;
+    const cancelDecimalBoxes = currentTotalPcs / pcsPerBox;
+    const unitPrice = item.selling_price;
+    const pricePerPc = unitPrice / pcsPerBox;
+    const itemCancelAmount =
+      Math.round((qty.boxes * unitPrice + qty.pcs * pricePerPc) * 100) / 100;
+
+    return {
+      boxes: qty.boxes,
+      pcs: qty.pcs,
+      maxTotalPcs,
+      pcsPerBox,
+      itemCancelAmount,
+      cancelDecimalBoxes,
+    };
+  };
+
+  const handleBoxChange = (
+    id: number,
+    val: number,
+    maxTotalPcs: number,
+    pcsPerBox: number
+  ) => {
+    const safeBoxes = Math.max(0, val);
+    setCancelQuantities((prev) => {
+      const curPcs = prev[id]?.pcs || 0;
+      const proposedPcs = safeBoxes * pcsPerBox + curPcs;
+      if (proposedPcs > maxTotalPcs) {
+        const cappedBoxes = Math.floor(maxTotalPcs / pcsPerBox);
+        const cappedPcs = Math.min(curPcs, maxTotalPcs - cappedBoxes * pcsPerBox);
+        return { ...prev, [id]: { boxes: cappedBoxes, pcs: cappedPcs } };
+      }
+      return { ...prev, [id]: { boxes: safeBoxes, pcs: curPcs } };
+    });
+  };
+
+  const handlePcsChange = (
+    id: number,
+    val: number,
+    maxTotalPcs: number,
+    pcsPerBox: number
+  ) => {
+    const safePcs = Math.max(0, val);
+    setCancelQuantities((prev) => {
+      const curBoxes = prev[id]?.boxes || 0;
+      const proposedPcs = curBoxes * pcsPerBox + safePcs;
+      if (proposedPcs > maxTotalPcs) {
+        const allowedPcs = Math.max(0, maxTotalPcs - curBoxes * pcsPerBox);
+        return { ...prev, [id]: { boxes: curBoxes, pcs: allowedPcs } };
+      }
+      return { ...prev, [id]: { boxes: curBoxes, pcs: safePcs } };
+    });
+  };
+
   // Financial calculations preview
   const selectedItems = tilesItems.filter((it) => selectedIds.includes(it.id));
-  const cancelAmount = selectedItems.reduce(
-    (sum, it) => sum + (it.line_total || it.selling_price * it.quantity),
-    0
-  );
+  const cancelAmount = selectedItems.reduce((sum, it) => {
+    const data = getItemCancelData(it);
+    return sum + data.itemCancelAmount;
+  }, 0);
 
   const curSubtotal = invoice.net_payable;
   const projectedNet = Math.max(0, curSubtotal - cancelAmount);
@@ -103,6 +184,15 @@ export function CancelTilesModal({
       return;
     }
 
+    const itemsPayload = selectedItems.map((it) => {
+      const data = getItemCancelData(it);
+      return {
+        order_detail_id: it.id,
+        cancel_boxes: data.boxes,
+        cancel_pcs: data.pcs,
+      };
+    });
+
     try {
       setSubmitting(true);
       setError(null);
@@ -113,6 +203,7 @@ export function CancelTilesModal({
         body: JSON.stringify({
           order_id: invoice.id,
           order_detail_ids: selectedIds,
+          items: itemsPayload,
           reason: reason.trim() || undefined,
         }),
       });
@@ -138,53 +229,54 @@ export function CancelTilesModal({
         {/* Sticky Header: Red / Rose Brand Gradient */}
         <div className="h-[52px] px-5 bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#dc2626] text-white flex items-center justify-between shrink-0 shadow-xs">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-white">
-              <Ban className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-lg bg-white/15 backdrop-blur-xs flex items-center justify-center font-bold">
+              <Ban className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h3 className="font-bold text-sm tracking-wide leading-none text-white">
+              <h2 className="text-sm font-bold text-white tracking-wide leading-none m-0">
                 Cancel Tiles Items
-              </h3>
-              <p className="text-[10px] text-rose-100/80 mt-0.5">
+              </h2>
+              <p className="text-[11px] text-rose-100/80 mt-0.5 m-0">
                 Invoice #{invoice.order_no} • {invoice.customer_name}
               </p>
             </div>
           </div>
+
           <button
             type="button"
             onClick={onClose}
-            disabled={submitting}
-            className="w-7 h-7 rounded-full bg-red-700 hover:bg-red-800 text-white flex items-center justify-center transition-colors shadow-xs cursor-pointer disabled:opacity-50"
-            title="Close"
+            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Modal Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-          {/* Error Banner */}
+        {/* Scrollable Body */}
+        <div className="p-5 space-y-4 overflow-y-auto flex-1">
           {error && (
-            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <span className="font-bold">Error:</span> {error}
-              </div>
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
-          {/* Info Notice: Stock is safe */}
-          <div className="p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 flex items-start gap-3">
-            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 flex items-center justify-center shrink-0 mt-0.5">
+          {/* Stock Guarantee Callout */}
+          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 mt-0.5">
               <ShieldCheck className="w-4 h-4" />
             </div>
-            <div className="text-xs text-emerald-900 dark:text-emerald-300 leading-relaxed">
-              <span className="font-bold">Stock Preservation Guarantee:</span> Selected tiles items will be removed from this invoice, and the invoice total & customer due balance will be decreased accordingly. Warehouse physical stock will <span className="font-bold underline">not</span> be deducted.
+            <div className="text-xs text-slate-700 dark:text-slate-300">
+              <p className="font-bold text-emerald-800 dark:text-emerald-200 m-0 leading-tight">
+                Stock & Finance Synchronization Guarantee:
+              </p>
+              <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400 m-0">
+                Cancelled boxes and pieces will be deducted from this invoice. The invoice total and customer balance will be reduced accordingly. Any dispatched physical stock will automatically return to warehouse stock.
+              </p>
             </div>
           </div>
 
-          {/* Invoice Financial Glance */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+          {/* Invoice Summary Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
             <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-slate-200 dark:border-slate-800">
               <span className="text-[10px] text-slate-400 block uppercase font-bold">
                 Customer
@@ -193,7 +285,7 @@ export function CancelTilesModal({
                 {invoice.customer_name}
               </span>
               <span className="text-[10px] text-slate-400 block font-mono">
-                {invoice.customer_mobile || "Walk-in"}
+                {invoice.customer_mobile || "N/A"}
               </span>
             </div>
 
@@ -263,7 +355,7 @@ export function CancelTilesModal({
               </div>
 
               <span className="text-[11px] text-slate-400">
-                Click checkbox or row to toggle
+                Click checkbox or row to toggle • Edit Box & Pcs
               </span>
             </div>
 
@@ -276,14 +368,14 @@ export function CancelTilesModal({
               ) : (
                 tilesItems.map((item) => {
                   const isChecked = selectedIds.includes(item.id);
+                  const itemData = getItemCancelData(item);
                   const pcsPerBox = item.pcs_per_box || 1;
-                  const itemTotal = item.line_total || item.selling_price * item.quantity;
 
                   return (
                     <div
                       key={item.id}
                       onClick={() => toggleItem(item.id)}
-                      className={`p-3 flex items-center justify-between gap-3 cursor-pointer transition-colors select-none ${
+                      className={`p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition-colors select-none ${
                         isChecked
                           ? "bg-rose-50/40 dark:bg-rose-950/20"
                           : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
@@ -319,20 +411,84 @@ export function CancelTilesModal({
 
                           <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
                             {item.tile_size && (
-                              <span>Size: <strong className="text-slate-600 dark:text-slate-300">{item.tile_size}</strong></span>
+                              <span>
+                                Size: <strong className="text-slate-600 dark:text-slate-300">{item.tile_size}</strong>
+                              </span>
                             )}
                             {item.grade && (
-                              <span>• Grade: <strong className="text-slate-600 dark:text-slate-300">{item.grade}</strong></span>
+                              <span>
+                                • Grade: <strong className="text-slate-600 dark:text-slate-300">{item.grade}</strong>
+                              </span>
                             )}
-                            <span>• Qty: <strong className="text-slate-700 dark:text-slate-200">{formatBoxAndPcs(item.quantity, pcsPerBox)}</strong></span>
+                            <span>
+                              • Qty:{" "}
+                              <strong className="text-slate-700 dark:text-slate-200">
+                                {formatBoxAndPcs(item.quantity, pcsPerBox, item.tile_size)}
+                              </strong>
+                            </span>
                           </div>
+                        </div>
+                      </div>
+
+                      {/* Middle: Editable Box & Pcs Inputs */}
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className={`flex items-center gap-2 shrink-0 px-2.5 py-1.5 rounded-xl border transition-all ${
+                          isChecked
+                            ? "bg-white dark:bg-slate-800/90 border-rose-200 dark:border-rose-900/60 shadow-xs"
+                            : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60 opacity-60"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                            Box
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            max={Math.floor(itemData.maxTotalPcs / itemData.pcsPerBox)}
+                            disabled={!isChecked}
+                            value={itemData.boxes}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10);
+                              handleBoxChange(
+                                item.id,
+                                isNaN(val) ? 0 : val,
+                                itemData.maxTotalPcs,
+                                itemData.pcsPerBox
+                              );
+                            }}
+                            className="w-12 h-7 px-1 text-center font-mono font-bold text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-rose-500 disabled:opacity-50"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                            Pcs
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            max={itemData.pcsPerBox - 1}
+                            disabled={!isChecked}
+                            value={itemData.pcs}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10);
+                              handlePcsChange(
+                                item.id,
+                                isNaN(val) ? 0 : val,
+                                itemData.maxTotalPcs,
+                                itemData.pcsPerBox
+                              );
+                            }}
+                            className="w-12 h-7 px-1 text-center font-mono font-bold text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-rose-500 disabled:opacity-50"
+                          />
                         </div>
                       </div>
 
                       {/* Financial info */}
                       <div className="text-right shrink-0">
-                        <div className="text-xs font-black text-slate-900 dark:text-white">
-                          {formatBdCurrency(itemTotal)}
+                        <div className="text-xs font-black text-rose-600 dark:text-rose-400">
+                          - {formatBdCurrency(itemData.itemCancelAmount)}
                         </div>
                         <div className="text-[10px] text-slate-400">
                           @{formatBdCurrency(item.selling_price)} / {item.unit || "Box"}

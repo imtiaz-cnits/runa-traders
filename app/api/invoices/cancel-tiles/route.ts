@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const userId = user?.id || (fallbackUser ? Number(fallbackUser.id) : 1);
 
     const body = await req.json();
-    const { order_id, order_detail_ids, reason } = body;
+    const { order_id, order_detail_ids, items, reason } = body;
 
     if (!order_id) {
       return NextResponse.json(
@@ -20,14 +20,47 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!Array.isArray(order_detail_ids) || order_detail_ids.length === 0) {
+    const orderIdBig = BigInt(order_id);
+
+    // Build map of item cancel box & pcs configurations
+    const itemCancelMap = new Map<
+      string,
+      { cancel_boxes?: number; cancel_pcs?: number }
+    >();
+
+    const targetDetailIds: string[] = [];
+
+    if (Array.isArray(items) && items.length > 0) {
+      for (const it of items) {
+        if (it && it.order_detail_id) {
+          const sId = String(it.order_detail_id);
+          targetDetailIds.push(sId);
+          itemCancelMap.set(sId, {
+            cancel_boxes:
+              typeof it.cancel_boxes === "number"
+                ? Math.max(0, it.cancel_boxes)
+                : undefined,
+            cancel_pcs:
+              typeof it.cancel_pcs === "number"
+                ? Math.max(0, it.cancel_pcs)
+                : undefined,
+          });
+        }
+      }
+    } else if (Array.isArray(order_detail_ids) && order_detail_ids.length > 0) {
+      for (const id of order_detail_ids) {
+        const sId = String(id);
+        targetDetailIds.push(sId);
+        itemCancelMap.set(sId, {});
+      }
+    }
+
+    if (targetDetailIds.length === 0) {
       return NextResponse.json(
         { status: "fail", message: "Please select at least one tiles product to cancel." },
         { status: 400 }
       );
     }
-
-    const orderIdBig = BigInt(order_id);
 
     const result = await prisma.$transaction(async (tx) => {
       // 1. Fetch order with details, products, challans, customers
@@ -58,24 +91,27 @@ export async function POST(req: NextRequest) {
       }
 
       // Filter detail records to cancel
-      const cancelIdSet = new Set(order_detail_ids.map((id: any) => String(id)));
-      const itemsToCancel = order.order_details.filter((d) => cancelIdSet.has(d.id.toString()));
+      const cancelIdSet = new Set(targetDetailIds);
+      const itemsToCancel = order.order_details.filter((d) =>
+        cancelIdSet.has(d.id.toString())
+      );
 
       if (itemsToCancel.length === 0) {
         throw new Error("No matching items found in this invoice to cancel.");
       }
 
-      // Verify each item is a tiles product (or pending challan)
+      // Verify each item is a tiles product
       for (const item of itemsToCancel) {
         const prod = item.products;
         const isTiles = Boolean(
           prod?.tile_size ||
-          prod?.sqft_per_box ||
-          (prod?.pcs_per_box && parseInt(prod.pcs_per_box, 10) > 0) ||
-          (prod?.product_name && prod.product_name.toLowerCase().includes("tile")) ||
-          (prod?.categories?.category_name && prod.categories.category_name.toLowerCase().includes("tile")) ||
-          item.stock_lifecycle_state === "PENDING_CHALLAN" ||
-          item.stock_lifecycle_state === "DEDUCTED_AT_CHALLAN"
+            prod?.sqft_per_box ||
+            (prod?.pcs_per_box && parseInt(prod.pcs_per_box, 10) > 0) ||
+            (prod?.product_name && prod.product_name.toLowerCase().includes("tile")) ||
+            (prod?.categories?.category_name &&
+              prod.categories.category_name.toLowerCase().includes("tile")) ||
+            item.stock_lifecycle_state === "PENDING_CHALLAN" ||
+            item.stock_lifecycle_state === "DEDUCTED_AT_CHALLAN"
         );
 
         if (!isTiles) {
@@ -85,17 +121,58 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Calculate total amount to cancel (selling price * quantity)
-      let cancelledAmount = 0;
-      for (const item of itemsToCancel) {
-        const qty = parseFloat(String(item.quantity || "0"));
-        const price = parseFloat(String(item.selling_price || "0"));
-        cancelledAmount += Math.round(qty * price * 100) / 100;
-      }
-      cancelledAmount = Math.round(cancelledAmount * 100) / 100;
+      let totalCancelledAmount = 0;
+      let totalCancelledDecimalBoxes = 0;
+      const itemsDataToStore: any[] = [];
 
-      // Prepare item data for Cancelled Tiles registry
-      const itemsDataToStore = itemsToCancel.map((item) => {
+      // Process each cancelled item with exact Box & Pcs math
+      for (const item of itemsToCancel) {
+        let pcsPerBox = item.products?.pcs_per_box
+          ? parseInt(item.products.pcs_per_box, 10)
+          : 1;
+        if (!pcsPerBox || pcsPerBox <= 0) pcsPerBox = 1;
+
+        const originalQty = parseFloat(String(item.quantity || "0"));
+        const totalOriginalPcs = Math.round(originalQty * pcsPerBox);
+
+        const customSpec = itemCancelMap.get(String(item.id));
+        let cancelBoxes: number;
+        let cancelPcs: number;
+
+        if (
+          customSpec &&
+          (customSpec.cancel_boxes !== undefined ||
+            customSpec.cancel_pcs !== undefined)
+        ) {
+          cancelBoxes = customSpec.cancel_boxes ?? 0;
+          cancelPcs = customSpec.cancel_pcs ?? 0;
+        } else {
+          cancelBoxes = Math.floor(totalOriginalPcs / pcsPerBox);
+          cancelPcs = totalOriginalPcs % pcsPerBox;
+        }
+
+        let cancelPcsTotal = cancelBoxes * pcsPerBox + cancelPcs;
+        if (cancelPcsTotal <= 0) {
+          cancelPcsTotal = totalOriginalPcs;
+        }
+        cancelPcsTotal = Math.min(cancelPcsTotal, totalOriginalPcs);
+
+        const finalCancelBoxes = Math.floor(cancelPcsTotal / pcsPerBox);
+        const finalCancelPcs = cancelPcsTotal % pcsPerBox;
+        const cancelDecimalBoxes = cancelPcsTotal / pcsPerBox;
+
+        const sellingPrice = parseFloat(String(item.selling_price || "0"));
+        const price = parseFloat(String(item.price || "0"));
+        const unitPricePerPc = sellingPrice / pcsPerBox;
+        const itemCancelledAmount =
+          Math.round(
+            (finalCancelBoxes * sellingPrice + finalCancelPcs * unitPricePerPc) *
+              100
+          ) / 100;
+
+        totalCancelledAmount += itemCancelledAmount;
+        totalCancelledDecimalBoxes += cancelDecimalBoxes;
+
         let productCode = "N/A";
         if (item.products?.product_code) {
           try {
@@ -108,33 +185,97 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        const qty = parseFloat(String(item.quantity || "0"));
-        const price = parseFloat(String(item.price || "0"));
-        const sellingPrice = parseFloat(String(item.selling_price || "0"));
+        // Return stock if it was already deducted at challan
+        let wasStockReturned = false;
+        if (item.stock_lifecycle_state === "DEDUCTED_AT_CHALLAN") {
+          const [currentProd]: any = await tx.$queryRawUnsafe(
+            "SELECT quantity FROM products WHERE id = ?",
+            BigInt(item.product_id)
+          );
+          const currentStock = parseFloat(currentProd?.quantity || "0");
+          const returnedStock = currentStock + cancelDecimalBoxes;
 
-        return {
+          await tx.products.update({
+            where: { id: BigInt(item.product_id) },
+            data: { quantity: String(returnedStock) },
+          });
+          wasStockReturned = true;
+
+          // If a challan exists, also reduce/remove from challan_items
+          if (order.challans) {
+            const chlItem = order.challans.challan_items?.find(
+              (ci) => Number(ci.order_detail_id) === Number(item.id)
+            );
+            if (chlItem) {
+              const currentChallanQty = Number(chlItem.quantity || 0);
+              const remainingChallanQty = Math.max(
+                0,
+                currentChallanQty - cancelDecimalBoxes
+              );
+              if (remainingChallanQty <= 0.0001) {
+                await tx.challan_items.delete({ where: { id: chlItem.id } });
+              } else {
+                await tx.challan_items.update({
+                  where: { id: chlItem.id },
+                  data: { quantity: remainingChallanQty },
+                });
+              }
+            }
+          }
+        }
+
+        // Mutate order_details: if fully cancelled, delete; if partial, reduce quantity
+        const remainingPcs = totalOriginalPcs - cancelPcsTotal;
+        const remainingDecimalBoxes = remainingPcs / pcsPerBox;
+
+        if (remainingPcs <= 0 || remainingDecimalBoxes <= 0.0001) {
+          await tx.order_details.delete({
+            where: { id: item.id },
+          });
+        } else {
+          await tx.order_details.update({
+            where: { id: item.id },
+            data: { quantity: String(remainingDecimalBoxes) },
+          });
+        }
+
+        itemsDataToStore.push({
           order_detail_id: Number(item.id),
           product_id: Number(item.product_id),
           product_name: item.products?.product_name || "N/A",
           product_code: productCode,
           tile_size: item.products?.tile_size || null,
-          sqft_per_box: item.products?.sqft_per_box ? parseFloat(item.products.sqft_per_box) : null,
-          pcs_per_box: item.products?.pcs_per_box ? parseInt(item.products.pcs_per_box, 10) : 1,
+          sqft_per_box: item.products?.sqft_per_box
+            ? parseFloat(item.products.sqft_per_box)
+            : null,
+          pcs_per_box: pcsPerBox,
           grade: item.products?.grade || null,
           unit: item.products?.units?.unit_name || "Box",
           category: item.products?.categories?.category_name || "Tiles",
-          quantity: qty,
+          quantity: cancelDecimalBoxes,
+          cancelled_boxes: finalCancelBoxes,
+          cancelled_pcs: finalCancelPcs,
           price: price,
           selling_price: sellingPrice,
-          line_total: Math.round(qty * sellingPrice * 100) / 100,
+          line_total: itemCancelledAmount,
           stock_lifecycle_state: item.stock_lifecycle_state || "PENDING_CHALLAN",
-        };
-      });
+          was_stock_returned: wasStockReturned,
+        });
+      }
 
-      const totalItemsQty = itemsToCancel.reduce(
-        (sum, it) => sum + parseFloat(String(it.quantity || "0")),
-        0
-      );
+      totalCancelledAmount = Math.round(totalCancelledAmount * 100) / 100;
+
+      // Clean up empty challan if all challan items were deleted
+      if (order.challans) {
+        const remainingChallanItems = await tx.challan_items.count({
+          where: { challan_id: order.challans.id },
+        });
+        if (remainingChallanItems === 0) {
+          await tx.challans.delete({
+            where: { id: order.challans.id },
+          });
+        }
+      }
 
       // Record in cancelled_tiles table
       await tx.$executeRawUnsafe(
@@ -146,49 +287,13 @@ export async function POST(req: NextRequest) {
         order.customers?.customer_name || "Walk-in Customer",
         order.customers?.mobile || "",
         JSON.stringify(itemsDataToStore),
-        cancelledAmount,
-        totalItemsQty,
+        totalCancelledAmount,
+        totalCancelledDecimalBoxes,
         reason || null,
         userId
       );
 
-      // 2. Remove cancelled order_details from invoice
-      const detailIdsToDelete = itemsToCancel.map((item) => item.id);
-      await tx.order_details.deleteMany({
-        where: {
-          id: { in: detailIdsToDelete },
-          order_id: orderIdBig,
-        },
-      });
-
-      // 3. If a challan exists for this order, remove cancelled product items from challan_items
-      if (order.challans) {
-        const cancelledProductIds = itemsToCancel
-          .map((i) => i.product_id)
-          .filter(Boolean) as bigint[];
-
-        if (cancelledProductIds.length > 0) {
-          await tx.challan_items.deleteMany({
-            where: {
-              challan_id: order.challans.id,
-              product_id: { in: cancelledProductIds },
-            },
-          });
-
-          // If no items remain in the challan, remove the empty challan
-          const remainingChallanItems = await tx.challan_items.count({
-            where: { challan_id: order.challans.id },
-          });
-
-          if (remainingChallanItems === 0) {
-            await tx.challans.delete({
-              where: { id: order.challans.id },
-            });
-          }
-        }
-      }
-
-      // 4. Check remaining details in the order
+      // Check remaining details in the order
       const remainingDetails = await tx.order_details.findMany({
         where: { order_id: orderIdBig },
         include: {
@@ -202,26 +307,36 @@ export async function POST(req: NextRequest) {
         const p = d.products;
         return Boolean(
           p?.tile_size ||
-          p?.sqft_per_box ||
-          (p?.pcs_per_box && parseInt(p.pcs_per_box, 10) > 0) ||
-          (p?.product_name && p.product_name.toLowerCase().includes("tile")) ||
-          (p?.categories?.category_name && p.categories.category_name.toLowerCase().includes("tile")) ||
-          d.stock_lifecycle_state === "PENDING_CHALLAN" ||
-          d.stock_lifecycle_state === "DEDUCTED_AT_CHALLAN"
+            p?.sqft_per_box ||
+            (p?.pcs_per_box && parseInt(p.pcs_per_box, 10) > 0) ||
+            (p?.product_name && p.product_name.toLowerCase().includes("tile")) ||
+            (p?.categories?.category_name &&
+              p.categories.category_name.toLowerCase().includes("tile")) ||
+            d.stock_lifecycle_state === "PENDING_CHALLAN" ||
+            d.stock_lifecycle_state === "DEDUCTED_AT_CHALLAN"
         );
       });
 
-      // 5. Calculate new financial totals on the order
+      // Calculate new financial totals on the order
       const curSubTotal = Number(order.sub_total || 0);
-      const newSubTotal = Math.max(0, Math.round((curSubTotal - cancelledAmount) * 100) / 100);
+      const newSubTotal = Math.max(
+        0,
+        Math.round((curSubTotal - totalCancelledAmount) * 100) / 100
+      );
       const delivery = Number(order.delivery_charge || 0);
       const discount = Number(order.discount_amount || 0);
       const returnAdj = Number(order.return_adjustment_amount || 0);
-      const newNetPayable = Math.max(0, Math.round((newSubTotal + delivery - discount - returnAdj) * 100) / 100);
+      const newNetPayable = Math.max(
+        0,
+        Math.round((newSubTotal + delivery - discount - returnAdj) * 100) / 100
+      );
       const curPaid = Number(order.paid_amount || 0);
       const curDue = Number(order.due_amount || 0);
       const newDue = Math.max(0, Math.round((newNetPayable - curPaid) * 100) / 100);
-      const dueReduction = Math.max(0, Math.round((curDue - newDue) * 100) / 100);
+      const dueReduction = Math.max(
+        0,
+        Math.round((curDue - newDue) * 100) / 100
+      );
 
       // Determine updated challan status
       let newChallanStatus = order.challan_status || "NOT_REQUIRED";
@@ -240,7 +355,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 6. Reduce customer's previous_due_amount debt by the due reduction amount
+      // Reduce customer's previous_due_amount debt by the due reduction amount
       if (order.customer_id && dueReduction > 0) {
         const customer = await tx.customers.findUnique({
           where: { id: order.customer_id },
@@ -248,7 +363,10 @@ export async function POST(req: NextRequest) {
 
         if (customer) {
           const curCustDue = parseFloat(customer.previous_due_amount || "0");
-          const newCustDue = Math.max(0, Math.round((curCustDue - dueReduction) * 100) / 100);
+          const newCustDue = Math.max(
+            0,
+            Math.round((curCustDue - dueReduction) * 100) / 100
+          );
           await tx.customers.update({
             where: { id: order.customer_id },
             data: {
@@ -259,7 +377,7 @@ export async function POST(req: NextRequest) {
       }
 
       return {
-        cancelledAmount,
+        cancelledAmount: totalCancelledAmount,
         newSubTotal,
         newDue,
         dueReduction,
@@ -270,7 +388,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       status: "success",
-      message: `${result.cancelledCount} tiles product(s) cancelled successfully. Invoice amount updated.`,
+      message: `${result.cancelledCount} tiles item(s) cancelled successfully. Invoice amount and customer balance updated.`,
       data: result,
     });
   } catch (error: any) {

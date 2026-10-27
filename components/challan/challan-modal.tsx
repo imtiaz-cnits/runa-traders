@@ -15,13 +15,18 @@ import {
   User,
 } from "lucide-react";
 import { ChallanPrintReceipt, ChallanPrintData } from "./challan-print-receipt";
-import { formatBoxAndPcs } from "@/lib/tiles-calculator";
+import { formatBoxAndPcs, parseBoxAndPcs } from "@/lib/tiles-calculator";
 
 interface ChallanModalProps {
   orderId: number;
   isOpen: boolean;
   onClose: () => void;
   onChallanGenerated?: () => void;
+}
+
+interface ChallanItemQty {
+  boxes: number;
+  pcs: number;
 }
 
 export function ChallanModal({
@@ -40,7 +45,7 @@ export function ChallanModal({
   const [driverName, setDriverName] = useState("");
   const [driverPhone, setDriverPhone] = useState("");
   const [note, setNote] = useState("");
-  const [itemQuantities, setItemQuantities] = useState<Record<number, string | number>>({});
+  const [itemBoxPcs, setItemBoxPcs] = useState<Record<number, ChallanItemQty>>({});
 
   // Printable Challan State
   const [printChallanData, setPrintChallanData] = useState<ChallanPrintData | null>(null);
@@ -63,11 +68,16 @@ export function ChallanModal({
           setDeliveryAddress(result.data.customer.address);
         }
         // Initialize editable quantities from invoice items
-        const initialQty: Record<number, string | number> = {};
+        const initialBoxPcs: Record<number, ChallanItemQty> = {};
         result.data.tiles_items?.forEach((it: any) => {
-          initialQty[it.order_detail_id] = it.quantity;
+          const pcsPerBox = it.pcs_per_box ? parseInt(it.pcs_per_box, 10) : 1;
+          const { fullBoxes, pcs } = parseBoxAndPcs(it.quantity, pcsPerBox, it.tile_size);
+          initialBoxPcs[it.order_detail_id] = {
+            boxes: fullBoxes,
+            pcs: pcs,
+          };
         });
-        setItemQuantities(initialQty);
+        setItemBoxPcs(initialBoxPcs);
       } else {
         setError(result.message || "Failed to check invoice eligibility");
       }
@@ -78,6 +88,43 @@ export function ChallanModal({
     }
   };
 
+  const handleChallanBoxChange = (
+    detailId: number,
+    val: number,
+    maxTotalPcs: number,
+    pcsPerBox: number
+  ) => {
+    const safeBoxes = Math.max(0, val);
+    setItemBoxPcs((prev) => {
+      const curPcs = prev[detailId]?.pcs || 0;
+      const proposedTotalPcs = safeBoxes * pcsPerBox + curPcs;
+      if (proposedTotalPcs > maxTotalPcs) {
+        const cappedBoxes = Math.floor(maxTotalPcs / pcsPerBox);
+        const cappedPcs = Math.min(curPcs, maxTotalPcs - cappedBoxes * pcsPerBox);
+        return { ...prev, [detailId]: { boxes: cappedBoxes, pcs: cappedPcs } };
+      }
+      return { ...prev, [detailId]: { boxes: safeBoxes, pcs: curPcs } };
+    });
+  };
+
+  const handleChallanPcsChange = (
+    detailId: number,
+    val: number,
+    maxTotalPcs: number,
+    pcsPerBox: number
+  ) => {
+    const safePcs = Math.max(0, val);
+    setItemBoxPcs((prev) => {
+      const curBoxes = prev[detailId]?.boxes || 0;
+      const proposedTotalPcs = curBoxes * pcsPerBox + safePcs;
+      if (proposedTotalPcs > maxTotalPcs) {
+        const allowedPcs = Math.max(0, maxTotalPcs - curBoxes * pcsPerBox);
+        return { ...prev, [detailId]: { boxes: curBoxes, pcs: allowedPcs } };
+      }
+      return { ...prev, [detailId]: { boxes: curBoxes, pcs: safePcs } };
+    });
+  };
+
   const handleGenerateChallan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orderId) return;
@@ -86,10 +133,16 @@ export function ChallanModal({
     setError(null);
 
     try {
-      const customItems = Object.entries(itemQuantities).map(([order_detail_id, quantity]) => ({
-        order_detail_id: Number(order_detail_id),
-        quantity: parseFloat(String(quantity)),
-      }));
+      const customItems =
+        invoiceData?.tiles_items?.map((it: any) => {
+          const pcsPerBox = it.pcs_per_box ? parseInt(it.pcs_per_box, 10) : 1;
+          const bp = itemBoxPcs[it.order_detail_id] || { boxes: 0, pcs: 0 };
+          const decQty = bp.boxes + bp.pcs / pcsPerBox;
+          return {
+            order_detail_id: it.order_detail_id,
+            quantity: decQty > 0 ? decQty : Number(it.quantity),
+          };
+        }) || [];
 
       const res = await fetch("/api/challans", {
         method: "POST",
@@ -140,7 +193,7 @@ export function ChallanModal({
         setError(data.message || "Failed to load Challan");
       }
     } catch (err: any) {
-      setError(err?.message || "Error fetching Challan");
+      setError("Error opening Challan");
     } finally {
       setLoading(false);
     }
@@ -150,23 +203,24 @@ export function ChallanModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-[70] bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-        <div className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-[#cbd5e1] dark:border-[#334155]/60 animate-in fade-in zoom-in-95 duration-150">
-          {/* Sticky Header: Red Project Theme */}
-          <div className="h-[52px] px-5 bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white flex items-center justify-between shrink-0 shadow-xs">
+      <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-[#cbd5e1] dark:border-[#334155]/60 animate-in fade-in zoom-in-95 duration-150">
+          {/* Header */}
+          <div className="h-[52px] px-5 bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#dc2626] text-white flex items-center justify-between shrink-0 shadow-xs">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-white">
-                <Truck className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-lg bg-white/15 backdrop-blur-xs flex items-center justify-center font-bold">
+                <Truck className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-sm tracking-wide leading-none text-white">
+                <h2 className="text-sm font-bold text-white tracking-wide leading-none m-0">
                   Delivery Challan Management
-                </h3>
-                <p className="text-[10px] text-rose-100/80 mt-0.5">
+                </h2>
+                <p className="text-[11px] text-rose-100/80 mt-0.5 m-0">
                   Tiles Warehousing & Logistics Dispatch
                 </p>
               </div>
             </div>
+
             <button
               onClick={onClose}
               className="w-7 h-7 rounded-full bg-red-700 hover:bg-red-800 text-white flex items-center justify-center transition-colors shadow-xs cursor-pointer"
@@ -175,23 +229,27 @@ export function ChallanModal({
             </button>
           </div>
 
-          {/* Body Content */}
+          {/* Modal Content Body */}
           {loading ? (
-            <div className="flex-1 overflow-y-auto p-5 flex flex-col items-center justify-center gap-3 text-slate-400">
+            <div className="p-12 flex flex-col items-center justify-center text-slate-400 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-rose-600" />
-              <p className="text-xs font-medium">Checking invoice eligibility...</p>
+              <p className="text-xs font-semibold">Verifying invoice eligibility...</p>
             </div>
           ) : error ? (
-            <div className="flex-1 overflow-y-auto p-5">
-              <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold">Error Checking Invoice</p>
-                  <p className="mt-0.5">{error}</p>
-                </div>
+            <div className="p-6 text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 mx-auto flex items-center justify-center">
+                <AlertCircle className="w-6 h-6" />
               </div>
+              <p className="text-xs text-rose-600 font-bold">{error}</p>
+              <button
+                onClick={loadInvoiceEligibility}
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                Try Again
+              </button>
             </div>
           ) : invoiceData?.has_existing_challan ? (
+            /* Already Dispatched: Show Existing Challan status */
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {/* Invoice Summary Card */}
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#1e293b]/70 border border-slate-200 dark:border-slate-800 space-y-2">
@@ -209,8 +267,8 @@ export function ChallanModal({
                       Status
                     </span>
                     <div className="mt-0.5">
-                      <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-900">
-                        Delivered ({invoiceData.existing_challan?.challan_no})
+                      <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900">
+                        Challan Already Issued
                       </span>
                     </div>
                   </div>
@@ -227,16 +285,15 @@ export function ChallanModal({
                 </div>
               </div>
 
-              {/* Already Issued Notice */}
-              <div className="p-4 rounded-xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 space-y-3 text-center">
-                <CheckCircle2 className="w-10 h-10 text-rose-600 mx-auto" />
+              {/* Already Delivered Card */}
+              <div className="p-5 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/50 dark:bg-emerald-950/20 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/60 dark:text-emerald-400 mx-auto flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
                 <div>
-                  <h4 className="font-bold text-sm text-rose-950 dark:text-rose-200">
-                    Delivery Challan Already Issued
-                  </h4>
-                  <p className="text-xs text-rose-700 dark:text-rose-400 mt-1">
-                    Challan No: <span className="font-mono font-bold">{invoiceData.existing_challan?.challan_no}</span>
-                  </p>
+                  <h3 className="font-bold text-sm text-emerald-900 dark:text-emerald-200">
+                    Challan #{invoiceData?.existing_challan?.challan_no} Dispatched
+                  </h3>
                   <p className="text-[11px] text-slate-500 mt-0.5">
                     Stock was already deducted upon Challan generation. You can view or reprint the document safely without mutating stock.
                   </p>
@@ -340,16 +397,24 @@ export function ChallanModal({
                 {/* Tiles Line Items Preview */}
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                    Eligible Tiles Items ({invoiceData?.tiles_items?.length || 0})
+                    Eligible Tiles Items ({invoiceData?.tiles_items?.length || 0}) • Editable Box & Pcs
                   </label>
                   <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                     {invoiceData?.tiles_items?.map((item: any) => {
-                      const currentQty = itemQuantities[item.order_detail_id] ?? item.quantity;
-                      const formattedQty = formatBoxAndPcs(currentQty, item.pcs_per_box, item.tile_size);
+                      const pcsPerBox = item.pcs_per_box ? parseInt(item.pcs_per_box, 10) : 1;
+                      const maxTotalPcs = Math.round(Number(item.quantity) * pcsPerBox);
+                      const currentBoxPcs = itemBoxPcs[item.order_detail_id] || {
+                        boxes: Math.floor(Number(item.quantity)),
+                        pcs: 0,
+                      };
+                      const currentTotalPcs = currentBoxPcs.boxes * pcsPerBox + currentBoxPcs.pcs;
+                      const currentDecimalBoxes = currentTotalPcs / pcsPerBox;
+                      const formattedQty = formatBoxAndPcs(currentDecimalBoxes, pcsPerBox, item.tile_size);
+
                       return (
                         <div
                           key={item.order_detail_id}
-                          className="p-3 flex items-center justify-between gap-3 bg-white dark:bg-slate-900"
+                          className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900"
                         >
                           <div className="min-w-0 flex-1">
                             <p className="font-bold text-slate-900 dark:text-white truncate">
@@ -368,20 +433,48 @@ export function ChallanModal({
                                 Pending Dispatch
                               </span>
                             </div>
-                            <input
-                              type="number"
-                              step="any"
-                              min="0.01"
-                              title="Edit Dispatch Quantity (in boxes, e.g. 4.08)"
-                              value={currentQty}
-                              onChange={(e) =>
-                                setItemQuantities((prev) => ({
-                                  ...prev,
-                                  [item.order_detail_id]: e.target.value,
-                                }))
-                              }
-                              className="w-16 h-[32px] px-1 text-center font-mono font-bold text-xs text-rose-700 dark:text-rose-400 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-rose-500"
-                            />
+                            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 p-1 rounded-xl border border-slate-300 dark:border-slate-700 shadow-xs">
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Box</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={Math.floor(maxTotalPcs / pcsPerBox)}
+                                  title="Dispatch Boxes"
+                                  value={currentBoxPcs.boxes}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value, 10);
+                                    handleChallanBoxChange(
+                                      item.order_detail_id,
+                                      isNaN(val) ? 0 : val,
+                                      maxTotalPcs,
+                                      pcsPerBox
+                                    );
+                                  }}
+                                  className="w-13 h-[32px] px-1 text-center font-mono font-bold text-xs text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-rose-500"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Pcs</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={pcsPerBox - 1}
+                                  title="Dispatch Pieces"
+                                  value={currentBoxPcs.pcs}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value, 10);
+                                    handleChallanPcsChange(
+                                      item.order_detail_id,
+                                      isNaN(val) ? 0 : val,
+                                      maxTotalPcs,
+                                      pcsPerBox
+                                    );
+                                  }}
+                                  className="w-13 h-[32px] px-1 text-center font-mono font-bold text-xs text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-rose-500"
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
@@ -389,8 +482,8 @@ export function ChallanModal({
                   </div>
                 </div>
 
-                {/* Delivery & Logistics Inputs */}
-                <div className="space-y-3 pt-1">
+                {/* Delivery Logistics Inputs */}
+                <div className="space-y-3 pt-2">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       Delivery Destination Address

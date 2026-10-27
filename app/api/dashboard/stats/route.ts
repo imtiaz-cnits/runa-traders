@@ -5,12 +5,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const today = new Date();
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+    // Current date in Bangladesh Standard Time (Asia/Dhaka - UTC+6)
+    const bdDateStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Dhaka",
+    }).format(new Date());
 
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+    const startOfToday = new Date(`${bdDateStr}T00:00:00.000+06:00`);
+    const endOfToday = new Date(`${bdDateStr}T23:59:59.999+06:00`);
 
     const [
       totalProducts,
@@ -19,18 +20,17 @@ export async function GET(req: NextRequest) {
       totalOrders,
       recentOrders,
       ordersToday,
-      ordersThisMonth,
+      dueCollectionsToday,
       expensesToday,
-      purchasesToday,
-      customerDues,
-      allPurchases,
+      customersWithDue,
+      suppliersWithDue,
     ] = await Promise.all([
       prisma.products.count(),
       prisma.customers.count(),
       prisma.suppliers.count(),
       prisma.orders.count(),
       prisma.orders.findMany({
-        take: 8,
+        take: 10,
         orderBy: { id: "desc" },
         include: {
           customers: true,
@@ -38,92 +38,124 @@ export async function GET(req: NextRequest) {
       }),
       prisma.orders.findMany({
         where: {
-          created_at: { gte: todayStart, lte: todayEnd },
+          OR: [
+            { created_at: { gte: startOfToday, lte: endOfToday } },
+            {
+              invoice_date: {
+                gte: new Date(`${bdDateStr}T00:00:00.000Z`),
+                lte: new Date(`${bdDateStr}T23:59:59.999Z`),
+              },
+            },
+          ],
         },
         select: {
           sub_total: true,
           paid_amount: true,
           due_amount: true,
+          delivery_charge: true,
           discount_amount: true,
+          return_adjustment_amount: true,
         },
       }),
-      prisma.orders.findMany({
+      prisma.customer_payment_details.findMany({
         where: {
-          created_at: { gte: monthStart, lte: monthEnd },
+          OR: [
+            { created_at: { gte: startOfToday, lte: endOfToday } },
+            {
+              due_collection_date: {
+                gte: new Date(`${bdDateStr}T00:00:00.000Z`),
+                lte: new Date(`${bdDateStr}T23:59:59.999Z`),
+              },
+            },
+          ],
         },
         select: {
-          sub_total: true,
           paid_amount: true,
-          due_amount: true,
         },
       }),
       prisma.expenses.findMany({
         where: {
-          created_at: { gte: todayStart, lte: todayEnd },
+          OR: [
+            { created_at: { gte: startOfToday, lte: endOfToday } },
+            { date: bdDateStr },
+          ],
         },
-        select: { expense_amount: true },
-      }),
-      prisma.purchases.findMany({
-        where: {
-          created_at: { gte: todayStart, lte: todayEnd },
+        select: {
+          expense_amount: true,
         },
-        select: { grand_subtotal: true, paid_amount: true, due_amount: true },
       }),
-      prisma.orders.aggregate({
-        _sum: { due_amount: true },
+      prisma.customers.findMany({
+        select: { previous_due_amount: true },
       }),
-      prisma.purchases.findMany({
-        select: { due_amount: true },
+      prisma.suppliers.findMany({
+        select: { purchase_payable_amount: true },
       }),
     ]);
 
-    const todaySales = ordersToday.reduce((acc, curr) => acc + Number(curr.sub_total || 0), 0);
-    const todayPaid = ordersToday.reduce((acc, curr) => acc + Number(curr.paid_amount || 0), 0);
-    const todayDue = ordersToday.reduce((acc, curr) => acc + Number(curr.due_amount || 0), 0);
-    const todayExpense = expensesToday.reduce((acc, curr) => acc + Number(curr.expense_amount || 0), 0);
-    const todayPurchase = purchasesToday.reduce((acc, curr) => acc + Number(curr.grand_subtotal || 0), 0);
+    // Financial calculations
+    const todaySales = ordersToday.reduce(
+      (acc, curr) => acc + Number(curr.sub_total || 0),
+      0
+    );
 
-    const monthSales = ordersThisMonth.reduce((acc, curr) => acc + Number(curr.sub_total || 0), 0);
-    const monthPaid = ordersThisMonth.reduce((acc, curr) => acc + Number(curr.paid_amount || 0), 0);
+    const todayPaidFromOrders = ordersToday.reduce(
+      (acc, curr) => acc + Number(curr.paid_amount || 0),
+      0
+    );
 
-    const totalCustomerDue = Number(customerDues._sum.due_amount || 0);
-    const totalSupplierDue = allPurchases.reduce((acc, curr) => acc + Number(curr.due_amount || 0), 0);
+    const todayDueCollected = dueCollectionsToday.reduce(
+      (acc, curr) => acc + parseFloat(String(curr.paid_amount || "0")),
+      0
+    );
 
-    const serializedRecentOrders = recentOrders.map((o) => ({
-      id: Number(o.id),
-      order_no: o.order_no,
-      customer_name: o.customers?.customer_name || "Walking Customer",
-      sub_total: Number(o.sub_total || 0),
-      paid_amount: Number(o.paid_amount || 0),
-      due_amount: Number(o.due_amount || 0),
-      created_at: o.created_at,
+    const todayCollected = todayPaidFromOrders + todayDueCollected;
+
+    const todayExpense = expensesToday.reduce(
+      (acc, curr) => acc + Number(curr.expense_amount || 0),
+      0
+    );
+
+    const totalCustomerDue = customersWithDue.reduce(
+      (acc, curr) => acc + parseFloat(String(curr.previous_due_amount || "0")),
+      0
+    );
+
+    const totalSupplierDue = suppliersWithDue.reduce(
+      (acc, curr) => acc + parseFloat(String(curr.purchase_payable_amount || "0")),
+      0
+    );
+
+    const formattedRecentOrders = recentOrders.map((order) => ({
+      id: Number(order.id),
+      order_no: order.order_no,
+      customer_name: order.customers?.customer_name || "Walking Customer",
+      sub_total: Number(order.sub_total || 0),
+      paid_amount: Number(order.paid_amount || 0),
+      due_amount: Number(order.due_amount || 0),
+      invoice_date: order.invoice_date,
+      created_at: order.created_at,
     }));
 
     return NextResponse.json({
       status: "success",
       data: {
-        summary: {
-          todaySales,
-          todayPaid,
-          todayDue,
-          todayExpense,
-          todayPurchase,
-          monthSales,
-          monthPaid,
-          totalCustomerDue,
-          totalSupplierDue,
-          totalProducts,
-          totalCustomers,
-          totalSuppliers,
-          totalOrders,
-        },
-        recentOrders: serializedRecentOrders,
+        todaySales,
+        todayInvoicesCount: ordersToday.length,
+        todayPaid: todayCollected,
+        totalCustomerDue,
+        totalSupplierDue,
+        totalProducts,
+        totalCustomers,
+        totalSuppliers,
+        totalOrders,
+        todayExpense,
+        recentOrders: formattedRecentOrders,
       },
     });
   } catch (error: any) {
-    console.error("Dashboard Stats Error:", error);
+    console.error("Dashboard Stats API Error:", error);
     return NextResponse.json(
-      { status: "fail", message: error?.message || "Failed to calculate stats" },
+      { status: "fail", message: error?.message || "Failed to load dashboard stats" },
       { status: 500 }
     );
   }
