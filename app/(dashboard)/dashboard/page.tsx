@@ -189,9 +189,8 @@ export default function DashboardPage() {
             className="h-[38px] w-[38px] rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-rose-600 flex items-center justify-center transition-all shadow-2xs cursor-pointer disabled:opacity-50"
           >
             <RefreshCw
-              className={`w-4 h-4 text-slate-600 dark:text-slate-300 ${
-                loading ? "animate-spin text-rose-600" : ""
-              }`}
+              className={`w-4 h-4 text-slate-600 dark:text-slate-300 ${loading ? "animate-spin text-rose-600" : ""
+                }`}
             />
           </button>
 
@@ -283,11 +282,10 @@ export default function DashboardPage() {
             </div>
           </div>
           <div
-            className={`text-xl sm:text-2xl font-black ${
-              profit < 0
+            className={`text-xl sm:text-2xl font-black ${profit < 0
                 ? "text-rose-600 dark:text-rose-400"
                 : "text-slate-800 dark:text-white"
-            }`}
+              }`}
           >
             {formatBdCurrency(profit)}
           </div>
@@ -315,9 +313,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          <span className="hidden xl:inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-950/40 px-2 py-0.5 rounded-full shrink-0">
-            Customer Balance
-          </span>
+
         </div>
 
         {/* PAYABLE DUE */}
@@ -335,9 +331,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          <span className="hidden xl:inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-950/40 px-2 py-0.5 rounded-full shrink-0">
-            Vendor Payable
-          </span>
+
         </div>
 
         {/* RETURN */}
@@ -355,9 +349,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          <span className="hidden xl:inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50/80 dark:bg-rose-950/40 px-2 py-0.5 rounded-full shrink-0">
-            Sales Adjustments
-          </span>
+
         </div>
 
         {/* DISCOUNT */}
@@ -375,9 +367,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          <span className="hidden xl:inline-flex items-center gap-1 text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50/80 dark:bg-violet-950/40 px-2 py-0.5 rounded-full shrink-0">
-            Total Discounts
-          </span>
+
         </div>
       </div>
 
@@ -522,8 +512,8 @@ export default function DashboardPage() {
                     due <= 0
                       ? "PAID"
                       : order.paid_amount && Number(order.paid_amount) > 0
-                      ? "PARTIAL"
-                      : "DUE";
+                        ? "PARTIAL"
+                        : "DUE";
 
                   return (
                     <tr
@@ -550,13 +540,12 @@ export default function DashboardPage() {
                       </td>
                       <td className="p-[10px] text-center">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                            status === "PAID"
+                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${status === "PAID"
                               ? "bg-teal-600 text-white"
                               : status === "PARTIAL"
-                              ? "bg-amber-500 text-white"
-                              : "bg-rose-500 text-white"
-                          }`}
+                                ? "bg-amber-500 text-white"
+                                : "bg-rose-500 text-white"
+                            }`}
                         >
                           {status}
                         </span>
@@ -585,8 +574,8 @@ export default function DashboardPage() {
                 due <= 0
                   ? "PAID"
                   : order.paid_amount && Number(order.paid_amount) > 0
-                  ? "PARTIAL"
-                  : "DUE";
+                    ? "PARTIAL"
+                    : "DUE";
 
               return (
                 <div
@@ -598,13 +587,12 @@ export default function DashboardPage() {
                       {order.order_no || `ORD-${order.id}`}
                     </span>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                        status === "PAID"
+                      className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${status === "PAID"
                           ? "bg-teal-600 text-white"
                           : status === "PARTIAL"
-                          ? "bg-amber-500 text-white"
-                          : "bg-rose-500 text-white"
-                      }`}
+                            ? "bg-amber-500 text-white"
+                            : "bg-rose-500 text-white"
+                        }`}
                     >
                       {status}
                     </span>
