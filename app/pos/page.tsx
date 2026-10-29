@@ -110,6 +110,7 @@ export default function PosPage() {
     orderNote,
     addItem,
     updateQty,
+    updatePrice,
     updateTileCalculation,
     removeItem,
     clearCart,
@@ -163,6 +164,7 @@ export default function PosPage() {
 
   // Held invoices
   const [heldInvoices, setHeldInvoices] = useState<HeldInvoice[]>([]);
+  const [priceDrafts, setPriceDrafts] = useState<Record<number, string>>({});
 
   // Mobile tab switch ('catalog' | 'cart')
   const [mobileTab, setMobileTab] = useState<"catalog" | "cart">("catalog");
@@ -313,6 +315,10 @@ export default function PosPage() {
       const target = e.target as HTMLElement;
       const isInputFocused =
         target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+      if (isInputFocused && target !== searchInputRef.current) {
+        barcodeBufferRef.current = "";
+        return;
+      }
 
       const currentTime = Date.now();
       const timeDiff = currentTime - lastKeyTimeRef.current;
@@ -1203,7 +1209,7 @@ export default function PosPage() {
                       <tr>
                         <th className="py-2 pl-3">Item</th>
                         <th className="py-2 text-center w-28">Qty</th>
-                        <th className="py-2 text-right w-20">Price</th>
+                        <th className="py-2 text-right w-24">Price</th>
                         {hasTilesInCart && (
                           <th className="py-2 text-right w-24">Sqft. Price</th>
                         )}
@@ -1291,9 +1297,50 @@ export default function PosPage() {
                             )}
                           </td>
 
-                          {/* Price */}
-                          <td className="py-2 text-right text-slate-600 dark:text-slate-400 font-medium">
-                            {item.selling_price.toFixed(2)}
+                          {/* Price (Editable) */}
+                          <td className="py-2 text-right">
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              value={
+                                priceDrafts[item.product_id] !== undefined
+                                  ? priceDrafts[item.product_id]
+                                  : item.selling_price.toFixed(2)
+                              }
+                              onFocus={(e) => {
+                                setPriceDrafts((prev) => ({
+                                  ...prev,
+                                  [item.product_id]: String(item.selling_price),
+                                }));
+                                e.currentTarget.select();
+                              }}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                setPriceDrafts((prev) => ({
+                                  ...prev,
+                                  [item.product_id]: raw,
+                                }));
+                                const parsed = parseFloat(raw);
+                                updatePrice(
+                                  item.product_id,
+                                  isNaN(parsed) || parsed < 0 ? 0 : parsed
+                                );
+                              }}
+                              onBlur={() => {
+                                setPriceDrafts((prev) => {
+                                  const next = { ...prev };
+                                  delete next[item.product_id];
+                                  return next;
+                                });
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                              className="w-20 h-6 px-1.5 text-right text-xs font-bold rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 focus:outline-none focus:border-rose-600 focus:ring-1 focus:ring-rose-500/20 shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
                           </td>
 
                           {/* Sqft. PRICE (Dynamic - only shown when tiles present in cart) */}

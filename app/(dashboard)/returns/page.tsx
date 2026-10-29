@@ -1173,9 +1173,7 @@ function ReturnsManagementContent() {
                               </td>
                               <td className="p-2.5 text-right font-semibold text-slate-700 dark:text-slate-300">
                                 <div className="font-bold">
-                                  {item.is_tiles && item.unit_price && (item.unit_price * 100) % 1 !== 0
-                                    ? `৳ ${parseFloat(item.unit_price.toFixed(4))}`
-                                    : formatBdCurrency(item.unit_price)}
+                                  {formatBdCurrency(item.unit_price)}
                                 </div>
                                 {item.is_tiles && (
                                   <div className="text-[10px] text-slate-400 font-normal">/ pc</div>

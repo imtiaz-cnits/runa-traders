@@ -44,6 +44,7 @@ interface PosState {
   // Actions
   addItem: (item: Omit<CartItem, "quantity">, qty?: number) => void;
   updateQty: (productId: number, qty: number) => void;
+  updatePrice: (productId: number, price: number) => void;
   updateTileCalculation: (productId: number, data: { quantity: number; selling_mode?: "box" | "sqft"; custom_sqft?: number | null; price?: number }) => void;
   removeItem: (productId: number) => void;
   clearCart: () => void;
@@ -108,6 +109,19 @@ export const usePosStore = create<PosState>((set, get) => ({
       cart: cart.map((item) => {
         if (item.product_id === productId) {
           return { ...item, quantity: qty };
+        }
+        return item;
+      }),
+    });
+  },
+
+  updatePrice: (productId, price) => {
+    const { cart } = get();
+    const safePrice = isNaN(price) || price < 0 ? 0 : price;
+    set({
+      cart: cart.map((item) => {
+        if (item.product_id === productId) {
+          return { ...item, selling_price: safePrice };
         }
         return item;
       }),
@@ -198,4 +212,3 @@ export const usePosStore = create<PosState>((set, get) => ({
     return currentDue + prevDue;
   },
 }));
-

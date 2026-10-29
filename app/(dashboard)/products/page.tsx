@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { formatBdCurrency } from "@/lib/utils";
 import {
   Package,
@@ -94,7 +95,9 @@ export default function ProductsPage() {
   // Bulk Price Update Modal State
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [bulkBrandId, setBulkBrandId] = useState<string>("all");
+  const [bulkAdjustmentType, setBulkAdjustmentType] = useState<"percentage" | "taka">("percentage");
   const [bulkPercentage, setBulkPercentage] = useState<string>("");
+  const [bulkSearchQuery, setBulkSearchQuery] = useState<string>("");
   const [bulkTargetField, setBulkTargetField] = useState<"sell_price" | "cost_price" | "both">("sell_price");
   const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<number>>(new Set());
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
@@ -275,13 +278,26 @@ export default function ProductsPage() {
     }
   }
 
-  // Filter products for bulk price update modal
-  const bulkMatchingProducts = products.filter((p) => {
+  // Filter products for bulk price update modal (Brand + Modal Search Filter)
+  const bulkBrandProducts = products.filter((p) => {
     if (bulkBrandId === "all") return true;
     return String(p.brand_id) === String(bulkBrandId);
   });
 
-  // When bulkBrandId changes, select all matching products by default
+  const bulkMatchingProducts = bulkBrandProducts.filter((p) => {
+    if (!bulkSearchQuery.trim()) return true;
+    const q = bulkSearchQuery.trim().toLowerCase();
+    return (
+      p.product_name.toLowerCase().includes(q) ||
+      p.primary_code.toLowerCase().includes(q) ||
+      p.display_codes.toLowerCase().includes(q) ||
+      p.brand.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q) ||
+      Boolean(p.tile_size && p.tile_size.toLowerCase().includes(q))
+    );
+  });
+
+  // When bulkBrandId or modal open state changes, select all brand-matching products by default
   useEffect(() => {
     if (bulkModalOpen) {
       if (bulkBrandId === "all") {
@@ -293,14 +309,20 @@ export default function ProductsPage() {
           )
         );
       }
+    } else {
+      setBulkSearchQuery("");
     }
   }, [bulkBrandId, bulkModalOpen, products]);
 
   const handleBulkUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const pct = parseFloat(bulkPercentage);
-    if (isNaN(pct) || pct === 0) {
-      toast.error("Please enter a valid non-zero percentage");
+    const adjVal = parseFloat(bulkPercentage);
+    if (isNaN(adjVal) || adjVal === 0) {
+      toast.error(
+        bulkAdjustmentType === "taka"
+          ? "Please enter a valid non-zero Taka amount"
+          : "Please enter a valid non-zero percentage"
+      );
       return;
     }
     if (bulkSelectedIds.size === 0) {
@@ -315,7 +337,9 @@ export default function ProductsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           product_ids: Array.from(bulkSelectedIds),
-          percentage: pct,
+          adjustment_type: bulkAdjustmentType,
+          percentage: adjVal,
+          amount: adjVal,
           target_field: bulkTargetField,
         }),
       });
@@ -324,6 +348,7 @@ export default function ProductsPage() {
         toast.success(data.message || "Bulk prices updated successfully!");
         setBulkModalOpen(false);
         setBulkPercentage("");
+        setBulkSearchQuery("");
         setBulkSelectedIds(new Set());
         loadData();
       } else {
@@ -1052,7 +1077,7 @@ export default function ProductsPage() {
         );
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="fixed inset-0 !m-0 h-dvh w-screen z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
             {/* Unified Container: border-radius: 16px, max-height 92vh, max-w-4xl for spacious view */}
             <div className="w-full max-w-3xl sm:max-w-4xl bg-white dark:bg-slate-900 rounded-[16px] shadow-2xl overflow-hidden max-h-[92vh] flex flex-col border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
               {/* Sticky Header: Cool Crimson / Ruby Red Gradient, Circular Red Close #dc2626 */}
@@ -1414,7 +1439,7 @@ export default function ProductsPage() {
 
       {/* 2. Quick View Product Details Modal */}
       {viewingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-150">
+        <div className="fixed inset-0 !m-0 h-dvh w-screen z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[16px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-150">
             {/* Sticky Header: Ruby Red / Crimson Gradient */}
             <div className="modal-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-5 py-3.5 flex items-center justify-between shrink-0 shadow-xs">
@@ -1632,264 +1657,415 @@ export default function ProductsPage() {
         isLoading={deleting}
       />
 
-      {/* Bulk Percentage Price Update Modal */}
-      {bulkModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
-          <div className="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-[16px] shadow-2xl overflow-hidden max-h-[92vh] flex flex-col border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-6 py-4 flex items-center justify-between shrink-0 shadow-xs">
-              <div className="flex items-center gap-2 text-white">
-                <Percent className="w-5 h-5 text-rose-200" />
-                <h3 className="text-base font-bold text-white tracking-tight m-0">
-                  Bulk Percentage Price Update (% বাল্ক প্রাইস পরিবর্তন)
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setBulkModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-[#dc2626] hover:bg-red-700 text-white flex items-center justify-center shadow-xs cursor-pointer transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleBulkUpdate} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 space-y-4">
-                {/* Brand & Target Field Selector */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Select Brand (ব্র্যান্ড নির্বাচন করুন)
-                    </label>
-                    <CustomSelect
-                      value={bulkBrandId}
-                      onChange={(val) => setBulkBrandId(String(val))}
-                      options={[
-                        { value: "all", label: "All Brands (সকল ব্র্যান্ড)" },
-                        ...brands.map((b) => ({ value: String(b.id), label: b.name || "" })),
-                      ]}
-                      placeholder="Select Brand"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Target Price (কোন মূল্য আপডেট করবেন)
-                    </label>
-                    <div className="grid grid-cols-3 gap-1.5 h-[42px] p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                      <button
-                        type="button"
-                        onClick={() => setBulkTargetField("sell_price")}
-                        className={`text-xs font-bold rounded-lg transition-all ${bulkTargetField === "sell_price"
-                            ? "bg-rose-700 text-white shadow-xs"
-                            : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
-                          }`}
-                      >
-                        Sell Price
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setBulkTargetField("cost_price")}
-                        className={`text-xs font-bold rounded-lg transition-all ${bulkTargetField === "cost_price"
-                            ? "bg-rose-700 text-white shadow-xs"
-                            : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
-                          }`}
-                      >
-                        Cost Price
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setBulkTargetField("both")}
-                        className={`text-xs font-bold rounded-lg transition-all ${bulkTargetField === "both"
-                            ? "bg-rose-700 text-white shadow-xs"
-                            : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
-                          }`}
-                      >
-                        Both Prices
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Percentage Input & Quick Buttons */}
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-2.5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                      Percentage Adjustment (% হারে বৃদ্ধি বা হ্রাস)
-                    </label>
-                    <span className="text-[11px] text-slate-500">
-                      Ex: <code className="text-rose-600 font-bold font-mono">5</code> (+5% বাড়বে) অথবা <code className="text-rose-600 font-bold font-mono">-5</code> (-5% কমবে)
+      {/* Bulk Percentage / Taka Price Update Modal */}
+      {bulkModalOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="fixed inset-0 !m-0 h-dvh w-screen z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+            <div className="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-[16px] shadow-2xl overflow-hidden max-h-[92vh] flex flex-col border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-6 py-4 flex items-center justify-between shrink-0 shadow-xs">
+                <div className="flex items-center gap-2 text-white">
+                  {bulkAdjustmentType === "taka" ? (
+                    <span className="w-6 h-6 rounded-lg bg-white/15 flex items-center justify-center text-sm font-black text-rose-100">
+                      ৳
                     </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="number"
-                        step="0.01"
-                        required
-                        value={bulkPercentage}
-                        onChange={(e) => setBulkPercentage(e.target.value)}
-                        placeholder="e.g. 5 or -5"
-                        className="w-full h-[42px] px-3.5 pr-8 rounded-xl bg-white dark:bg-slate-800/90 text-xs font-bold text-slate-800 dark:text-white border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {[5, 10, 15, -5, -10].map((quick) => (
-                        <button
-                          key={quick}
-                          type="button"
-                          onClick={() => setBulkPercentage(String(quick))}
-                          className="px-2.5 h-[42px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-rose-500 hover:text-rose-600 transition-colors cursor-pointer"
-                        >
-                          {quick > 0 ? `+${quick}%` : `${quick}%`}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  ) : (
+                    <Percent className="w-5 h-5 text-rose-200" />
+                  )}
+                  <h3 className="text-base font-bold text-white tracking-tight m-0">
+                    {bulkAdjustmentType === "taka"
+                      ? "Bulk Taka Price Update (৳ বাল্ক প্রাইস পরিবর্তন)"
+                      : "Bulk Percentage Price Update (% বাল্ক প্রাইস পরিবর্তন)"}
+                  </h3>
                 </div>
-
-                {/* Product Selection List with Live Price Preview */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between px-1">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="bulkSelectAll"
-                        checked={bulkMatchingProducts.length > 0 && bulkSelectedIds.size === bulkMatchingProducts.length}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setBulkSelectedIds(new Set(bulkMatchingProducts.map((p) => p.id)));
-                          } else {
-                            setBulkSelectedIds(new Set());
-                          }
-                        }}
-                        className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer"
-                      />
-                      <label htmlFor="bulkSelectAll" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
-                        Select All Matching ({bulkSelectedIds.size} / {bulkMatchingProducts.length} Selected)
-                      </label>
-                    </div>
-                    <span className="text-[11px] text-slate-500">
-                      Showing matching products for brand
-                    </span>
-                  </div>
-
-                  <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden max-h-[260px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                    {bulkMatchingProducts.length === 0 ? (
-                      <div className="p-6 text-center text-slate-400 text-xs font-medium">
-                        No products found for this brand filter.
-                      </div>
-                    ) : (
-                      bulkMatchingProducts.map((p) => {
-                        const isChecked = bulkSelectedIds.has(p.id);
-                        const pct = parseFloat(bulkPercentage) || 0;
-                        const factor = 1 + pct / 100;
-                        const newSell = Math.round(p.sell_price * factor * 100) / 100;
-                        const newCost = Math.round(p.cost_price * factor * 100) / 100;
-
-                        return (
-                          <div
-                            key={p.id}
-                            onClick={() => {
-                              const next = new Set(bulkSelectedIds);
-                              if (next.has(p.id)) next.delete(p.id);
-                              else next.add(p.id);
-                              setBulkSelectedIds(next);
-                            }}
-                            className={`p-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors ${isChecked
-                                ? "bg-rose-50/40 dark:bg-rose-950/20"
-                                : "hover:bg-slate-50 dark:hover:bg-slate-800/40 opacity-60"
-                              }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => { }} // handled by parent div
-                                className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 shrink-0"
-                              />
-                              <div className="min-w-0">
-                                <div className="font-bold text-slate-800 dark:text-white truncate">
-                                  {p.product_name}
-                                </div>
-                                <div className="text-[10px] text-slate-400">
-                                  {p.brand} &bull; Code: {p.primary_code}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Price Comparison Preview */}
-                            <div className="flex items-center gap-3 shrink-0 text-right">
-                              {(bulkTargetField === "sell_price" || bulkTargetField === "both") && (
-                                <div>
-                                  <span className="text-[10px] text-slate-400 block">Sell Price</span>
-                                  <span className="font-bold text-slate-700 dark:text-slate-300">
-                                    {formatBdCurrency(p.sell_price)}
-                                  </span>
-                                  {pct !== 0 && (
-                                    <span className="text-rose-600 font-extrabold ml-1">
-                                      &rarr; {formatBdCurrency(newSell)}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                              {(bulkTargetField === "cost_price" || bulkTargetField === "both") && (
-                                <div>
-                                  <span className="text-[10px] text-slate-400 block">Cost Price</span>
-                                  <span className="font-bold text-slate-700 dark:text-slate-300">
-                                    {formatBdCurrency(p.cost_price)}
-                                  </span>
-                                  {pct !== 0 && (
-                                    <span className="text-rose-600 font-extrabold ml-1">
-                                      &rarr; {formatBdCurrency(newCost)}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Sticky Footer */}
-              <div className="shrink-0 bg-slate-50 dark:bg-slate-900/95 px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <button
                   type="button"
                   onClick={() => setBulkModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-colors cursor-pointer"
+                  className="w-7 h-7 rounded-full bg-[#dc2626] hover:bg-red-700 text-white flex items-center justify-center shadow-xs cursor-pointer transition-colors"
                 >
-                  Cancel (বাতিল)
-                </button>
-                <button
-                  type="submit"
-                  disabled={bulkSubmitting || bulkSelectedIds.size === 0 || !bulkPercentage}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs disabled:opacity-50"
-                >
-                  {bulkSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Updating Prices...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Percent className="w-4 h-4" />
-                      <span>Update {bulkSelectedIds.size} Products Price</span>
-                    </>
-                  )}
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              {/* Form */}
+              <form onSubmit={handleBulkUpdate} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 space-y-4">
+                  {/* Brand & Target Field Selector */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Select Brand (ব্র্যান্ড নির্বাচন করুন)
+                      </label>
+                      <CustomSelect
+                        value={bulkBrandId}
+                        onChange={(val) => setBulkBrandId(String(val))}
+                        options={[
+                          { value: "all", label: "All Brands (সকল ব্র্যান্ড)" },
+                          ...brands.map((b) => ({ value: String(b.id), label: b.name || "" })),
+                        ]}
+                        placeholder="Select Brand"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Target Price (কোন মূল্য আপডেট করবেন)
+                      </label>
+                      <div className="grid grid-cols-3 gap-1.5 h-[42px] p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <button
+                          type="button"
+                          onClick={() => setBulkTargetField("cost_price")}
+                          className={`text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                            bulkTargetField === "cost_price"
+                              ? "bg-rose-700 text-white shadow-xs"
+                              : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                          }`}
+                        >
+                          Cost Price
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBulkTargetField("sell_price")}
+                          className={`text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                            bulkTargetField === "sell_price"
+                              ? "bg-rose-700 text-white shadow-xs"
+                              : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                          }`}
+                        >
+                          Sell Price
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBulkTargetField("both")}
+                          className={`text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                            bulkTargetField === "both"
+                              ? "bg-rose-700 text-white shadow-xs"
+                              : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                          }`}
+                        >
+                          Both Prices
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Adjustment Mode Tab (% vs Taka) + Adjustment Input Box */}
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-1.5 h-[40px] p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (bulkAdjustmentType !== "percentage") {
+                            setBulkAdjustmentType("percentage");
+                            setBulkPercentage("");
+                          }
+                        }}
+                        className={`text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          bulkAdjustmentType === "percentage"
+                            ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                            : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                        }`}
+                      >
+                        <Percent className="w-3.5 h-3.5" />
+                        <span>% Percentage (% হার)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (bulkAdjustmentType !== "taka") {
+                            setBulkAdjustmentType("taka");
+                            setBulkPercentage("");
+                          }
+                        }}
+                        className={`text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          bulkAdjustmentType === "taka"
+                            ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                            : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                        }`}
+                      >
+                        <span className="font-black text-sm leading-none">৳</span>
+                        <span>Taka (টাকা)</span>
+                      </button>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-2.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          {bulkAdjustmentType === "taka"
+                            ? "Taka Adjustment (টাকায় বৃদ্ধি বা হ্রাস)"
+                            : "Percentage Adjustment (% হারে বৃদ্ধি বা হ্রাস)"}
+                        </label>
+                        <span className="text-[11px] text-slate-500">
+                          {bulkAdjustmentType === "taka" ? (
+                            <>
+                              Ex: <code className="text-rose-600 font-bold font-mono">50</code> (+৳50 বাড়বে) অথবা{" "}
+                              <code className="text-rose-600 font-bold font-mono">-50</code> (-৳50 কমবে)
+                            </>
+                          ) : (
+                            <>
+                              Ex: <code className="text-rose-600 font-bold font-mono">5</code> (+5% বাড়বে) অথবা{" "}
+                              <code className="text-rose-600 font-bold font-mono">-5</code> (-5% কমবে)
+                            </>
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                        <div className="relative flex-1 min-w-[180px]">
+                          <input
+                            type="number"
+                            step="0.01"
+                            required
+                            value={bulkPercentage}
+                            onChange={(e) => setBulkPercentage(e.target.value)}
+                            placeholder={
+                              bulkAdjustmentType === "taka" ? "e.g. 50 or -50" : "e.g. 5 or -5"
+                            }
+                            className="w-full h-[42px] px-3.5 pr-8 rounded-xl bg-white dark:bg-slate-800/90 text-xs font-bold text-slate-800 dark:text-white border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+                            {bulkAdjustmentType === "taka" ? "৳" : "%"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                          {(bulkAdjustmentType === "taka"
+                            ? [10, 20, 50, -10, -20]
+                            : [5, 10, 15, -5, -10]
+                          ).map((quick) => (
+                            <button
+                              key={quick}
+                              type="button"
+                              onClick={() => setBulkPercentage(String(quick))}
+                              className="px-2.5 h-[42px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-rose-500 hover:text-rose-600 transition-colors cursor-pointer"
+                            >
+                              {bulkAdjustmentType === "taka"
+                                ? quick > 0
+                                  ? `+৳${quick}`
+                                  : `-৳${Math.abs(quick)}`
+                                : quick > 0
+                                ? `+${quick}%`
+                                : `${quick}%`}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Product Search Filter & Selection List with Live Price Preview */}
+                  <div className="space-y-2.5">
+                    {/* Product Search Filter Bar */}
+                    <div className="h-[38px] flex items-center px-3 bg-white dark:bg-slate-800/90 rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus-within:border-rose-600 focus-within:ring-2 focus-within:ring-rose-600/20 transition-all shadow-2xs">
+                      <Search className="w-4 h-4 text-slate-400 mr-2.5 shrink-0" />
+                      <input
+                        type="text"
+                        value={bulkSearchQuery}
+                        onChange={(e) => setBulkSearchQuery(e.target.value)}
+                        placeholder="Search products by name, code, brand, category or size..."
+                        className="w-full bg-transparent border-none outline-none text-xs text-slate-800 dark:text-white placeholder:text-slate-400"
+                      />
+                      {bulkSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setBulkSearchQuery("")}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer ml-1.5"
+                          title="Clear search"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {(() => {
+                      const visibleSelectedCount = bulkMatchingProducts.filter((p) =>
+                        bulkSelectedIds.has(p.id)
+                      ).length;
+                      const allVisibleSelected =
+                        bulkMatchingProducts.length > 0 &&
+                        visibleSelectedCount === bulkMatchingProducts.length;
+
+                      return (
+                        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id="bulkSelectAll"
+                              checked={allVisibleSelected}
+                              onChange={(e) => {
+                                const next = new Set(bulkSelectedIds);
+                                if (e.target.checked) {
+                                  bulkMatchingProducts.forEach((p) => next.add(p.id));
+                                } else {
+                                  bulkMatchingProducts.forEach((p) => next.delete(p.id));
+                                }
+                                setBulkSelectedIds(next);
+                              }}
+                              className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer"
+                            />
+                            <label
+                              htmlFor="bulkSelectAll"
+                              className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
+                            >
+                              Select All Matching ({bulkSelectedIds.size} / {bulkBrandProducts.length} Selected)
+                            </label>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                            {bulkSearchQuery.trim() && bulkMatchingProducts.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setBulkSelectedIds(new Set(bulkMatchingProducts.map((p) => p.id)))
+                                }
+                                className="text-rose-600 dark:text-rose-400 font-bold hover:underline cursor-pointer"
+                              >
+                                Select Filtered Only ({bulkMatchingProducts.length})
+                              </button>
+                            )}
+                            <span>
+                              {bulkSearchQuery.trim()
+                                ? `Showing ${bulkMatchingProducts.length} filtered products`
+                                : "Showing matching products for brand"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden max-h-[240px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                      {bulkMatchingProducts.length === 0 ? (
+                        <div className="p-6 text-center text-slate-400 text-xs font-medium">
+                          No products found for this filter.
+                        </div>
+                      ) : (
+                        bulkMatchingProducts.map((p) => {
+                          const isChecked = bulkSelectedIds.has(p.id);
+                          const adjVal = parseFloat(bulkPercentage) || 0;
+                          const factor = 1 + adjVal / 100;
+                          const newSell = Math.max(
+                            0,
+                            Math.round(
+                              (bulkAdjustmentType === "taka"
+                                ? p.sell_price + adjVal
+                                : p.sell_price * factor) * 100
+                            ) / 100
+                          );
+                          const newCost = Math.max(
+                            0,
+                            Math.round(
+                              (bulkAdjustmentType === "taka"
+                                ? p.cost_price + adjVal
+                                : p.cost_price * factor) * 100
+                            ) / 100
+                          );
+
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => {
+                                const next = new Set(bulkSelectedIds);
+                                if (next.has(p.id)) next.delete(p.id);
+                                else next.add(p.id);
+                                setBulkSelectedIds(next);
+                              }}
+                              className={`p-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
+                                isChecked
+                                  ? "bg-rose-50/40 dark:bg-rose-950/20"
+                                  : "hover:bg-slate-50 dark:hover:bg-slate-800/40 opacity-60"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {}}
+                                  className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 shrink-0"
+                                />
+                                <div className="min-w-0">
+                                  <div className="font-bold text-slate-800 dark:text-white truncate">
+                                    {p.product_name}
+                                  </div>
+                                  <div className="text-[10px] text-slate-400">
+                                    {p.brand} &bull; Code: {p.primary_code}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Price Comparison Preview (Cost Price Left, Sell Price Right) */}
+                              <div className="flex items-center gap-3 shrink-0 text-right">
+                                {(bulkTargetField === "cost_price" || bulkTargetField === "both") && (
+                                  <div>
+                                    <span className="text-[10px] text-slate-400 block">Cost Price</span>
+                                    <span className="font-bold text-slate-700 dark:text-slate-300">
+                                      {formatBdCurrency(p.cost_price)}
+                                    </span>
+                                    {adjVal !== 0 && (
+                                      <span className="text-rose-600 font-extrabold ml-1">
+                                        &rarr; {formatBdCurrency(newCost)}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                {(bulkTargetField === "sell_price" || bulkTargetField === "both") && (
+                                  <div>
+                                    <span className="text-[10px] text-slate-400 block">Sell Price</span>
+                                    <span className="font-bold text-slate-700 dark:text-slate-300">
+                                      {formatBdCurrency(p.sell_price)}
+                                    </span>
+                                    {adjVal !== 0 && (
+                                      <span className="text-rose-600 font-extrabold ml-1">
+                                        &rarr; {formatBdCurrency(newSell)}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sticky Footer */}
+                <div className="shrink-0 bg-slate-50 dark:bg-slate-900/95 px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setBulkModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Cancel (বাতিল)
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={bulkSubmitting || bulkSelectedIds.size === 0 || !bulkPercentage}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                  >
+                    {bulkSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Updating Prices...</span>
+                      </>
+                    ) : (
+                      <>
+                        {bulkAdjustmentType === "taka" ? (
+                          <span className="font-black text-sm leading-none">৳</span>
+                        ) : (
+                          <Percent className="w-4 h-4" />
+                        )}
+                        <span>Update {bulkSelectedIds.size} Products Price</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* 5. Dedicated Print-Only Report Template */}
       <div className="print-only p-2 text-black bg-white">
