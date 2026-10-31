@@ -807,9 +807,11 @@ export default function PosPage() {
                 type="button"
                 onClick={() => setIsFilterDropdownOpen((prev) => !prev)}
                 className={`h-[38px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-xs ${
-                  filterOption !== "all"
-                    ? "bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900 text-rose-700 dark:text-rose-400"
-                    : "bg-slate-50 hover:bg-slate-100 dark:bg-[#1e293b] dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-[#cbd5e1] dark:border-[#334155]"
+                  isFilterDropdownOpen
+                    ? "border-rose-600 ring-2 ring-rose-600/20 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400"
+                    : filterOption !== "all"
+                    ? "bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900 text-rose-700 dark:text-rose-400 hover:border-rose-500"
+                    : "bg-slate-50 hover:bg-slate-100 dark:bg-[#1e293b] dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-[#cbd5e1] dark:border-[#334155] hover:border-rose-500"
                 }`}
                 title="Filter & Sort Products"
               >
@@ -1060,7 +1062,11 @@ export default function PosPage() {
               <div ref={customerDropdownRef} className="relative flex-1 min-w-0">
                 <div
                   onClick={() => setIsCustomerDropdownOpen(!isCustomerDropdownOpen)}
-                  className="h-[38px] px-3 rounded-xl bg-white dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] flex items-center justify-between cursor-pointer hover:border-rose-500 transition-colors"
+                  className={`h-[38px] px-3 rounded-xl bg-white dark:bg-[#1e293b] border flex items-center justify-between cursor-pointer transition-colors ${
+                    isCustomerDropdownOpen
+                      ? "border-rose-600 ring-2 ring-rose-600/20"
+                      : "border-[#cbd5e1] dark:border-[#334155] hover:border-rose-500"
+                  }`}
                 >
                   <div className="flex items-center gap-1.5 truncate">
                     <UserCheck className="w-4 h-4 text-rose-600 shrink-0" />

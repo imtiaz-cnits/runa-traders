@@ -220,6 +220,7 @@ export function CustomSelect({
       {/* TRIGGER BUTTON - CLICK ANYWHERE TO OPEN */}
       <button
         type="button"
+        data-custom-select-trigger=""
         disabled={disabled}
         onClick={() => {
           if (!disabled) {
@@ -363,7 +364,7 @@ export function CustomSelect({
                       className={`px-3 py-2 rounded-xl text-xs cursor-pointer flex items-center justify-between transition-colors ${
                         isSelected
                           ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white font-bold shadow-xs"
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200"
+                          : "hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/40 dark:hover:text-rose-300 text-slate-800 dark:text-slate-200"
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">

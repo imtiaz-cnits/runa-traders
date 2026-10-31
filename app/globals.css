@@ -201,3 +201,157 @@ table thead th {
 @page {
   margin: 10px;
 }
+
+
+/* =========================================================================
+   GLOBAL MODAL SCROLL LOCKING & OVERLAY RULES
+   ========================================================================= */
+html[data-modal-open="true"],
+html[data-modal-open="true"] body {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+/* Modal overlays must be pinned without top margin gap from flex/space wrappers */
+div.fixed.inset-0:where([class*="z-50"], [class*="z-["], [class*="backdrop-blur"]) {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  overscroll-behavior: contain !important;
+}
+
+/* Ensure printing is never clipped when printable modals (challan, receipts) print */
+@media print {
+  html[data-modal-open="true"],
+  html[data-modal-open="true"] body {
+    overflow: visible !important;
+    height: auto !important;
+    padding-right: 0 !important;
+  }
+}
+
+/* =========================================================================
+   GLOBAL FORM CONTROLS: Primary Theme Color on Hover and Focus
+   Runa Traders Primary Crimson / Rose: #e11d48 / #be123c
+   ========================================================================= */
+
+/* Standalone inputs, textareas, native selects */
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not(.border-none):not(.border-0):not(.border-transparent),
+select:not(.border-none):not(.border-0):not(.border-transparent),
+textarea:not(.border-none):not(.border-0):not(.border-transparent) {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not(.border-none):not(.border-0):not(.border-transparent):hover:not(:disabled),
+select:not(.border-none):not(.border-0):not(.border-transparent):hover:not(:disabled),
+textarea:not(.border-none):not(.border-0):not(.border-transparent):hover:not(:disabled) {
+  border-color: #e11d48 !important;
+}
+
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not(.border-none):not(.border-0):not(.border-transparent):hover:not(:disabled),
+.dark select:not(.border-none):not(.border-0):not(.border-transparent):hover:not(:disabled),
+.dark textarea:not(.border-none):not(.border-0):not(.border-transparent):hover:not(:disabled) {
+  border-color: #f43f5e !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not(.border-none):not(.border-0):not(.border-transparent):focus,
+select:not(.border-none):not(.border-0):not(.border-transparent):focus,
+textarea:not(.border-none):not(.border-0):not(.border-transparent):focus,
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not(.border-none):not(.border-0):not(.border-transparent):focus-visible,
+select:not(.border-none):not(.border-0):not(.border-transparent):focus-visible,
+textarea:not(.border-none):not(.border-0):not(.border-transparent):focus-visible {
+  outline: none !important;
+  border-color: #be123c !important;
+  box-shadow: 0 0 0 2.5px rgba(225, 29, 72, 0.2) !important;
+}
+
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not(.border-none):not(.border-0):not(.border-transparent):focus,
+.dark select:not(.border-none):not(.border-0):not(.border-transparent):focus,
+.dark textarea:not(.border-none):not(.border-0):not(.border-transparent):focus,
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not(.border-none):not(.border-0):not(.border-transparent):focus-visible,
+.dark select:not(.border-none):not(.border-0):not(.border-transparent):focus-visible,
+.dark textarea:not(.border-none):not(.border-0):not(.border-transparent):focus-visible {
+  outline: none !important;
+  border-color: #e11d48 !important;
+  box-shadow: 0 0 0 2.5px rgba(244, 63, 94, 0.25) !important;
+}
+
+/* Suppress heavy outer ring on inner stepper inputs with border-x */
+input[class*="border-x"]:focus,
+input[class*="border-x"]:focus-visible {
+  box-shadow: none !important;
+  border-color: #be123c !important;
+}
+
+/* Checkbox & Radio Accent */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #be123c !important;
+}
+
+/* Composite Search & Filter Wrappers (div with border containing transparent/borderless input) */
+div[class*="border"]:has(> input.border-none:not(:disabled)),
+div[class*="border"]:has(> input.border-0:not(:disabled)),
+div[class*="border"]:has(> input.bg-transparent:not(:disabled)) {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+div[class*="border"]:has(> input.border-none:not(:disabled)):hover,
+div[class*="border"]:has(> input.border-0:not(:disabled)):hover,
+div[class*="border"]:has(> input.bg-transparent:not(:disabled)):hover {
+  border-color: #e11d48 !important;
+}
+
+.dark div[class*="border"]:has(> input.border-none:not(:disabled)):hover,
+.dark div[class*="border"]:has(> input.border-0:not(:disabled)):hover,
+.dark div[class*="border"]:has(> input.bg-transparent:not(:disabled)):hover {
+  border-color: #f43f5e !important;
+}
+
+div[class*="border"]:has(> input.border-none:focus:not(:disabled)),
+div[class*="border"]:has(> input.border-0:focus:not(:disabled)),
+div[class*="border"]:has(> input.bg-transparent:focus:not(:disabled)),
+div[class*="border"]:has(> input.border-none:focus-within:not(:disabled)),
+div[class*="border"]:has(> input.border-0:focus-within:not(:disabled)),
+div[class*="border"]:has(> input.bg-transparent:focus-within:not(:disabled)) {
+  border-color: #be123c !important;
+  box-shadow: 0 0 0 2.5px rgba(225, 29, 72, 0.2) !important;
+}
+
+.dark div[class*="border"]:has(> input.border-none:focus:not(:disabled)),
+.dark div[class*="border"]:has(> input.border-0:focus:not(:disabled)),
+.dark div[class*="border"]:has(> input.bg-transparent:focus:not(:disabled)),
+.dark div[class*="border"]:has(> input.border-none:focus-within:not(:disabled)),
+.dark div[class*="border"]:has(> input.border-0:focus-within:not(:disabled)),
+.dark div[class*="border"]:has(> input.bg-transparent:focus-within:not(:disabled)) {
+  border-color: #e11d48 !important;
+  box-shadow: 0 0 0 2.5px rgba(244, 63, 94, 0.25) !important;
+}
+
+/* CustomSelect & DatePicker Trigger Buttons */
+button[data-custom-select-trigger]:hover:not(:disabled),
+button[data-date-picker-trigger]:hover:not(:disabled) {
+  border-color: #e11d48 !important;
+}
+
+.dark button[data-custom-select-trigger]:hover:not(:disabled),
+.dark button[data-date-picker-trigger]:hover:not(:disabled) {
+  border-color: #f43f5e !important;
+}
+
+button[data-custom-select-trigger]:focus:not(:disabled),
+button[data-custom-select-trigger]:focus-visible:not(:disabled),
+button[data-date-picker-trigger]:focus:not(:disabled),
+button[data-date-picker-trigger]:focus-visible:not(:disabled) {
+  outline: none !important;
+  border-color: #be123c !important;
+  box-shadow: 0 0 0 2.5px rgba(225, 29, 72, 0.2) !important;
+}
+
+.dark button[data-custom-select-trigger]:focus:not(:disabled),
+.dark button[data-custom-select-trigger]:focus-visible:not(:disabled),
+.dark button[data-date-picker-trigger]:focus:not(:disabled),
+.dark button[data-date-picker-trigger]:focus-visible:not(:disabled) {
+  outline: none !important;
+  border-color: #e11d48 !important;
+  box-shadow: 0 0 0 2.5px rgba(244, 63, 94, 0.25) !important;
+}

@@ -206,7 +206,7 @@ export function InvoiceActionMenu<T extends Record<string, any>>({
         className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
           isOpen
             ? "bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40 dark:border-rose-700 dark:text-rose-300 shadow-xs"
-            : "bg-slate-100 hover:bg-slate-200 border-[#cbd5e1] text-slate-700 dark:bg-[#1e293b] dark:border-[#334155] dark:text-slate-200 dark:hover:bg-slate-800"
+            : "bg-slate-100 hover:bg-rose-50/50 hover:border-rose-500 hover:text-rose-600 border-[#cbd5e1] text-slate-700 dark:bg-[#1e293b] dark:border-[#334155] dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:border-rose-500 dark:hover:text-rose-400"
         }`}
         title="Actions Menu"
         aria-label="Actions Menu"

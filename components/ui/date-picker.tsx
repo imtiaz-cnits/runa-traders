@@ -277,6 +277,7 @@ export function CustomDatePicker({
       {/* TRIGGER BUTTON - CLICK ANYWHERE TO OPEN */}
       <button
         type="button"
+        data-date-picker-trigger=""
         disabled={disabled}
         onClick={() => {
           if (!disabled) {

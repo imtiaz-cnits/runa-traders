@@ -53,7 +53,7 @@ export default function LoginPage() {
       }
 
       setTimeout(() => {
-        router.push("/dashboard");
+        window.location.replace("/dashboard");
       }, 600);
     } catch (err: any) {
       setError(err?.message || "An unexpected error occurred.");

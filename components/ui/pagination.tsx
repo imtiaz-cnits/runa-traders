@@ -99,7 +99,7 @@ export function Pagination({
                 searchThreshold={99}
                 minPopoverWidth={88}
                 placement="auto"
-                className="[&_button]:!h-[32px] [&_button]:!min-h-[32px] [&_button]:!py-0 [&_button]:!px-2.5 [&_button]:!rounded-lg [&_button]:!text-xs [&_button]:!font-bold [&_button]:!bg-slate-50 dark:[&_button]:!bg-slate-800/90 [&_button]:!border-slate-300 dark:[&_button]:!border-slate-700 shadow-2xs"
+                className="[&_button]:!h-[32px] [&_button]:!min-h-[32px] [&_button]:!py-0 [&_button]:!px-2.5 [&_button]:!rounded-lg [&_button]:!text-xs [&_button]:!font-bold [&_button]:!bg-slate-50 dark:[&_button]:!bg-slate-800/90 shadow-2xs"
               />
             </div>
             <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
