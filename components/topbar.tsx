@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { getInitialTheme, applyTheme } from "@/lib/theme";
 import { NotificationDropdown } from "@/components/notification-dropdown";
+import { LiveDateTime } from "@/components/live-date-time";
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -83,14 +84,14 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("role");
-      window.location.replace("/login");
+      router.push("/login");
     } catch {
-      window.location.replace("/login");
+      router.push("/login");
     }
   }
 
   return (
-    <header className="sticky top-0 z-30 h-[60px] bg-white/95 dark:bg-[#0b0f19]/95 backdrop-blur-md border-b border-[#cbd5e1] dark:border-[#334155] px-4 sm:px-6 flex items-center justify-between transition-colors">
+    <header className="sticky top-0 z-30 h-[68px] bg-white/95 dark:bg-[#0b0f19]/95 backdrop-blur-md border-b border-[#cbd5e1] dark:border-[#334155] px-4 sm:px-6 flex items-center justify-between transition-colors">
       {/* Left: Sidebar Toggle & Page Title */}
       <div className="flex items-center gap-3">
         <button
@@ -106,8 +107,11 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
         </span>
       </div>
 
-      {/* Right: POS Quick Button, Mode, Fullscreen, User */}
+      {/* Right: Date-Time Pill, POS Quick Button, Mode, Fullscreen, User */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Live Date & Time Display Badge (matching 2nd screenshot) */}
+        <LiveDateTime />
+
         {/* Quick Launch POS Button */}
         <Link
           href="/pos"

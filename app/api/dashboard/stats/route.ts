@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
       returnsInPeriod,
       customersWithDue,
       suppliersWithDue,
+      allProductsForStock,
     ] = await Promise.all([
       prisma.products.count(),
       prisma.customers.count(),
@@ -151,7 +152,45 @@ export async function GET(req: NextRequest) {
       prisma.suppliers.findMany({
         select: { purchase_payable_amount: true },
       }),
+      prisma.products.findMany({
+        select: {
+          quantity: true,
+          pcs_per_box: true,
+          tile_size: true,
+          sqft_per_box: true,
+          product_name: true,
+          categories: { select: { category_name: true } },
+        },
+      }),
     ]);
+
+    // Separate stock calculation: Tiles (Boxes & Pcs) vs Other Products (Pcs)
+    let tilesBoxes = 0;
+    let tilesLoosePcs = 0;
+    let tilesSkus = 0;
+    let otherUnits = 0;
+    let otherSkus = 0;
+
+    for (const p of allProductsForStock) {
+      const isTile = Boolean(
+        p.tile_size ||
+        p.sqft_per_box ||
+        (p.pcs_per_box && parseInt(p.pcs_per_box, 10) > 0) ||
+        (p.product_name && p.product_name.toLowerCase().includes("tile")) ||
+        (p.categories?.category_name && p.categories.category_name.toLowerCase().includes("tile"))
+      );
+      const qty = parseFloat(p.quantity || "0");
+      if (isTile) {
+        tilesSkus++;
+        const pcsPerBox = p.pcs_per_box ? parseInt(p.pcs_per_box, 10) : 1;
+        const totalPcs = Math.round(qty * pcsPerBox);
+        tilesBoxes += Math.floor(totalPcs / pcsPerBox);
+        tilesLoosePcs += totalPcs % pcsPerBox;
+      } else {
+        otherSkus++;
+        otherUnits += Math.round(qty);
+      }
+    }
 
     // Financial calculations (preserving exact existing logic)
     const todaySales = ordersInPeriod.reduce(
@@ -260,6 +299,17 @@ export async function GET(req: NextRequest) {
         totalCustomerDue,
         totalSupplierDue,
         totalProducts,
+        tilesStock: {
+          boxes: tilesBoxes,
+          loosePcs: tilesLoosePcs,
+          skus: tilesSkus,
+          formatted: `${tilesBoxes.toLocaleString("en-US")} Boxes${tilesLoosePcs > 0 ? ` ${tilesLoosePcs.toLocaleString("en-US")} Pcs` : ""}`,
+        },
+        otherStock: {
+          units: otherUnits,
+          skus: otherSkus,
+          formatted: `${otherUnits.toLocaleString("en-US")} Pcs`,
+        },
         totalCustomers,
         totalSuppliers,
         totalOrders,

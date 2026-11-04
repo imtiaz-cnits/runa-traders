@@ -50,6 +50,17 @@ interface InventoryItem {
 interface Summary {
   total_products: number;
   total_stock_units: number;
+  tiles_stock?: {
+    boxes: number;
+    loose_pcs: number;
+    skus: number;
+    formatted: string;
+  };
+  other_stock?: {
+    units: number;
+    skus: number;
+    formatted: string;
+  };
   total_cost_valuation: number;
   total_retail_valuation: number;
   potential_profit: number;
@@ -165,7 +176,7 @@ export default function InventoryPage() {
   const isTilesSelected = Boolean(
     selectedCatObj?.category_name &&
     (selectedCatObj.category_name.toLowerCase().includes("tile") ||
-      selectedCatObj.category_name.toLowerCase().includes("টাইল"))
+      selectedCatObj.category_name.toLowerCase().includes("à¦Ÿà¦¾à¦‡à¦²"))
   );
 
   const categoryOptions = [
@@ -388,17 +399,37 @@ export default function InventoryPage() {
       {/* 2. Valuation KPI Cards (Screen View) */}
       {summary && (
         <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Total Stock Units */}
-          <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
+          {/* Total Stock Units (Separated Tiles vs Fittings/Sanitary) */}
+          <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
               <span>Total Units in Stock</span>
               <Boxes className="w-4 h-4 text-emerald-600" />
             </div>
-            <div className="text-xl font-black text-slate-900 dark:text-white mt-1">
-              {summary.total_stock_units} <span className="text-xs font-normal">Pcs/Box</span>
+
+            <div className="mt-1.5 space-y-1">
+              {/* Tiles Stock */}
+              <div className="flex items-baseline justify-between gap-1 text-slate-900 dark:text-white">
+                <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 flex items-center gap-1">
+                  টাইলস:
+                </span>
+                <span className="text-sm font-black tabular-nums">
+                  {summary.tiles_stock?.formatted || `${summary.total_stock_units} Box`}
+                </span>
+              </div>
+              {/* Other Products Stock */}
+              <div className="flex items-baseline justify-between gap-1 text-slate-900 dark:text-white border-t border-slate-100 dark:border-slate-800 pt-1">
+                <span className="text-[11px] font-bold text-teal-700 dark:text-teal-400 flex items-center gap-1">
+                  ফিটিংস ও অন্যান্য:
+                </span>
+                <span className="text-sm font-black tabular-nums">
+                  {summary.other_stock?.formatted || "0 Pcs"}
+                </span>
+              </div>
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">
-              Across {summary.total_products} unique SKUs
+
+            <div className="text-[10px] text-slate-400 mt-1 flex items-center justify-between">
+              <span>{summary.tiles_stock?.skus || 0} টাইলস SKU</span>
+              <span>{summary.other_stock?.skus || 0} অন্যান্য SKU</span>
             </div>
           </div>
 
@@ -603,8 +634,8 @@ export default function InventoryPage() {
                 <th className="py-3 px-3">Barcode</th>
                 <th className="py-3 px-3">Category & Brand</th>
                 <th className="py-3 px-3 text-center">Stock Level</th>
-                <th className="py-3 px-3 text-right">Cost (৳)</th>
-                <th className="py-3 px-3 text-right">Sell (৳)</th>
+                <th className="py-3 px-3 text-right">Cost (à§³)</th>
+                <th className="py-3 px-3 text-right">Sell (à§³)</th>
                 <th className="py-3 px-3 text-right">Total Cost Value</th>
                 <th className="py-3 px-4 text-center w-24">Adjust</th>
               </tr>
@@ -640,29 +671,29 @@ export default function InventoryPage() {
                         <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                           {item.tile_size && (
                             <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
-                              📐 {item.tile_size}
+                              ðŸ“ {item.tile_size}
                             </span>
                           )}
                           {item.sqft_per_box && (
                             <span className="text-[9px] font-medium text-slate-500">
-                              📦 {item.sqft_per_box} Sft/Box {item.pcs_per_box ? `(${item.pcs_per_box} pcs)` : ""}
+                              ðŸ“¦ {item.sqft_per_box} Sft/Box {item.pcs_per_box ? `(${item.pcs_per_box} pcs)` : ""}
                             </span>
                           )}
                           {item.grade && (
                             <span className="text-[9px] font-bold text-emerald-600">
-                              ★ {item.grade}
+                              â˜… {item.grade}
                             </span>
                           )}
                           {item.surface_finish && (
                             <span className="text-[9px] font-bold text-purple-600">
-                              ✨ {item.surface_finish}
+                              âœ¨ {item.surface_finish}
                             </span>
                           )}
                         </div>
                       )}
                     </td>
                     <td className="py-3 px-3 font-mono text-[11px] text-slate-500">
-                      {item.primary_code || "—"}
+                      {item.primary_code || "â€”"}
                     </td>
                     <td className="py-3 px-3">
                       <div className="font-semibold text-slate-700 dark:text-slate-200">
@@ -762,12 +793,12 @@ export default function InventoryPage() {
                 <div className="flex flex-wrap items-center gap-1">
                   {item.tile_size && (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-700">
-                      📐 {item.tile_size}
+                      ðŸ“ {item.tile_size}
                     </span>
                   )}
                   {item.grade && (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">
-                      ★ {item.grade}
+                      â˜… {item.grade}
                     </span>
                   )}
                 </div>
@@ -777,7 +808,7 @@ export default function InventoryPage() {
                 <div className="text-right">
                   <span className="text-[10px] text-slate-400 block">Cost / Sell:</span>
                   <span className="font-bold">
-                    ৳{item.cost_price} / ৳{item.sell_price}
+                    à§³{item.cost_price} / à§³{item.sell_price}
                   </span>
                 </div>
                 <div>
@@ -974,9 +1005,9 @@ export default function InventoryPage() {
               <th>Category</th>
               <th>Brand</th>
               <th className="text-center">Stock Level</th>
-              <th className="text-right">Cost (৳)</th>
-              <th className="text-right">Sell (৳)</th>
-              <th className="text-right">Cost Value (৳)</th>
+              <th className="text-right">Cost (à§³)</th>
+              <th className="text-right">Sell (à§³)</th>
+              <th className="text-right">Cost Value (à§³)</th>
             </tr>
           </thead>
           <tbody>
@@ -993,11 +1024,11 @@ export default function InventoryPage() {
                         item.surface_finish ? `Finish: ${item.surface_finish}` : null,
                       ]
                         .filter(Boolean)
-                        .join(" • ")}
+                        .join(" â€¢ ")}
                     </div>
                   )}
                 </td>
-                <td className="font-mono text-[9px]">{item.primary_code || "—"}</td>
+                <td className="font-mono text-[9px]">{item.primary_code || "â€”"}</td>
                 <td>{item.category}</td>
                 <td>{item.brand}</td>
                 <td className="text-center font-bold">

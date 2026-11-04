@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { usePosStore, CartItem, Customer } from "@/lib/pos-store";
 import { formatBdCurrency } from "@/lib/utils";
+import { LiveDateTime } from "@/components/live-date-time";
 import { ThermalReceiptModal } from "@/components/pos/thermal-receipt";
 import { CameraScannerModal } from "@/components/pos/camera-scanner";
 import { CustomerModal } from "@/components/pos/customer-modal";
@@ -676,18 +677,18 @@ export default function PosPage() {
     <div className="fixed inset-0 h-screen w-full max-h-screen max-w-full overflow-hidden flex flex-col bg-slate-100 dark:bg-[#0b0f19] text-slate-800 dark:text-slate-100 select-none">
       {/* TOP COMPACT NAVIGATION BAR (Marss Corp Rule: Compact, Emerald Theme) */}
 
-      <header className="h-[46px] bg-white dark:bg-[#0f172a] border-b border-[#cbd5e1] dark:border-[#334155] px-3 flex items-center justify-between shrink-0 z-20">
+      <header className="h-[52px] bg-white dark:bg-[#0f172a] border-b border-[#cbd5e1] dark:border-[#334155] px-3 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-2.5">
           <Link
             href="/dashboard"
-            className="h-[32px] px-3 rounded-full bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+            className="h-[34px] px-3 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Back to Dashboard</span>
             <span className="sm:hidden">Back</span>
           </Link>
 
-          <div className="flex items-center gap-2 px-2.5 py-1 bg-rose-50 dark:bg-rose-950/40 rounded-full border border-rose-200 dark:border-rose-900/40">
+          <div className="flex items-center gap-2 px-2.5 py-1 bg-rose-50 dark:bg-rose-950/40 rounded-xl border border-rose-200 dark:border-rose-900/40">
             <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
             <span className="text-xs font-black tracking-wider text-rose-800 dark:text-rose-400 uppercase">
               RUNA TRADERS POS
@@ -697,6 +698,8 @@ export default function PosPage() {
 
         {/* Center/Right quick tools */}
         <div className="flex items-center gap-2">
+          {/* Live Date & Time Pill (matching 2nd screenshot) */}
+          <LiveDateTime compact={true} />
           {/* Held Invoices Pill */}
           <button
             type="button"
@@ -757,7 +760,7 @@ export default function PosPage() {
                     handleScanCode(searchQuery.trim());
                   }
                 }}
-                placeholder="🔍 Scan barcode gun or type code / product name... (F2)"
+                placeholder="ðŸ” Scan barcode gun or type code / product name... (F2)"
                 className="w-full h-[38px] pl-3 pr-9 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-600 font-medium"
               />
               <button
@@ -807,11 +810,9 @@ export default function PosPage() {
                 type="button"
                 onClick={() => setIsFilterDropdownOpen((prev) => !prev)}
                 className={`h-[38px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-xs ${
-                  isFilterDropdownOpen
-                    ? "border-rose-600 ring-2 ring-rose-600/20 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400"
-                    : filterOption !== "all"
-                    ? "bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900 text-rose-700 dark:text-rose-400 hover:border-rose-500"
-                    : "bg-slate-50 hover:bg-slate-100 dark:bg-[#1e293b] dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-[#cbd5e1] dark:border-[#334155] hover:border-rose-500"
+                  filterOption !== "all"
+                    ? "bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900 text-rose-700 dark:text-rose-400"
+                    : "bg-slate-50 hover:bg-slate-100 dark:bg-[#1e293b] dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-[#cbd5e1] dark:border-[#334155]"
                 }`}
                 title="Filter & Sort Products"
               >
@@ -1008,7 +1009,7 @@ export default function PosPage() {
                         </span>
                         {p.tile_size && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200/60 dark:border-rose-900/60 shrink-0 whitespace-nowrap">
-                            📐 {p.tile_size}
+                            ðŸ“ {p.tile_size}
                           </span>
                         )}
                         {p.sqft_per_box && (
@@ -1018,7 +1019,7 @@ export default function PosPage() {
                         )}
                         {p.grade && (
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/60 shrink-0 whitespace-nowrap">
-                            ★ {p.grade}
+                            â˜… {p.grade}
                           </span>
                         )}
                       </div>
@@ -1031,7 +1032,7 @@ export default function PosPage() {
                           </span>
                           {p.sqft_per_box && p.sqft_per_box > 0 && (
                             <span className="text-[10px] text-slate-400 block font-medium -mt-0.5">
-                              ৳{(p.sell_price / p.sqft_per_box).toFixed(2)} / Sq.Ft
+                              à§³{(p.sell_price / p.sqft_per_box).toFixed(2)} / Sq.Ft
                             </span>
                           )}
                         </div>
@@ -1062,11 +1063,7 @@ export default function PosPage() {
               <div ref={customerDropdownRef} className="relative flex-1 min-w-0">
                 <div
                   onClick={() => setIsCustomerDropdownOpen(!isCustomerDropdownOpen)}
-                  className={`h-[38px] px-3 rounded-xl bg-white dark:bg-[#1e293b] border flex items-center justify-between cursor-pointer transition-colors ${
-                    isCustomerDropdownOpen
-                      ? "border-rose-600 ring-2 ring-rose-600/20"
-                      : "border-[#cbd5e1] dark:border-[#334155] hover:border-rose-500"
-                  }`}
+                  className="h-[38px] px-3 rounded-xl bg-white dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] flex items-center justify-between cursor-pointer hover:border-rose-500 transition-colors"
                 >
                   <div className="flex items-center gap-1.5 truncate">
                     <UserCheck className="w-4 h-4 text-rose-600 shrink-0" />
@@ -1134,7 +1131,7 @@ export default function PosPage() {
                                     : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border border-rose-200 dark:border-rose-900"
                                 }`}
                               >
-                                Due: ৳{c.previous_due_amount}
+                                Due: à§³{c.previous_due_amount}
                               </span>
                             )}
                           </div>
@@ -1189,7 +1186,7 @@ export default function PosPage() {
                 <div className="text-right truncate">
                   <span className="text-slate-400">Prev Due:</span>{" "}
                   <strong className="text-rose-600 font-bold">
-                    ৳{selectedCustomer.previous_due_amount || 0}
+                    à§³{selectedCustomer.previous_due_amount || 0}
                   </strong>
                 </div>
               </div>
@@ -1237,7 +1234,7 @@ export default function PosPage() {
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 {item.tile_size && (
                                   <span className="text-[9px] font-bold px-1 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300">
-                                    📐 {item.tile_size}
+                                    ðŸ“ {item.tile_size}
                                   </span>
                                 )}
                                 {item.sqft_per_box && (
@@ -1254,7 +1251,7 @@ export default function PosPage() {
                                   className="text-[9px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/80 px-1.5 py-0.5 rounded cursor-pointer transition-colors border border-rose-200/60 dark:border-rose-900/60 flex items-center gap-0.5"
                                   title="Open Sft & Box Calculator"
                                 >
-                                  📐 Sft Calc
+                                  ðŸ“ Sft Calc
                                 </button>
                               </div>
                             )}
@@ -1353,7 +1350,7 @@ export default function PosPage() {
                           {hasTilesInCart && (
                             <td className="py-2 text-right text-slate-600 dark:text-slate-400 font-medium">
                               {item.sqft_per_box && item.sqft_per_box > 0
-                                ? `৳${(item.selling_price / item.sqft_per_box).toFixed(2)}`
+                                ? `à§³${(item.selling_price / item.sqft_per_box).toFixed(2)}`
                                 : "-"}
                             </td>
                           )}
@@ -1476,7 +1473,7 @@ export default function PosPage() {
                           : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                       }`}
                     >
-                      ৳
+                      à§³
                     </button>
                     <button
                       type="button"
@@ -1602,7 +1599,7 @@ export default function PosPage() {
               {/* Total Due with Previous Customer Due */}
               {selectedCustomer && selectedCustomer.previous_due_amount > 0 && (
                 <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5 border-t border-dashed border-slate-200 dark:border-slate-800">
-                  <span>Total Due (inc. Previous ৳{selectedCustomer.previous_due_amount}):</span>
+                  <span>Total Due (inc. Previous à§³{selectedCustomer.previous_due_amount}):</span>
                   <strong className="text-rose-700 dark:text-rose-400 font-bold">
                     {formatBdCurrency(totalDueWithPrev)}
                   </strong>

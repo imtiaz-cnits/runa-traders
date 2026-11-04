@@ -31,6 +31,12 @@ export async function GET(req: NextRequest) {
     let lowStockCount = 0;
     let outOfStockCount = 0;
 
+    let tilesTotalBoxes = 0;
+    let tilesTotalPcs = 0;
+    let tilesSkusCount = 0;
+    let otherTotalUnits = 0;
+    let otherSkusCount = 0;
+
     const pendingChallanItems = await prisma.order_details.findMany({
       where: { stock_lifecycle_state: "PENDING_CHALLAN" },
       select: { product_id: true, quantity: true },
@@ -54,6 +60,27 @@ export async function GET(req: NextRequest) {
       totalStockUnits += qty;
       totalCostValuation += totalCost;
       totalRetailValuation += totalRetail;
+
+      const isTile = Boolean(
+        p.tile_size ||
+        p.sqft_per_box ||
+        (p.pcs_per_box && parseInt(p.pcs_per_box, 10) > 0) ||
+        (p.product_name && p.product_name.toLowerCase().includes("tile")) ||
+        (p.categories?.category_name && p.categories.category_name.toLowerCase().includes("tile"))
+      );
+
+      if (isTile) {
+        tilesSkusCount++;
+        const pcsPerBox = p.pcs_per_box ? parseInt(p.pcs_per_box, 10) : 1;
+        const totalPcs = Math.round(qty * pcsPerBox);
+        const fullBoxes = Math.floor(totalPcs / pcsPerBox);
+        const remPcs = totalPcs % pcsPerBox;
+        tilesTotalBoxes += fullBoxes;
+        tilesTotalPcs += remPcs;
+      } else {
+        otherSkusCount++;
+        otherTotalUnits += Math.round(qty);
+      }
 
       if (availableQty <= 0) {
         outOfStockCount++;
@@ -116,7 +143,18 @@ export async function GET(req: NextRequest) {
       status: "success",
       summary: {
         total_products: products.length,
-        total_stock_units: totalStockUnits,
+        total_stock_units: Math.round(totalStockUnits * 100) / 100,
+        tiles_stock: {
+          boxes: tilesTotalBoxes,
+          loose_pcs: tilesTotalPcs,
+          skus: tilesSkusCount,
+          formatted: `${tilesTotalBoxes.toLocaleString("en-US")} Boxes${tilesTotalPcs > 0 ? ` ${tilesTotalPcs.toLocaleString("en-US")} Pcs` : ""}`,
+        },
+        other_stock: {
+          units: otherTotalUnits,
+          skus: otherSkusCount,
+          formatted: `${otherTotalUnits.toLocaleString("en-US")} Pcs`,
+        },
         total_cost_valuation: totalCostValuation,
         total_retail_valuation: totalRetailValuation,
         potential_profit: Math.max(0, totalRetailValuation - totalCostValuation),

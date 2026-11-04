@@ -282,7 +282,7 @@ export function Sidebar({
         }`}
       >
         {/* Brand Header */}
-        <div className="h-[60px] px-3 flex items-center justify-between border-b border-white/10 shrink-0">
+        <div className="h-[68px] px-3 flex items-center justify-between border-b border-white/10 shrink-0">
           <Link
             href="/dashboard"
             className={`flex items-center gap-2.5 ${

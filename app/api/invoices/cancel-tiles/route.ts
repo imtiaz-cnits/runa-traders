@@ -164,11 +164,16 @@ export async function POST(req: NextRequest) {
         const sellingPrice = parseFloat(String(item.selling_price || "0"));
         const price = parseFloat(String(item.price || "0"));
         const unitPricePerPc = sellingPrice / pcsPerBox;
-        const itemCancelledAmount =
-          Math.round(
-            (finalCancelBoxes * sellingPrice + finalCancelPcs * unitPricePerPc) *
-              100
-          ) / 100;
+
+        // If the item is being fully cancelled, use exact stored line total to prevent rounding residue (e.g. 6.66 taka leftover)
+        const isFullyCancelled = cancelPcsTotal >= totalOriginalPcs;
+        const exactLineTotal = Math.round(originalQty * sellingPrice * 100) / 100;
+        const itemCancelledAmount = isFullyCancelled
+          ? exactLineTotal
+          : Math.round(
+              (finalCancelBoxes * sellingPrice + finalCancelPcs * unitPricePerPc) *
+                100
+            ) / 100;
 
         totalCancelledAmount += itemCancelledAmount;
         totalCancelledDecimalBoxes += cancelDecimalBoxes;
@@ -319,13 +324,27 @@ export async function POST(req: NextRequest) {
 
       // Calculate new financial totals on the order
       const curSubTotal = Number(order.sub_total || 0);
-      const newSubTotal = Math.max(
-        0,
-        Math.round((curSubTotal - totalCancelledAmount) * 100) / 100
-      );
-      const delivery = Number(order.delivery_charge || 0);
-      const discount = Number(order.discount_amount || 0);
-      const returnAdj = Number(order.return_adjustment_amount || 0);
+      let newSubTotal = 0;
+      let delivery = Number(order.delivery_charge || 0);
+      let discount = Number(order.discount_amount || 0);
+      let returnAdj = Number(order.return_adjustment_amount || 0);
+
+      if (remainingDetails.length === 0) {
+        // If ALL items in the order were cancelled, invoice totals must be exactly 0
+        newSubTotal = 0;
+        discount = 0;
+        delivery = 0;
+        returnAdj = 0;
+      } else {
+        // Recalculate subtotal directly from remaining items to eliminate any cumulative drift
+        newSubTotal = remainingDetails.reduce((sum, d) => {
+          const q = parseFloat(String(d.quantity || "0"));
+          const sp = parseFloat(String(d.selling_price || "0"));
+          return sum + Math.round(q * sp * 100) / 100;
+        }, 0);
+        newSubTotal = Math.max(0, Math.round(newSubTotal * 100) / 100);
+      }
+
       const newNetPayable = Math.max(
         0,
         Math.round((newSubTotal + delivery - discount - returnAdj) * 100) / 100
@@ -350,6 +369,9 @@ export async function POST(req: NextRequest) {
         where: { id: orderIdBig },
         data: {
           sub_total: newSubTotal,
+          delivery_charge: delivery,
+          discount_amount: discount,
+          return_adjustment_amount: returnAdj,
           due_amount: newDue,
           challan_status: newChallanStatus,
         },
