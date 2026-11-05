@@ -634,8 +634,8 @@ export default function InventoryPage() {
                 <th className="py-3 px-3">Barcode</th>
                 <th className="py-3 px-3">Category & Brand</th>
                 <th className="py-3 px-3 text-center">Stock Level</th>
-                <th className="py-3 px-3 text-right">Cost (à§³)</th>
-                <th className="py-3 px-3 text-right">Sell (à§³)</th>
+                <th className="py-3 px-3 text-right">Cost (৳)</th>
+                <th className="py-3 px-3 text-right">Sell (৳)</th>
                 <th className="py-3 px-3 text-right">Total Cost Value</th>
                 <th className="py-3 px-4 text-center w-24">Adjust</th>
               </tr>
@@ -671,29 +671,29 @@ export default function InventoryPage() {
                         <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                           {item.tile_size && (
                             <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
-                              ðŸ“ {item.tile_size}
+                              📐 {item.tile_size}
                             </span>
                           )}
                           {item.sqft_per_box && (
                             <span className="text-[9px] font-medium text-slate-500">
-                              ðŸ“¦ {item.sqft_per_box} Sft/Box {item.pcs_per_box ? `(${item.pcs_per_box} pcs)` : ""}
+                              {item.sqft_per_box} Sft/Box {item.pcs_per_box ? `(${item.pcs_per_box} pcs)` : ""}
                             </span>
                           )}
                           {item.grade && (
                             <span className="text-[9px] font-bold text-emerald-600">
-                              â˜… {item.grade}
+                              ★ {item.grade.replace(/^Grade\s*/i, "")}
                             </span>
                           )}
                           {item.surface_finish && (
                             <span className="text-[9px] font-bold text-purple-600">
-                              âœ¨ {item.surface_finish}
+                              {item.surface_finish}
                             </span>
                           )}
                         </div>
                       )}
                     </td>
                     <td className="py-3 px-3 font-mono text-[11px] text-slate-500">
-                      {item.primary_code || "â€”"}
+                      {item.primary_code || "-"}
                     </td>
                     <td className="py-3 px-3">
                       <div className="font-semibold text-slate-700 dark:text-slate-200">
@@ -793,12 +793,12 @@ export default function InventoryPage() {
                 <div className="flex flex-wrap items-center gap-1">
                   {item.tile_size && (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-700">
-                      ðŸ“ {item.tile_size}
+                              📐 {item.tile_size}
                     </span>
                   )}
                   {item.grade && (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">
-                      â˜… {item.grade}
+                      {item.grade.startsWith("Grade") ? item.grade : `Grade ${item.grade}`}
                     </span>
                   )}
                 </div>
@@ -808,7 +808,7 @@ export default function InventoryPage() {
                 <div className="text-right">
                   <span className="text-[10px] text-slate-400 block">Cost / Sell:</span>
                   <span className="font-bold">
-                    à§³{item.cost_price} / à§³{item.sell_price}
+                    ৳{item.cost_price} / ৳{item.sell_price}
                   </span>
                 </div>
                 <div>
@@ -1005,9 +1005,9 @@ export default function InventoryPage() {
               <th>Category</th>
               <th>Brand</th>
               <th className="text-center">Stock Level</th>
-              <th className="text-right">Cost (à§³)</th>
-              <th className="text-right">Sell (à§³)</th>
-              <th className="text-right">Cost Value (à§³)</th>
+              <th className="text-right">Cost (৳)</th>
+              <th className="text-right">Sell (৳)</th>
+              <th className="text-right">Cost Value (৳)</th>
             </tr>
           </thead>
           <tbody>
@@ -1024,11 +1024,11 @@ export default function InventoryPage() {
                         item.surface_finish ? `Finish: ${item.surface_finish}` : null,
                       ]
                         .filter(Boolean)
-                        .join(" â€¢ ")}
+                        .join(" • ")}
                     </div>
                   )}
                 </td>
-                <td className="font-mono text-[9px]">{item.primary_code || "â€”"}</td>
+                <td className="font-mono text-[9px]">{item.primary_code || "-"}</td>
                 <td>{item.category}</td>
                 <td>{item.brand}</td>
                 <td className="text-center font-bold">

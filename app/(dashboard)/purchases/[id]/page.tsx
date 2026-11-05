@@ -197,10 +197,10 @@ export default function PurchaseBillPage({
                 RT
               </div>
               <div className="flex flex-col">
-                <h1 className="text-xl sm:text-2xl print:text-2xl font-black tracking-wide text-[#15803d] m-0 leading-tight">
+                <h1 className="text-lg sm:text-xl print:text-xl font-black tracking-wide text-[#15803d] m-0 leading-tight">
                   RUNA TRADERS
                 </h1>
-                <div className="text-[10px] sm:text-[11px] print:text-[11px] font-bold text-[#166534] border-t border-[#15803d] pt-0.5 mt-0.5 whitespace-normal sm:whitespace-nowrap print:whitespace-nowrap">
+                <div className="text-[8px] sm:text-[9px] print:text-[9px] font-bold text-[#166534] border-t border-[#15803d] pt-0.5 mt-0.5 whitespace-normal sm:whitespace-nowrap print:whitespace-nowrap">
                   All Kinds of Tiles, Sanitary & Fittings Supplier
                 </div>
               </div>

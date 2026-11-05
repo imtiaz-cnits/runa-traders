@@ -760,7 +760,7 @@ export default function PosPage() {
                     handleScanCode(searchQuery.trim());
                   }
                 }}
-                placeholder="ðŸ” Scan barcode gun or type code / product name... (F2)"
+                placeholder="Scan barcode gun or type code / product name... (F2)"
                 className="w-full h-[38px] pl-3 pr-9 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-600 font-medium"
               />
               <button
@@ -1009,7 +1009,7 @@ export default function PosPage() {
                         </span>
                         {p.tile_size && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200/60 dark:border-rose-900/60 shrink-0 whitespace-nowrap">
-                            ðŸ“ {p.tile_size}
+                            📐 {p.tile_size}
                           </span>
                         )}
                         {p.sqft_per_box && (
@@ -1019,7 +1019,7 @@ export default function PosPage() {
                         )}
                         {p.grade && (
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/60 shrink-0 whitespace-nowrap">
-                            â˜… {p.grade}
+                            ★ {p.grade.replace(/^Grade\s*/i, "")}
                           </span>
                         )}
                       </div>
@@ -1032,7 +1032,7 @@ export default function PosPage() {
                           </span>
                           {p.sqft_per_box && p.sqft_per_box > 0 && (
                             <span className="text-[10px] text-slate-400 block font-medium -mt-0.5">
-                              à§³{(p.sell_price / p.sqft_per_box).toFixed(2)} / Sq.Ft
+                              ৳{(p.sell_price / p.sqft_per_box).toFixed(2)} / Sq.Ft
                             </span>
                           )}
                         </div>
@@ -1131,7 +1131,7 @@ export default function PosPage() {
                                     : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border border-rose-200 dark:border-rose-900"
                                 }`}
                               >
-                                Due: à§³{c.previous_due_amount}
+                                Due: ৳{c.previous_due_amount}
                               </span>
                             )}
                           </div>
@@ -1186,7 +1186,7 @@ export default function PosPage() {
                 <div className="text-right truncate">
                   <span className="text-slate-400">Prev Due:</span>{" "}
                   <strong className="text-rose-600 font-bold">
-                    à§³{selectedCustomer.previous_due_amount || 0}
+                    ৳{selectedCustomer.previous_due_amount || 0}
                   </strong>
                 </div>
               </div>
@@ -1234,7 +1234,7 @@ export default function PosPage() {
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 {item.tile_size && (
                                   <span className="text-[9px] font-bold px-1 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300">
-                                    ðŸ“ {item.tile_size}
+                                    📐 {item.tile_size}
                                   </span>
                                 )}
                                 {item.sqft_per_box && (
@@ -1251,7 +1251,7 @@ export default function PosPage() {
                                   className="text-[9px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/80 px-1.5 py-0.5 rounded cursor-pointer transition-colors border border-rose-200/60 dark:border-rose-900/60 flex items-center gap-0.5"
                                   title="Open Sft & Box Calculator"
                                 >
-                                  ðŸ“ Sft Calc
+                                  📐 Sft Calc
                                 </button>
                               </div>
                             )}
@@ -1350,7 +1350,7 @@ export default function PosPage() {
                           {hasTilesInCart && (
                             <td className="py-2 text-right text-slate-600 dark:text-slate-400 font-medium">
                               {item.sqft_per_box && item.sqft_per_box > 0
-                                ? `à§³${(item.selling_price / item.sqft_per_box).toFixed(2)}`
+                                ? `৳${(item.selling_price / item.sqft_per_box).toFixed(2)}`
                                 : "-"}
                             </td>
                           )}
@@ -1472,9 +1472,7 @@ export default function PosPage() {
                           ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white"
                           : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                       }`}
-                    >
-                      à§³
-                    </button>
+                    >৳</button>
                     <button
                       type="button"
                       onClick={() => setDiscountType("percent")}
@@ -1599,7 +1597,7 @@ export default function PosPage() {
               {/* Total Due with Previous Customer Due */}
               {selectedCustomer && selectedCustomer.previous_due_amount > 0 && (
                 <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5 border-t border-dashed border-slate-200 dark:border-slate-800">
-                  <span>Total Due (inc. Previous à§³{selectedCustomer.previous_due_amount}):</span>
+                  <span>Total Due (inc. Previous ৳{selectedCustomer.previous_due_amount}):</span>
                   <strong className="text-rose-700 dark:text-rose-400 font-bold">
                     {formatBdCurrency(totalDueWithPrev)}
                   </strong>
