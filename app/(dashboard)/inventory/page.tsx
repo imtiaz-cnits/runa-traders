@@ -20,6 +20,7 @@ import {
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { Pagination } from "@/components/ui";
+import { FreshWatermark } from "@/components/common/fresh-watermark";
 import {
   POPULAR_TILE_SIZES,
   TILE_GRADES,
@@ -285,13 +286,24 @@ export default function InventoryPage() {
   const displayedItems = filteredItems.slice(startIndex, startIndex + pageSize);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative print:min-h-[calc(297mm-48px)]">
+      {/* Fresh Ceramics Watermark centered in width & height */}
+      <FreshWatermark />
       {/* Print-Only Styles and Dedicated Report Template */}
       <style jsx global>{`
         @media print {
           @page {
             size: A4 portrait;
-            margin: 10mm 10mm 12mm 10mm;
+            margin: 20px 20px 28px 20px;
+            @bottom-right {
+              content: counter(page);
+              font-family: 'Valley Sans', sans-serif;
+              font-size: 10px;
+              font-weight: 700;
+              color: #000000;
+              vertical-align: top;
+              padding-right: 5px;
+            }
           }
           body {
             background: #ffffff !important;

@@ -268,13 +268,13 @@ export function Sidebar({
       {isOpen && (
         <div
           onClick={onClose}
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 lg:hidden print:hidden"
         />
       )}
 
       {/* Main Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 bg-gradient-to-b from-[#7f1d1d] via-[#991b1b] to-[#881337] text-white flex flex-col transition-all duration-300 ease-in-out border-r border-white/10 shadow-2xl select-none ${
+        className={`fixed top-0 bottom-0 left-0 z-50 bg-gradient-to-b from-[#7f1d1d] via-[#991b1b] to-[#881337] text-white flex flex-col transition-all duration-300 ease-in-out border-r border-white/10 shadow-2xl select-none print:hidden ${
           isCollapsed
             ? "w-[70px] -translate-x-full lg:translate-x-0"
             : "w-[215px] " +

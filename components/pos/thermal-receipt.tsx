@@ -3,6 +3,7 @@
 import { formatBdCurrency } from "@/lib/utils";
 import { formatTileOrItemQty } from "@/lib/tiles-calculator";
 import { Printer, X, Truck, Phone, MapPin, Calendar, FileText } from "lucide-react";
+import { FreshWatermark } from "@/components/common/fresh-watermark";
 
 interface ReceiptProps {
   receiptData: {
@@ -117,21 +118,42 @@ export function ThermalReceiptModal({ receiptData, onClose, onOpenChallan }: Rec
           </div>
         </div>
 
-        {/* Printable Cash Receipt Container (Full Width A4 with 10px margin on print) */}
-        <div id="printable-invoice" className="flex-1 overflow-y-auto p-6 sm:p-8 font-sans text-xs text-slate-800 thermal-sheet print:p-0">
-          {/* Store Branding Header */}
-          <div className="text-center pb-4 border-b-2 border-slate-900">
-            <h1 className="text-2xl font-black text-rose-900 tracking-wider uppercase m-0 leading-tight">
-              RUNA TRADERS
-            </h1>
-            <p className="text-xs text-slate-600 font-medium mt-1">
-              Wholesale & Retail: Exclusive Tiles, Sanitary Ware & Modern Bath Fittings
-            </p>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              Bus Terminal Main Road, Pabna | Hotline: 01975-703216, 01711-968720
-            </p>
-            <div className="mt-2.5 inline-block px-3.5 py-0.5 rounded-md bg-[#991b1b] text-white font-bold text-[11px] tracking-wider uppercase">
-              CASH SALES RECEIPT / ক্যাশ রসিদ
+        {/* Printable Cash Receipt Container (Full Width A4) */}
+        <div id="printable-invoice" className="relative flex-1 overflow-y-auto p-6 sm:p-8 font-sans text-xs text-slate-800 thermal-sheet print:p-0">
+          {/* Fresh Ceramics Watermark centered in width & height */}
+          <FreshWatermark />
+
+          <div className="relative z-10 space-y-4">
+          {/* Store Branding Header (Matching Standard Invoice Header) */}
+          <div className="flex flex-col sm:flex-row print:flex-row justify-between items-center sm:items-start print:items-start gap-3 sm:gap-2 print:gap-0 pb-2 border-b-2 border-slate-900">
+            {/* Brand Logo & Name */}
+            <div className="flex items-start gap-2">
+              <div className="w-9 h-9 sm:w-9 sm:h-9 print:w-8 print:h-8 rounded-lg border-2 border-black flex items-center justify-center font-black text-lg print:text-base text-[#991b1b] bg-white shrink-0 shadow-xs">
+                RT
+              </div>
+              <div className="flex flex-col text-left">
+                <h1 className="text-lg sm:text-xl print:text-xl font-black tracking-wide text-rose-900 m-0 leading-tight">
+                  RUNA TRADERS
+                </h1>
+                <div className="text-[10px] sm:text-[10.5px] print:text-[10px] font-bold text-slate-700 border-t border-slate-900 pt-0.5 mt-0.5 leading-tight">
+                  All Kinds of Tiles, Sanitary &<br />Fittings Supplier
+                </div>
+              </div>
+            </div>
+
+            {/* Middle Badge */}
+            <div className="self-center">
+              <span className="px-3.5 py-0.5 rounded bg-[#991b1b] text-white font-serif font-black text-sm sm:text-base print:text-base tracking-wider">
+                Bill
+              </span>
+            </div>
+
+            {/* Office Info */}
+            <div className="text-center sm:text-right print:text-right text-[11px] text-slate-800 leading-tight max-w-[240px]">
+              <div><strong>Office:</strong> Success Super Market,</div>
+              <div>Sadar Police Fari, Ataikula Road, Pabna.</div>
+              <div><strong>Mobile:</strong> 01975-703216, 01715-842083</div>
+              <div><strong>E-mail:</strong> runatraders2018@gmail.com</div>
             </div>
           </div>
 
@@ -311,6 +333,7 @@ export function ThermalReceiptModal({ receiptData, onClose, onOpenChallan }: Rec
           <div className="text-center pt-5 text-[10px] text-slate-400 border-t border-slate-200 mt-4">
             Thank you for shopping with Runa Traders &bull; Software by: CodeNext IT
           </div>
+          </div>
         </div>
       </div>
 
@@ -319,7 +342,16 @@ export function ThermalReceiptModal({ receiptData, onClose, onOpenChallan }: Rec
         @media print {
           @page {
             size: A4 portrait;
-            margin: 10px;
+            margin: 20px 20px 28px 20px;
+            @bottom-right {
+              content: counter(page);
+              font-family: 'Valley Sans', sans-serif;
+              font-size: 10px;
+              font-weight: 700;
+              color: #000000;
+              vertical-align: top;
+              padding-right: 5px;
+            }
           }
           /* If challan is being printed, hide invoice completely */
           body:has(#printable-challan) .thermal-sheet,

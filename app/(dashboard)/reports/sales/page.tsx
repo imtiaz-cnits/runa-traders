@@ -17,6 +17,7 @@ import {
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { Pagination } from "@/components/ui";
+import { FreshWatermark } from "@/components/common/fresh-watermark";
 
 interface SalesOrder {
   id: number;
@@ -119,16 +120,60 @@ export default function SalesReportPage() {
   const displayedOrders = orders.slice(startIndex, startIndex + pageSize);
 
   return (
-    <div className="space-y-4">
-      {/* 1. Header & Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
+    <div className="space-y-4 font-sans relative print:space-y-2 print:flex print:flex-col print:justify-between print:min-h-[calc(297mm-48px)]">
+      {/* Fresh Ceramics Watermark centered in width & height */}
+      <FreshWatermark />
+      {/* Print-Only Company Statement Header (Matching Invoice Layout: Left, Center, Right) */}
+      <div className="hidden print:flex justify-between items-start pb-2 mb-2 border-b border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] text-black">
+        {/* Left: Brand Logo & Name */}
+        <div className="flex items-start gap-2 shrink-0">
+          <div className="w-8 h-8 rounded border-2 border-black flex items-center justify-center font-black text-base text-black bg-white shrink-0">
+            RT
+          </div>
+          <div className="flex flex-col">
+            <h1 className="text-lg font-black tracking-wide text-black m-0 leading-tight">
+              RUNA TRADERS
+            </h1>
+            <div className="text-[10px] font-bold text-black border-t border-black pt-0.5 mt-0.5 leading-tight">
+              All Kinds of Tiles, Sanitary &<br />Fittings Supplier
+            </div>
+          </div>
+        </div>
+
+        {/* Center: Report Title & Period */}
+        <div className="text-center px-2 flex-1">
+          <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-black m-0 leading-tight">
+            Sales &amp; Gross Profit Statement
+          </h2>
+          <div className="text-[10.5px] font-bold text-slate-800 mt-0.5">
+            বিক্রয় ও মোট লাভ-লোকসান বিবরণী
+          </div>
+          <div className="text-[9px] text-slate-600 mt-0.5 font-medium">
+            {startDate || endDate
+              ? `Period: ${startDate || "Start"} to ${endDate || "Today"}`
+              : "Period: All Recorded Sales"}{" "}
+            &bull; Date: {new Date().toLocaleDateString("en-GB")}
+          </div>
+        </div>
+
+        {/* Right: Office Info */}
+        <div className="text-right text-[10px] text-black leading-tight shrink-0 max-w-[220px]">
+          <div><strong>Office:</strong> Success Super Market,</div>
+          <div>Sadar Police Fari, Ataikula Road, Pabna.</div>
+          <div><strong>Mobile:</strong> 01975-703216, 01715-842083</div>
+          <div><strong>E-mail:</strong> runatraders2018@gmail.com</div>
+        </div>
+      </div>
+
+      {/* 1. Header & Quick Actions (Hidden in Print) */}
+      <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 dark:bg-emerald-950/50 dark:text-emerald-400 border border-rose-100 dark:border-slate-800 flex items-center justify-center shrink-0">
             <FileSpreadsheet className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white m-0 leading-tight">
-              Sales & Gross Profit Report
+              Sales &amp; Gross Profit Report
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 m-0">
               Detailed breakdown of revenue, COGS, profit margin, cash collected, and dues
@@ -145,63 +190,67 @@ export default function SalesReportPage() {
         </button>
       </div>
 
-      {/* 2. Four Financial Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-        <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
-            <span>Total Sales Revenue</span>
-            <DollarSign className="w-4 h-4 text-emerald-600" />
+      {/* 2. Four Financial Summary Cards (2 Columns in Print, Compact, No Icons, Right Aligned Amount) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 print:grid-cols-2 gap-2.5 sm:gap-3 print:gap-2">
+        <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
+          <div>
+            <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
+              Total Sales Revenue
+            </div>
+            <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">
+              {summary?.total_orders || 0} invoices generated
+            </div>
           </div>
-          <div className="text-xl font-black text-slate-900 dark:text-white mt-1">
+          <div className="text-xl print:text-sm font-black text-slate-900 dark:text-white print:text-black mt-1 print:mt-0 print:text-right shrink-0">
             {formatBdCurrency(summary?.total_sales_amount || 0)}
           </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">
-            {summary?.total_orders || 0} invoices generated
-          </div>
         </div>
 
-        <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
-            <span>Cash Collected</span>
-            <CreditCard className="w-4 h-4 text-emerald-600" />
+        <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
+          <div>
+            <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
+              Cash Collected
+            </div>
+            <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">
+              Paid at counter / POS
+            </div>
           </div>
-          <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+          <div className="text-xl print:text-sm font-black text-emerald-600 dark:text-emerald-400 print:text-black mt-1 print:mt-0 print:text-right shrink-0">
             {formatBdCurrency(summary?.total_paid_amount || 0)}
           </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">
-            Paid at counter / POS
-          </div>
         </div>
 
-        <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
-            <span>Customer Due (Receivable)</span>
-            <AlertCircle className="w-4 h-4 text-amber-600" />
+        <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
+          <div>
+            <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
+              Customer Due (Receivable)
+            </div>
+            <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">
+              Pending customer dues
+            </div>
           </div>
-          <div className="text-xl font-black text-amber-600 dark:text-amber-400 mt-1">
+          <div className="text-xl print:text-sm font-black text-amber-600 dark:text-amber-400 print:text-black mt-1 print:mt-0 print:text-right shrink-0">
             {formatBdCurrency(summary?.total_due_amount || 0)}
           </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">
-            Pending customer dues
-          </div>
         </div>
 
-        <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
-            <span>Estimated Gross Profit</span>
-            <TrendingUp className="w-4 h-4 text-emerald-600" />
+        <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
+          <div>
+            <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
+              Estimated Gross Profit
+            </div>
+            <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">
+              Sales less buying cost & returns
+            </div>
           </div>
-          <div className="text-xl font-black text-emerald-700 dark:text-emerald-300 mt-1">
+          <div className="text-xl print:text-sm font-black text-emerald-700 dark:text-emerald-300 print:text-black mt-1 print:mt-0 print:text-right shrink-0">
             {formatBdCurrency(summary?.total_gross_profit || 0)}
-          </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">
-            Sales less buying cost & returns
           </div>
         </div>
       </div>
 
-      {/* 3. Date Filters & Presets */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-3 rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
+      {/* 3. Date Filters & Presets (Hidden in Print) */}
+      <div className="print:hidden flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-3 rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
         <div className="relative flex-1 max-w-sm">
           <input
             type="text"
@@ -279,10 +328,10 @@ export default function SalesReportPage() {
         </div>
       </div>
 
-      {/* 4. Desktop Table (Rule 5.3 & 5.4: Solid Emerald Header #15803d) */}
-      <div className="hidden md:block bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+      {/* 4. Desktop Table (Always Visible in Print) */}
+      <div className="hidden md:block print:block print:w-full bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden print:border-none print:shadow-none print:rounded-none">
+        <div className="overflow-x-auto print:overflow-visible">
+          <table id="sales-report-table" className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
                 <th className="py-3 px-3 text-center w-[50px]">SL</th>
@@ -362,22 +411,24 @@ export default function SalesReportPage() {
           </table>
         </div>
 
-        {/* Desktop Pagination */}
-        <Pagination
-          currentPage={currentPage}
-          totalItems={orders.length}
-          pageSize={pageSize}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={(newSize) => {
-            setPageSize(newSize);
-            setCurrentPage(1);
-          }}
-          pageSizeOptions={[20, 50, 100, 200, 500]}
-        />
+        {/* Desktop Pagination (Hidden in Print) */}
+        <div className="print:hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={orders.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
 
-      {/* 5. Mobile Cards View */}
-      <div className="block md:hidden space-y-2.5">
+      {/* 5. Mobile Cards View (Strictly Hidden in Print) */}
+      <div className="block md:hidden print:hidden space-y-2.5">
         {displayedOrders.map((o) => (
           <div
             key={o.id}
@@ -431,6 +482,125 @@ export default function SalesReportPage() {
           />
         </div>
       </div>
+
+      {/* Print Signature & Page Number */}
+      <div className="print-signatures hidden print:flex justify-between items-end pt-8 pb-1 print:mt-auto text-xs font-semibold text-black">
+        <div className="w-36 text-center border-t border-black pt-1">Prepared By</div>
+        <div className="w-36 text-center border-t border-black pt-1">Authorized Signature</div>
+      </div>
+      <div className="print-page-number" />
+
+      {/* Print Media Styling */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 20px 20px 28px 20px;
+            @bottom-right {
+              content: counter(page);
+              font-family: 'Valley Sans', sans-serif;
+              font-size: 10px;
+              font-weight: 700;
+              color: #000000;
+              vertical-align: top;
+              padding-right: 5px;
+            }
+          }
+          html,
+          body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+          }
+          header,
+          aside,
+          nav,
+          footer,
+          [data-sidebar],
+          .no-print {
+            display: none !important;
+          }
+          .print-page-number {
+            display: none !important;
+          }
+          .print-signatures {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          #sales-report-table {
+            width: 100% !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+          }
+          #sales-report-table thead {
+            display: table-header-group !important;
+          }
+          #sales-report-table thead tr {
+            white-space: normal !important;
+            background: #881337 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          #sales-report-table th,
+          #sales-report-table td {
+            padding: 5px 3px !important;
+            font-size: 8.5px !important;
+            line-height: 1.2 !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+          }
+          #sales-report-table th:nth-child(1),
+          #sales-report-table td:nth-child(1) {
+            width: 5% !important;
+            text-align: center !important;
+          }
+          #sales-report-table th:nth-child(2),
+          #sales-report-table td:nth-child(2) {
+            width: 17% !important;
+          }
+          #sales-report-table th:nth-child(3),
+          #sales-report-table td:nth-child(3) {
+            width: 18% !important;
+          }
+          #sales-report-table th:nth-child(4),
+          #sales-report-table td:nth-child(4) {
+            width: 6% !important;
+            text-align: center !important;
+          }
+          #sales-report-table th:nth-child(5),
+          #sales-report-table td:nth-child(5) {
+            width: 11% !important;
+            text-align: right !important;
+          }
+          #sales-report-table th:nth-child(6),
+          #sales-report-table td:nth-child(6) {
+            width: 12% !important;
+            text-align: right !important;
+          }
+          #sales-report-table th:nth-child(7),
+          #sales-report-table td:nth-child(7) {
+            width: 10% !important;
+            text-align: right !important;
+          }
+          #sales-report-table th:nth-child(8),
+          #sales-report-table td:nth-child(8) {
+            width: 10% !important;
+            text-align: right !important;
+          }
+          #sales-report-table th:nth-child(9),
+          #sales-report-table td:nth-child(9) {
+            width: 11% !important;
+            text-align: right !important;
+          }
+          #sales-report-table tbody tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

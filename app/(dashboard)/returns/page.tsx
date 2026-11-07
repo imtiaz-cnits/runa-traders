@@ -30,6 +30,7 @@ import { CustomSelect, Pagination } from "@/components/ui";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { formatBoxAndPcs, formatTileOrItemQty, parseBoxAndPcs } from "@/lib/tiles-calculator";
 import { useToast } from "@/components/ui/toast";
+import { FreshWatermark } from "@/components/common/fresh-watermark";
 
 interface ReturnItem {
   id: number;
@@ -52,6 +53,7 @@ interface ReturnItem {
   amount: number;
   discount_amount: number;
   due_amount: number;
+  reason?: string | null;
   date: string;
   created_at: string | null;
 }
@@ -460,7 +462,9 @@ function ReturnsManagementContent() {
 
   return (
     <div className="space-y-4">
-      {/* 1. Top Section: Page Title & Process Return Button (Fixed 38px, Rule 5.1) */}
+      {/* Background Dashboard Contents (strictly hidden when printing return voucher) */}
+      <div className={selectedReturnForPrint ? "space-y-4 print:hidden" : "space-y-4"}>
+        {/* 1. Top Section: Page Title & Process Return Button (Fixed 38px, Rule 5.1) */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400 flex items-center justify-center border border-rose-100 dark:border-slate-800 shadow-2xs shrink-0">
@@ -1637,11 +1641,12 @@ function ReturnsManagementContent() {
           </div>
         </div>
       )}
+      </div>
 
       {/* 9. Printable Return Document Voucher Modal */}
       {selectedReturnForPrint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto print:p-0 print:bg-white print:static print:inset-auto">
-          <div className="bg-white text-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:border-none print:shadow-none print:w-full">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto print:p-0 print:m-0 print:bg-white print:static print:inset-auto print:w-full print:max-w-none print:block">
+          <div className="bg-white text-slate-900 w-full max-w-2xl print:max-w-none rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:border-none print:shadow-none print:w-full print:m-0 print:p-0">
             {/* Top Bar - Hidden in Print */}
             <div className="bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white px-5 py-3.5 flex items-center justify-between shrink-0 print:hidden">
               <div className="flex items-center gap-2">
@@ -1670,155 +1675,261 @@ function ReturnsManagementContent() {
             </div>
 
             {/* Printable Voucher Body */}
-            <div className="p-6 sm:p-8 overflow-y-auto flex-1 space-y-5 print:p-0 print:overflow-visible">
-              {/* Company Header */}
-              <div className="text-center pb-3 border-b-2 border-slate-800">
-                <h1 className="text-2xl font-black tracking-wider uppercase text-rose-900">
-                  RUNA TRADERS
-                </h1>
-                <p className="text-xs font-semibold text-slate-600 mt-0.5">
-                  Tiles, Sanitary &amp; Bath Fittings
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  Success Super Market, Pabna | Mobile: 01975-703216, 01715-842083
-                </p>
-                <div className="inline-block mt-2 px-3 py-0.5 bg-rose-100 text-rose-900 border border-rose-300 font-bold text-xs uppercase tracking-wider rounded">
-                  {selectedReturnForPrint.type === "purchase"
-                    ? "Supplier Purchase Return Voucher"
-                    : "Customer Sales Return Voucher"}
-                </div>
-              </div>
+            <div id="printable-return-voucher" className="relative p-6 sm:p-8 overflow-y-auto flex-1 flex flex-col justify-between print:p-0 print:m-0 print:overflow-visible print:w-full print:max-w-none">
+              {/* Fresh Ceramics Watermark centered in width & height */}
+              <FreshWatermark />
 
-              {/* Voucher Meta Grid */}
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <div className="text-slate-500">
-                    Return No:{" "}
-                    <strong className="text-slate-900 font-mono">
-                      #RET{String(selectedReturnForPrint.id).padStart(5, "0")}
-                    </strong>
-                  </div>
-                  <div className="text-slate-500">
-                    {selectedReturnForPrint.type === "purchase" ? "Purchase Memo No: " : "Original Invoice: "}
-                    <strong className="text-slate-900 font-mono">
-                      {selectedReturnForPrint.record_no}
-                    </strong>
-                  </div>
-                  <div className="text-slate-500">
-                    Return Date:{" "}
-                    <strong className="text-slate-900">
-                      {selectedReturnForPrint.date}
-                    </strong>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="text-slate-500">
-                    {selectedReturnForPrint.type === "purchase" ? "Supplier: " : "Customer: "}
-                    <strong className="text-slate-900">
-                      {selectedReturnForPrint.party_name}
-                    </strong>
-                  </div>
-                  {selectedReturnForPrint.party_mobile && (
-                    <div className="text-slate-500">
-                      Mobile:{" "}
-                      <strong className="text-slate-900 font-mono">
-                        {selectedReturnForPrint.party_mobile}
-                      </strong>
+              <div className="return-voucher-main-content space-y-4 relative z-10">
+                {/* Header: Responsive on Mobile, Horizontal on Desktop & Print matching 1st image */}
+                <div className="flex flex-col sm:flex-row print:flex-row justify-between items-center sm:items-start print:items-start gap-3 sm:gap-2 print:gap-0 pb-2 border-b border-black">
+                  {/* Brand Logo & Name with text RT */}
+                  <div className="flex items-start gap-2">
+                    <div className="invoice-logo-box w-9 h-9 sm:w-9 sm:h-9 print:w-8 print:h-8 rounded-lg border-2 border-black flex items-center justify-center font-black text-lg print:text-base text-black bg-white shrink-0 shadow-xs">
+                      RT
                     </div>
-                  )}
-                </div>
-              </div>
+                    <div className="flex flex-col">
+                      <h1 className="text-lg sm:text-xl print:text-xl font-black tracking-wide text-black m-0 leading-tight">
+                        RUNA TRADERS
+                      </h1>
+                      <div className="text-[10px] sm:text-[10.5px] print:text-[10px] font-bold text-black border-t border-black pt-0.5 mt-0.5 leading-tight">
+                        All Kinds of Tiles, Sanitary &<br />Fittings Supplier
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Items Table */}
-              <div className="border border-slate-300 rounded-lg overflow-hidden">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 border-b border-slate-300 font-bold uppercase text-slate-700">
-                      <th className="p-2.5 text-center w-[40px]">SL</th>
-                      <th className="p-2.5">Item Description</th>
-                      <th className="p-2.5 text-center w-[100px]">Qty</th>
-                      <th className="p-2.5 text-right w-[110px]">Rate</th>
-                      <th className="p-2.5 text-right w-[120px] pr-3">
-                        {selectedReturnForPrint.type === "purchase" ? "Adjusted Amount" : "Refund Amount"}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    <tr>
-                      <td className="p-2.5 text-center text-slate-500">1</td>
-                      <td className="p-2.5">
-                        <div className="font-bold text-slate-900">
-                          {selectedReturnForPrint.product_name}
-                        </div>
-                        <div className="text-[10px] text-slate-500">
-                          Code: {selectedReturnForPrint.product_code}
-                          {selectedReturnForPrint.tile_size && ` | Size: ${selectedReturnForPrint.tile_size}`}
-                        </div>
-                      </td>
-                      <td className="p-2.5 text-center font-bold whitespace-nowrap">
-                        {formatReturnDisplayQty(selectedReturnForPrint)}
-                      </td>
-                      <td className="p-2.5 text-right">
-                        {formatBdCurrency(
-                          selectedReturnForPrint.quantity > 0
-                            ? selectedReturnForPrint.amount / selectedReturnForPrint.quantity
-                            : 0
-                        )}
-                      </td>
-                      <td className="p-2.5 text-right pr-3 font-bold text-rose-800">
-                        {formatBdCurrency(selectedReturnForPrint.amount)}
-                      </td>
-                    </tr>
-                  </tbody>
-                  <tfoot className="bg-slate-50 font-bold border-t-2 border-slate-300">
-                    <tr>
-                      <td colSpan={2} className="p-2.5 text-right uppercase text-[11px] text-slate-600">
-                        Total Returned Quantity:
-                      </td>
-                      <td className="p-2.5 text-center whitespace-nowrap">
-                        {formatReturnDisplayQty(selectedReturnForPrint)}
-                      </td>
-                      <td className="p-2.5 text-right uppercase text-[11px] text-slate-600">
-                        Total Amount:
-                      </td>
-                      <td className="p-2.5 text-right pr-3 text-rose-800 font-black">
-                        {formatBdCurrency(selectedReturnForPrint.amount)}
-                      </td>
-                    </tr>
-                    {selectedReturnForPrint.due_amount > 0 && (
+                  {/* Middle Badge matching 1st image */}
+                  <div className="self-center">
+                    <span className="invoice-bill-badge px-3.5 py-0.5 rounded bg-black text-white font-serif font-black text-sm sm:text-base print:text-base tracking-wider">
+                      {selectedReturnForPrint.type === "purchase" ? "Purchase Return" : "Sales Return"}
+                    </span>
+                  </div>
+
+                  {/* Office Info matching 1st image */}
+                  <div className="text-center sm:text-right print:text-right text-[11px] text-black leading-tight max-w-[240px]">
+                    <div><strong>Office:</strong> Success Super Market,</div>
+                    <div>Sadar Police Fari, Ataikula Road, Pabna.</div>
+                    <div><strong>Mobile:</strong> 01975-703216, 01715-842083</div>
+                    <div><strong>E-mail:</strong> runatraders2018@gmail.com</div>
+                  </div>
+                </div>
+
+                {/* Form Metadata Rows (Two-Column Dotted Grid matching 1st image) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-6 gap-y-1.5 sm:gap-y-1 print:gap-y-1 my-3 text-[12px] text-black">
+                  <div className="flex items-end">
+                    <span className="font-semibold whitespace-nowrap mr-1">Return No:</span>
+                    <span className="flex-1 border-b border-dotted border-black font-bold font-mono pl-1">
+                      #RET{String(selectedReturnForPrint.id).padStart(5, "0")}
+                    </span>
+                  </div>
+
+                  <div className="flex items-end">
+                    <span className="font-semibold whitespace-nowrap mr-1">Return Date:</span>
+                    <span className="flex-1 border-b border-dotted border-black font-semibold pl-1">
+                      {selectedReturnForPrint.date}
+                    </span>
+                  </div>
+
+                  <div className="flex items-end">
+                    <span className="font-semibold whitespace-nowrap mr-1">
+                      {selectedReturnForPrint.type === "purchase" ? "Purchase Memo No:" : "Original Invoice:"}
+                    </span>
+                    <span className="flex-1 border-b border-dotted border-black font-mono pl-1">
+                      {selectedReturnForPrint.record_no}
+                    </span>
+                  </div>
+
+                  <div className="flex items-end">
+                    <span className="font-semibold whitespace-nowrap mr-1">Mob:</span>
+                    <span className="flex-1 border-b border-dotted border-black font-mono pl-1">
+                      {selectedReturnForPrint.party_mobile || "N/A"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-end">
+                    <span className="font-semibold whitespace-nowrap mr-1">
+                      {selectedReturnForPrint.type === "purchase" ? "Supplier Name:" : "Customer Name:"}
+                    </span>
+                    <span className="flex-1 border-b border-dotted border-black font-bold pl-1 truncate">
+                      {selectedReturnForPrint.party_name || "N/A"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-end">
+                    <span className="font-semibold whitespace-nowrap mr-1">Return Reason:</span>
+                    <span className="flex-1 border-b border-dotted border-black pl-1 truncate">
+                      {selectedReturnForPrint.reason || "Product Return / Adjustment"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Items Table */}
+                <div className="border border-black rounded-lg overflow-hidden">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 border-b border-black font-bold uppercase text-black">
+                        <th className="p-2.5 text-center w-[40px] border-r border-black">SL</th>
+                        <th className="p-2.5 border-r border-black">Item Description</th>
+                        <th className="p-2.5 text-center w-[100px] border-r border-black">Qty</th>
+                        <th className="p-2.5 text-right w-[110px] border-r border-black">Rate</th>
+                        <th className="p-2.5 text-right w-[120px] pr-3">
+                          {selectedReturnForPrint.type === "purchase" ? "Adjusted Amount" : "Refund Amount"}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-black text-black">
                       <tr>
-                        <td colSpan={4} className="p-2 text-right text-emerald-700 text-[11px]">
-                          Due Adjustment:
+                        <td className="p-2.5 text-center border-r border-black font-mono">1</td>
+                        <td className="p-2.5 border-r border-black">
+                          <div className="font-bold text-black">
+                            {selectedReturnForPrint.product_name}
+                          </div>
+                          <div className="text-[10px] text-slate-700">
+                            Code: {selectedReturnForPrint.product_code}
+                            {selectedReturnForPrint.tile_size && ` | Size: ${selectedReturnForPrint.tile_size}`}
+                          </div>
                         </td>
-                        <td className="p-2 text-right pr-3 text-emerald-700 font-bold">
-                          {formatBdCurrency(selectedReturnForPrint.due_amount)}
+                        <td className="p-2.5 text-center font-bold whitespace-nowrap border-r border-black">
+                          {formatReturnDisplayQty(selectedReturnForPrint)}
+                        </td>
+                        <td className="p-2.5 text-right border-r border-black font-mono">
+                          {formatBdCurrency(
+                            selectedReturnForPrint.quantity > 0
+                              ? selectedReturnForPrint.amount / selectedReturnForPrint.quantity
+                              : 0
+                          )}
+                        </td>
+                        <td className="p-2.5 text-right pr-3 font-bold font-mono text-black">
+                          {formatBdCurrency(selectedReturnForPrint.amount)}
                         </td>
                       </tr>
-                    )}
-                  </tfoot>
-                </table>
+                    </tbody>
+                    <tfoot className="bg-slate-50 font-bold border-t-2 border-black">
+                      <tr>
+                        <td colSpan={2} className="p-2.5 text-right uppercase text-[11px] text-black">
+                          Total Returned Quantity:
+                        </td>
+                        <td className="p-2.5 text-center whitespace-nowrap text-black">
+                          {formatReturnDisplayQty(selectedReturnForPrint)}
+                        </td>
+                        <td className="p-2.5 text-right uppercase text-[11px] text-black">
+                          Total Amount:
+                        </td>
+                        <td className="p-2.5 text-right pr-3 text-black font-black font-mono">
+                          {formatBdCurrency(selectedReturnForPrint.amount)}
+                        </td>
+                      </tr>
+                      {selectedReturnForPrint.due_amount > 0 && (
+                        <tr className="border-t border-black">
+                          <td colSpan={4} className="p-2 text-right text-black text-[11px]">
+                            Due Adjustment:
+                          </td>
+                          <td className="p-2 text-right pr-3 text-black font-bold font-mono">
+                            {formatBdCurrency(selectedReturnForPrint.due_amount)}
+                          </td>
+                        </tr>
+                      )}
+                    </tfoot>
+                  </table>
+                </div>
               </div>
 
-              {/* Signatures */}
-              <div className="pt-12 grid grid-cols-2 gap-8 text-xs">
-                <div className="text-center">
-                  <div className="border-t border-slate-400 pt-1.5 font-semibold text-slate-700">
-                    {selectedReturnForPrint.type === "purchase" ? "Supplier Signature" : "Customer Signature"}
+              {/* Signatures & Footer pinned at page bottom */}
+              <div className="return-voucher-footer mt-auto pt-8 space-y-3 relative z-10">
+                <div className="pt-8 grid grid-cols-2 gap-8 text-xs font-semibold text-black">
+                  <div className="text-center">
+                    <div className="border-t border-dotted border-black pt-1 w-3/4 mx-auto">
+                      {selectedReturnForPrint.type === "purchase" ? "Supplier Signature" : "Customer Signature"}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="border-t border-dotted border-black pt-1 w-3/4 mx-auto">
+                      Authorized Signature
+                    </div>
                   </div>
                 </div>
-                <div className="text-center">
-                  <div className="border-t border-slate-400 pt-1.5 font-semibold text-slate-700">
-                    Authorized Signature
-                  </div>
+
+                <div className="text-center text-[10px] text-slate-500 pt-2 border-t border-dashed border-slate-300">
+                  Software By: CodeNext IT | RUNA TRADERS POS System
                 </div>
               </div>
 
-              <div className="text-center text-[10px] text-slate-400 pt-2 border-t border-dashed border-slate-200">
-                Software By: CodeNext IT | RUNA TRADERS POS System
-              </div>
+              {/* Bare Page Number for Print (1, 2, 3...) */}
+              <div className="print-page-number" />
             </div>
           </div>
+
+          <style jsx global>{`
+            @media print {
+              @page {
+                size: A4 portrait;
+                margin: 20px 20px 28px 20px;
+                @bottom-right {
+                  content: counter(page);
+                  font-family: 'Valley Sans', sans-serif;
+                  font-size: 10px;
+                  font-weight: 700;
+                  color: #000000;
+                  vertical-align: top;
+                  padding-right: 5px;
+                }
+              }
+              html,
+              body {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+              }
+              header,
+              aside,
+              nav,
+              footer,
+              [data-sidebar],
+              .no-print {
+                display: none !important;
+              }
+              #printable-return-voucher,
+              #printable-return-voucher * {
+                color: #000000 !important;
+                border-color: #000000 !important;
+                -webkit-text-fill-color: #000000 !important;
+              }
+              #printable-return-voucher {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                min-height: calc(297mm - 48px) !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-sizing: border-box !important;
+              }
+              .return-voucher-main-content {
+                flex: 1 0 auto !important;
+              }
+              .return-voucher-footer {
+                margin-top: auto !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              .print-page-number {
+                display: none !important;
+              }
+              #printable-return-voucher table {
+                width: 100% !important;
+                max-width: 100% !important;
+              }
+              #printable-return-voucher table thead {
+                display: table-header-group !important;
+              }
+              #printable-return-voucher table tbody tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+            }
+          `}</style>
         </div>
       )}
     </div>

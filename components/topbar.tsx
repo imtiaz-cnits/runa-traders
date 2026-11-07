@@ -91,7 +91,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
   }
 
   return (
-    <header className="sticky top-0 z-30 h-[68px] bg-white/95 dark:bg-[#0b0f19]/95 backdrop-blur-md border-b border-[#cbd5e1] dark:border-[#334155] px-4 sm:px-6 flex items-center justify-between transition-colors">
+    <header className="sticky top-0 z-30 h-[68px] bg-white/95 dark:bg-[#0b0f19]/95 backdrop-blur-md border-b border-[#cbd5e1] dark:border-[#334155] px-4 sm:px-6 flex items-center justify-between transition-colors print:hidden">
       {/* Left: Sidebar Toggle & Page Title */}
       <div className="flex items-center gap-3">
         <button

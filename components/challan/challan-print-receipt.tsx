@@ -2,6 +2,7 @@
 
 import { Printer, X, Truck, Calendar, User, MapPin } from "lucide-react";
 import { parseBoxAndPcs } from "@/lib/tiles-calculator";
+import { FreshWatermark } from "@/components/common/fresh-watermark";
 
 interface ChallanItem {
   id: number;
@@ -111,19 +112,29 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
           <style jsx global>{`
             @media print {
               @page {
-                size: auto;
-                margin: 10mm;
+                size: A4 portrait;
+                margin: 10px;
+                @bottom-right {
+                  content: none !important;
+                }
               }
               html, body {
-                height: 100% !important;
+                height: auto !important;
                 background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
               }
               body * {
                 visibility: hidden;
               }
-              /* Strictly hide invoice receipt when printing challan */
+              /* Strictly hide other UI when printing challan */
               .thermal-sheet,
-              #printable-invoice {
+              #printable-invoice,
+              header,
+              aside,
+              nav,
+              footer,
+              .no-print {
                 display: none !important;
                 visibility: hidden !important;
               }
@@ -135,98 +146,148 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
                 position: absolute !important;
                 left: 0 !important;
                 top: 0 !important;
-                width: 80mm !important;
-                max-width: 80mm !important;
-                min-height: calc(100vh - 20px) !important;
-                display: flex !important;
-                flex-direction: column !important;
-                justify-content: space-between !important;
+                width: 98mm !important;
+                max-width: 100mm !important;
+                min-height: auto !important;
+                max-height: 140mm !important;
+                display: block !important;
                 margin: 0 !important;
-                padding: 10px !important;
+                padding: 4px !important;
                 background: white !important;
                 color: black !important;
                 box-sizing: border-box !important;
-                font-size: 11px !important;
-              }
-              .challan-footer-wrapper {
-                margin-top: auto !important;
-                padding-top: 20px !important;
+                font-size: 9.5px !important;
                 break-inside: avoid !important;
                 page-break-inside: avoid !important;
+              }
+              #printable-challan table thead {
+                display: table-header-group !important;
+              }
+              #printable-challan table tbody tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              /* Transparent backgrounds in print so watermark is fully visible */
+              #printable-challan .bg-slate-50,
+              #printable-challan .bg-slate-100,
+              #printable-challan [class*="bg-amber-50"],
+              #printable-challan table,
+              #printable-challan thead,
+              #printable-challan thead tr,
+              #printable-challan tbody,
+              #printable-challan tbody tr,
+              #printable-challan tfoot,
+              #printable-challan tfoot tr {
+                background: transparent !important;
+                background-color: transparent !important;
+              }
+              #printable-challan thead tr {
+                color: #000000 !important;
+                border-bottom: 1.5px solid #000000 !important;
+              }
+              #printable-challan thead th {
+                color: #000000 !important;
+              }
+              .challan-footer-wrapper {
+                margin-top: 10px !important;
+                padding-top: 0 !important;
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+              }
+              .print-page-number {
+                display: none !important;
               }
             }
           `}</style>
 
-          <div id="printable-challan" className="space-y-3.5 font-sans text-slate-800 flex-1 flex flex-col justify-between">
+          <div id="printable-challan" className="relative space-y-2.5 font-sans text-slate-800 flex-1 flex flex-col justify-between print:block print:space-y-1.5 print:w-[98mm] print:max-w-[100mm] print:p-1 print:m-0">
+            {/* Fresh Ceramics Watermark centered in width & height */}
+            <FreshWatermark size="sm" isContained={true} />
+
             {/* Top Main Section */}
-            <div className="space-y-3.5 flex-1">
-              {/* Header */}
-              <div className="text-center border-b-2 border-red-700 pb-2.5">
-                <h1 className="text-lg font-black text-rose-900 tracking-wider uppercase leading-tight">
-                  RUNA TRADERS
-                </h1>
-                <p className="text-[10px] text-slate-600 font-medium">
-                  Tiles, Sanitary Ware & Bath Fittings
+            <div className="space-y-2.5 relative z-10 print:space-y-1.5">
+              {/* Header matching Image 1: M/S Runa Traders, Fresh Ceramics Dealer, Pabna */}
+              <div className="text-center border-b-2 border-red-700 pb-2 print:pb-1">
+                <div className="flex justify-between items-center text-[9px] print:text-[7.5px] text-slate-600 mb-0.5">
+                  <span className="font-semibold text-rose-900">প্রোঃ মোঃ আরশাদ হোসেন &bull; 01711-968720</span>
+                  <span className="font-mono">বিকাশ: 01975-703216, 01715-842083</span>
+                </div>
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-8 h-8 print:w-6 print:h-6 rounded-lg bg-red-700 text-white font-black text-xs print:text-[9.5px] flex items-center justify-center tracking-tighter shrink-0">
+                    MRT
+                  </div>
+                  <div>
+                    <h1 className="text-base sm:text-lg print:text-[13px] font-black text-rose-900 tracking-wider uppercase leading-none">
+                      মেসার্স রুনা ট্রেডার্স (RUNA TRADERS)
+                    </h1>
+                    <div className="text-[10.5px] sm:text-[11px] print:text-[9px] font-bold text-emerald-800 leading-tight mt-0.5">
+                      ডিলার ঃ ফ্রেশ সিরামিকস
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[9.5px] text-slate-600 font-medium mt-1 leading-tight">
+                  এখানে অতি সুলভে টাইলস, বেসিন, সেনেটারিজ ইত্যাদি মালপত্র খুচরা ও পাইকারী বিক্রয় করা হয়।
                 </p>
-                <p className="text-[9px] text-slate-500 mt-0.5">
-                  Bus Terminal Main Road, Pabna | 01711-968720
+                <p className="text-[9px] text-slate-500 leading-tight">
+                  সাকসেস সুপার মার্কেট, সদর পুলিশ ফাঁড়ি সংলগ্ন, আটাইকুলা রোড, পাবনা।
                 </p>
-                <div className="mt-2 inline-block px-3 py-0.5 rounded-md bg-[#991b1b] text-white font-bold text-[10px] tracking-wider uppercase">
-                  DELIVERY CHALLAN / চালান
+                <div className="mt-1.5 inline-block px-3 py-0.5 rounded-md bg-[#991b1b] text-white font-bold text-[10px] tracking-wider uppercase">
+                  ডেলিভারি চালান
                 </div>
               </div>
 
               {/* Challan & Customer Info */}
-              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-[11px] space-y-1">
-                <div className="flex justify-between font-bold">
-                  <span className="text-slate-500">Challan No:</span>
-                  <span className="font-mono text-rose-900">{challan.challan_no}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Invoice Ref:</span>
-                  <span className="font-mono font-medium">{challan.order_no}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Date:</span>
-                  <span>{formattedDate}</span>
-                </div>
-                <div className="pt-1 border-t border-slate-200">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Customer:</span>
-                    <span className="font-bold text-slate-900 truncate max-w-[240px]">{challan.customer_name}</span>
+              <div className="bg-slate-50 print:bg-transparent p-2 sm:p-2.5 rounded-xl border border-slate-200 text-[11px]">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                  <div className="flex justify-between font-bold">
+                    <span className="text-slate-500">ক্রমিক নং:</span>
+                    <span className="font-mono text-rose-900">{challan.challan_no}</span>
                   </div>
-                  {challan.customer_mobile && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Phone:</span>
-                      <span>{challan.customer_mobile}</span>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">তারিখ:</span>
+                    <span className="font-medium">{formattedDate}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">মেমো নং:</span>
+                    <span className="font-mono font-medium">{challan.order_no}</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-1">
+                    <span className="text-slate-500 whitespace-nowrap">গ্রাহকের নাম:</span>
+                    <span className="font-bold text-slate-900 text-right break-words">{challan.customer_name}</span>
+                  </div>
+                  <div className="flex justify-between items-start col-span-2 gap-2">
+                    <div className="flex items-start gap-1 text-slate-600 flex-1">
+                      <span className="text-slate-500 font-medium whitespace-nowrap">ঠিকানা:</span>
+                      <span className="break-words">{challan.delivery_address || challan.customer_address || "শো-রুম ডেলিভারি"}</span>
+                    </div>
+                    {challan.customer_mobile && (
+                      <div className="flex items-center gap-1 font-mono text-slate-800 whitespace-nowrap shrink-0">
+                        <span className="text-slate-500">মোবাইল:</span>
+                        <span>{challan.customer_mobile}</span>
+                      </div>
+                    )}
+                  </div>
+                  {(challan.vehicle_no || challan.driver_name) && (
+                    <div className="col-span-2 pt-0.5 border-t border-slate-200 text-[10px] text-slate-700">
+                      <span className="font-medium text-slate-500">যানবাহন:</span> {challan.vehicle_no || "N/A"} {challan.driver_name ? `(${challan.driver_name})` : ""}
                     </div>
                   )}
-                  <div className="flex items-start gap-1 text-slate-600 pt-0.5">
-                    <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
-                    <span className="truncate">{challan.delivery_address || challan.customer_address || "Showroom Handover"}</span>
-                  </div>
                 </div>
-
-                {(challan.vehicle_no || challan.driver_name) && (
-                  <div className="pt-1 border-t border-slate-200 text-[10px] text-slate-700">
-                    <span className="font-medium text-slate-500">Vehicle:</span> {challan.vehicle_no || "N/A"} {challan.driver_name ? `(${challan.driver_name})` : ""}
-                  </div>
-                )}
               </div>
 
               {/* Tiles Line Items Table */}
-              <div className="overflow-hidden rounded-xl border border-slate-200">
-                <table className="w-full text-left border-collapse text-[11px]">
+              <div className="overflow-hidden rounded-xl border border-slate-200 print:bg-transparent">
+                <table className="w-full text-left border-collapse text-[11px] print:bg-transparent">
                   <thead>
-                    <tr className="bg-[#991b1b] text-white font-bold text-[10px]">
-                      <th className="py-1.5 px-2 w-7 text-center">#</th>
-                      <th className="py-1.5 px-2">Description</th>
-                      <th className="py-1.5 px-1.5 text-center">Size</th>
-                      <th className="py-1.5 px-2 text-right">Qty</th>
-                      <th className="py-1.5 px-1.5 text-center">Unit</th>
+                    <tr className="bg-[#991b1b] print:bg-transparent print:text-black text-white font-bold text-[10px]">
+                      <th className="py-1 px-2 w-7 text-center">#</th>
+                      <th className="py-1 px-2">বিবরণ</th>
+                      <th className="py-1 px-1.5 text-center">সাইজ</th>
+                      <th className="py-1 px-2 text-right">পরিমাণ</th>
+                      <th className="py-1 px-1.5 text-center">একক</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 text-slate-800">
+                  <tbody className="divide-y divide-slate-200 text-slate-800 print:bg-transparent">
                     {challan.items.map((item, idx) => {
                       const isTile = Boolean(
                         item.tile_size ||
@@ -247,20 +308,21 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
                           : "Pcs"
                         : item.unit || "Pcs";
                       return (
-                        <tr key={item.id || idx} className="hover:bg-slate-50/50">
-                          <td className="py-1.5 px-2 text-center text-slate-500 font-mono text-[10px]">
+                        <tr key={item.id || idx} className="hover:bg-slate-50/50 print:bg-transparent">
+                          <td className="py-1 px-2 text-center text-slate-500 font-mono text-[10px]">
                             {idx + 1}
                           </td>
-                          <td className="py-1.5 px-2 font-semibold text-slate-900 leading-tight">
+                          <td className="py-1 px-2 font-semibold text-slate-900 leading-tight">
                             {item.product_name}
+                            {item.grade ? ` (${item.grade})` : ""}
                           </td>
-                          <td className="py-1.5 px-1.5 text-center text-slate-600 text-[10px]">
+                          <td className="py-1 px-1.5 text-center text-slate-600 text-[10px]">
                             {item.tile_size || "-"}
                           </td>
-                          <td className="py-1.5 px-2 text-right font-bold font-mono text-slate-900 whitespace-nowrap">
+                          <td className="py-1 px-2 text-right font-bold font-mono text-slate-900 whitespace-nowrap">
                             {displayQty}
                           </td>
-                          <td className="py-1.5 px-1.5 text-center text-slate-600 text-[10px] whitespace-nowrap">
+                          <td className="py-1 px-1.5 text-center text-slate-600 text-[10px] whitespace-nowrap">
                             {displayUnit}
                           </td>
                         </tr>
@@ -268,11 +330,11 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-slate-100 border-t-2 border-slate-300 font-bold text-slate-900 text-[11px]">
-                      <td colSpan={3} className="py-1.5 px-2 text-right uppercase text-[10px]">
-                        Total Dispatch:
+                    <tr className="bg-slate-100 print:bg-transparent border-t-2 border-slate-300 font-bold text-slate-900 text-[11px]">
+                      <td colSpan={3} className="py-1 px-2 text-right uppercase text-[10px]">
+                        মোট চালান:
                       </td>
-                      <td colSpan={2} className="py-1.5 px-2 text-right font-mono font-black text-rose-900 whitespace-nowrap">
+                      <td colSpan={2} className="py-1 px-2 text-right font-mono font-black text-rose-900 whitespace-nowrap">
                         {formattedTotalDispatch}
                       </td>
                     </tr>
@@ -281,36 +343,39 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
               </div>
 
               {/* Note & Inspection Notice */}
-              <div className="p-2 bg-amber-50/80 rounded-lg border border-amber-200 text-[10px] text-amber-900">
-                <span className="font-bold">Notice:</span> Inspect tiles boxes for breakage before delivery handover.
+              <div className="p-1.5 bg-amber-50/80 print:bg-transparent rounded-lg border border-amber-200 text-[9.5px] text-amber-900">
+                <span className="font-bold">সতর্কতা:</span> মাল ডেলিভারি গ্রহণের পূর্বে টাইলসের কার্টুন ও অক্ষত অবস্থা যাচাই করে নিন।
                 {challan.note && (
                   <p className="mt-0.5 text-slate-800 font-medium">
-                    <strong>Note:</strong> {challan.note}
+                    <strong>নোট:</strong> {challan.note}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Signature Protocol & Footer (Always pinned at bottom in print) */}
-            <div className="challan-footer-wrapper mt-auto pt-6 space-y-2">
+            {/* Signature Protocol & Footer */}
+            <div className="challan-footer-wrapper pt-4 space-y-1.5 relative z-10 print:pt-2">
               <div className="grid grid-cols-2 gap-4 text-center text-[9px] font-semibold text-slate-600 uppercase tracking-wider">
                 <div>
                   <div className="border-t border-slate-400 pt-1 w-4/5 mx-auto font-bold text-slate-800">
-                    Delivered By
+                    ডেলিভারি প্রদানকারী
                   </div>
                 </div>
                 <div>
                   <div className="border-t border-slate-400 pt-1 w-4/5 mx-auto font-bold text-slate-800">
-                    Customer Received
+                    গ্রহীতার স্বাক্ষর
                   </div>
                 </div>
               </div>
 
               {/* Footer Brand */}
-              <div className="pt-2 text-center text-[9px] text-slate-400 border-t border-slate-200">
+              <div className="pt-1 text-center text-[8.5px] text-slate-400 border-t border-slate-200">
                 RUNA TRADERS &bull; Software By CodeNext IT
               </div>
             </div>
+
+            {/* Bare Page Number for Print (1, 2, 3...) */}
+            <div className="print-page-number" />
           </div>
         </div>
       </div>

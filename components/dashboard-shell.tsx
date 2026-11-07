@@ -40,7 +40,7 @@ export function DashboardShell({
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-[#0b0f19] transition-colors">
+    <div className="min-h-screen flex bg-slate-50 dark:bg-[#0b0f19] transition-colors print:bg-white print:block">
       {/* Sidebar: Expanded (215px) or Collapsed (70px) + Mobile Drawer */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -61,7 +61,7 @@ export function DashboardShell({
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out print:ml-0 print:p-0 ${
           isCollapsed ? "lg:ml-[70px]" : "lg:ml-[215px]"
         }`}
       >
@@ -69,7 +69,7 @@ export function DashboardShell({
         <Topbar onToggleSidebar={handleToggleSidebar} />
 
         {/* Page Content Viewport */}
-        <main className="flex-1 p-2.5 sm:p-4 md:p-6 transition-all">
+        <main className="flex-1 p-2.5 sm:p-4 md:p-6 transition-all print:p-0 print:m-0">
           {children}
         </main>
       </div>

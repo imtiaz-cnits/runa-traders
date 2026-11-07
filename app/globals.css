@@ -197,9 +197,9 @@ table thead th {
   }
 }
 
-/* Global Print Page Margin (10px gap all around) */
+/* Global Print Page Margin (20px gap all around) */
 @page {
-  margin: 10px;
+  margin: 20px;
 }
 
 
@@ -354,4 +354,66 @@ button[data-date-picker-trigger]:focus-visible:not(:disabled) {
   outline: none !important;
   border-color: #e11d48 !important;
   box-shadow: 0 0 0 2.5px rgba(244, 63, 94, 0.25) !important;
+}
+
+/* ==========================================================================
+   GLOBAL PRINT STANDARDS & PAGE NUMBERING RULES
+   ========================================================================== */
+.print-page-number {
+  display: none;
+}
+
+@media print {
+  /* Enforce clean white background and dark text */
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Universal hiding of top navigation, sidebar, and non-printable widgets */
+  header,
+  aside,
+  nav,
+  footer,
+  [data-sidebar],
+  .no-print,
+  .print-hidden {
+    display: none !important;
+  }
+
+  /* Multi-page table heading repetition standard */
+  table thead {
+    display: table-header-group !important;
+  }
+
+  table tbody tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  table tfoot {
+    display: table-footer-group !important;
+  }
+
+  /* Bare digit page number display (1, 2, 3...) */
+  .print-page-number {
+    display: none !important;
+  }
+
+  @page {
+    margin: 20px 20px 28px 20px;
+    @bottom-right {
+      content: counter(page);
+      font-family: 'Valley Sans', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      color: #000000;
+      vertical-align: top;
+      padding-right: 5px;
+    }
+  }
 }

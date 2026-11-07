@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
+import { FreshWatermark } from "@/components/common/fresh-watermark";
 
 interface StatementSummary {
   opening_balance: number;
@@ -94,19 +95,60 @@ export default function IncomeExpensePage() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* 1. Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
+    <div className="space-y-4 font-sans relative print:space-y-2 print:flex print:flex-col print:justify-between print:min-h-[calc(297mm-48px)]">
+      {/* Fresh Ceramics Watermark centered in width & height */}
+      <FreshWatermark />
+      {/* Print-Only Company Statement Header (Matching Invoice Layout: Left, Center, Right) */}
+      <div className="hidden print:flex justify-between items-start pb-2 mb-2 border-b border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] text-black">
+        {/* Left: Brand Logo & Name */}
+        <div className="flex items-start gap-2 shrink-0">
+          <div className="w-8 h-8 rounded border-2 border-black flex items-center justify-center font-black text-base text-black bg-white shrink-0">
+            RT
+          </div>
+          <div className="flex flex-col">
+            <h1 className="text-lg font-black tracking-wide text-black m-0 leading-tight">
+              RUNA TRADERS
+            </h1>
+            <div className="text-[10px] font-bold text-black border-t border-black pt-0.5 mt-0.5 leading-tight">
+              All Kinds of Tiles, Sanitary &<br />Fittings Supplier
+            </div>
+          </div>
+        </div>
+
+        {/* Center: Report Title & Period */}
+        <div className="text-center px-2 flex-1">
+          <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-black m-0 leading-tight">
+            Income &amp; Expense Statement
+          </h2>
+          <div className="text-[10.5px] font-bold text-slate-800 mt-0.5">
+            প্রাপ্তি-পরিশোধ বিবরণী
+          </div>
+          <div className="text-[9px] text-slate-600 mt-0.5 font-medium">
+            Period: {startDate} to {endDate} &bull; Date: {new Date().toLocaleDateString("en-GB")}
+          </div>
+        </div>
+
+        {/* Right: Office Info */}
+        <div className="text-right text-[10px] text-black leading-tight shrink-0 max-w-[220px]">
+          <div><strong>Office:</strong> Success Super Market,</div>
+          <div>Sadar Police Fari, Ataikula Road, Pabna.</div>
+          <div><strong>Mobile:</strong> 01975-703216, 01715-842083</div>
+          <div><strong>E-mail:</strong> runatraders2018@gmail.com</div>
+        </div>
+      </div>
+
+      {/* 1. Header & Actions (Hidden in Print) */}
+      <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 dark:bg-emerald-950/50 dark:text-emerald-400 border border-rose-100 dark:border-slate-800 flex items-center justify-center shrink-0">
             <Scale className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white m-0 leading-tight">
-              Income & Expense Statement (প্রাপ্তি-পরিশোধ বিবরণী)
+              Income &amp; Expense Statement (প্রাপ্তি-পরিশোধ বিবরণী)
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 m-0">
-              Complete receipts & payments accounting with categorized breakdown
+              Complete receipts &amp; payments accounting with categorized breakdown
             </p>
           </div>
         </div>
@@ -120,59 +162,63 @@ export default function IncomeExpensePage() {
         </button>
       </div>
 
-      {/* 2. Top Summary KPI Row */}
+      {/* 2. Top Summary KPI Row (2 Columns in Print, Compact, No Icons, Right Aligned Amount) */}
       {summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-          <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
-              <span>Opening Balance</span>
-              <Coins className="w-4 h-4 text-amber-600" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 print:grid-cols-2 gap-2.5 sm:gap-3 print:gap-2">
+          <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
+            <div>
+              <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
+                Opening Balance
+              </div>
+              <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">Initial cash float</div>
             </div>
-            <div className="text-xl font-black text-amber-600 dark:text-amber-400 mt-1">
+            <div className="text-xl print:text-sm font-black text-amber-600 dark:text-amber-400 print:text-black mt-1 print:mt-0 print:text-right shrink-0">
               {formatBdCurrency(summary.opening_balance)}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Initial cash float</div>
           </div>
 
-          <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
-              <span>Total Receipts (জমা)</span>
-              <ArrowDownLeft className="w-4 h-4 text-emerald-600" />
+          <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
+            <div>
+              <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
+                Total Receipts (জমা)
+              </div>
+              <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">Sales & customer dues</div>
             </div>
-            <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+            <div className="text-xl print:text-sm font-black text-emerald-600 dark:text-emerald-400 print:text-black mt-1 print:mt-0 print:text-right shrink-0">
               +{formatBdCurrency(summary.total_inflow)}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Sales & customer dues</div>
           </div>
 
-          <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
-              <span>Total Payments (খরচ)</span>
-              <ArrowUpRight className="w-4 h-4 text-rose-600" />
+          <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
+            <div>
+              <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
+                Total Payments (খরচ)
+              </div>
+              <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">Overheads & suppliers</div>
             </div>
-            <div className="text-xl font-black text-rose-600 dark:text-rose-400 mt-1">
+            <div className="text-xl print:text-sm font-black text-rose-600 dark:text-rose-400 print:text-black mt-1 print:mt-0 print:text-right shrink-0">
               -{formatBdCurrency(summary.total_outflow)}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Overheads & suppliers</div>
           </div>
 
-          <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
-              <span>Closing Balance</span>
-              <Wallet className="w-4 h-4 text-emerald-600" />
+          <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
+            <div>
+              <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
+                Closing Balance
+              </div>
+              <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">
+                Net: {formatBdCurrency(summary.net_cash_flow)}
+              </div>
             </div>
-            <div className="text-xl font-black text-slate-900 dark:text-white mt-1">
+            <div className="text-xl print:text-sm font-black text-slate-900 dark:text-white print:text-black mt-1 print:mt-0 print:text-right shrink-0">
               {formatBdCurrency(summary.closing_balance)}
-            </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">
-              Net: {formatBdCurrency(summary.net_cash_flow)}
             </div>
           </div>
         </div>
       )}
 
-      {/* 3. Date Range Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-3 rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
+      {/* 3. Date Range Controls (Hidden in Print) */}
+      <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-3 rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
         <div className="flex items-center gap-1.5 flex-wrap">
           <div className="w-[135px]">
             <CustomDatePicker
@@ -213,10 +259,10 @@ export default function IncomeExpensePage() {
         </div>
       </div>
 
-      {/* 4. Two-Column Dual Financial Ledger (Receipts vs Payments) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* 4. Two-Column Dual Financial Ledger (Receipts vs Payments - Always Visible in Print) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-4 print:gap-3">
         {/* Left Card: Cash Receipts / Inflow */}
-        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden print:border-slate-300 print:shadow-none">
           <div className="modal-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-4 py-3 flex items-center justify-between text-white font-bold text-xs uppercase tracking-wider">
             <div className="flex items-center gap-2">
               <ArrowDownLeft className="w-4 h-4 text-emerald-200" />
@@ -260,7 +306,7 @@ export default function IncomeExpensePage() {
         </div>
 
         {/* Right Card: Cash Payments / Outflow */}
-        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden print:border-slate-300 print:shadow-none">
           <div className="bg-rose-700 px-4 py-3 flex items-center justify-between text-white font-bold text-xs uppercase tracking-wider">
             <div className="flex items-center gap-2">
               <ArrowUpRight className="w-4 h-4 text-rose-200" />
@@ -279,7 +325,7 @@ export default function IncomeExpensePage() {
               {expenses.length === 0 ? (
                 <div className="text-xs text-slate-400 py-2">No operating expenses</div>
               ) : (
-                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                <div className="space-y-1.5 max-h-48 print:max-h-none overflow-y-auto print:overflow-visible pr-1">
                   {expenses.map((exp, idx) => (
                     <div
                       key={idx}
@@ -306,7 +352,7 @@ export default function IncomeExpensePage() {
               {suppliers.length === 0 ? (
                 <div className="text-xs text-slate-400 py-1">No supplier payments</div>
               ) : (
-                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                <div className="space-y-1.5 max-h-36 print:max-h-none overflow-y-auto print:overflow-visible pr-1">
                   {suppliers.map((sup, idx) => (
                     <div
                       key={idx}
@@ -333,6 +379,55 @@ export default function IncomeExpensePage() {
           </div>
         </div>
       </div>
+
+      {/* Print Signature & Page Number */}
+      <div className="print-signatures hidden print:flex justify-between items-end pt-8 pb-1 print:mt-auto text-xs font-semibold text-black">
+        <div className="w-36 text-center border-t border-black pt-1">Prepared By</div>
+        <div className="w-36 text-center border-t border-black pt-1">Authorized Signature</div>
+      </div>
+      <div className="print-page-number" />
+
+      {/* Print Media Styling */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 20px 20px 28px 20px;
+            @bottom-right {
+              content: counter(page);
+              font-family: 'Valley Sans', sans-serif;
+              font-size: 10px;
+              font-weight: 700;
+              color: #000000;
+              vertical-align: top;
+              padding-right: 5px;
+            }
+          }
+          html,
+          body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+          }
+          header,
+          aside,
+          nav,
+          footer,
+          [data-sidebar],
+          .no-print {
+            display: none !important;
+          }
+          .print-page-number {
+            display: none !important;
+          }
+          .print-signatures {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

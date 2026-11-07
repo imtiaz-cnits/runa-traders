@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Printer, ArrowLeft, Loader2 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { formatTileOrItemQty } from "@/lib/tiles-calculator";
+import { FreshWatermark } from "@/components/common/fresh-watermark";
 
 interface InvoiceDetail {
   id: number;
@@ -198,27 +199,30 @@ export default function InvoiceBillPage({
           boxSizing: "border-box",
         }}
       >
-        <div className="sheet-top-content">
+        {/* Fresh Ceramics Watermark centered in width & height */}
+        <FreshWatermark />
+
+        <div className="sheet-top-content relative z-10">
           {/* Header: Responsive on Mobile, Horizontal on Desktop & Print */}
           <div className="flex flex-col sm:flex-row print:flex-row justify-between items-center sm:items-start print:items-start gap-3 sm:gap-2 print:gap-0 pb-2 border-b border-slate-200">
             {/* Brand Logo & Name */}
-            <div className="flex items-start gap-2.5">
-              <div className="w-11 h-11 rounded-lg border-2 border-[#15803d] flex items-center justify-center font-black text-xl text-[#991b1b] bg-white shrink-0 shadow-xs">
+            <div className="flex items-start gap-2">
+              <div className="invoice-logo-box w-9 h-9 sm:w-9 sm:h-9 print:w-8 print:h-8 rounded-lg border-2 border-[#15803d] flex items-center justify-center font-black text-lg print:text-base text-[#991b1b] bg-white shrink-0 shadow-xs">
                 RT
               </div>
               <div className="flex flex-col">
                 <h1 className="text-lg sm:text-xl print:text-xl font-black tracking-wide text-[#15803d] m-0 leading-tight">
                   RUNA TRADERS
                 </h1>
-                <div className="text-[8px] sm:text-[9px] print:text-[9px] font-bold text-[#166534] border-t border-[#15803d] pt-0.5 mt-0.5 whitespace-normal sm:whitespace-nowrap print:whitespace-nowrap">
-                  All Kinds of Tiles, Sanitary & Fittings Supplier
+                <div className="text-[10px] sm:text-[10.5px] print:text-[10px] font-bold text-[#166534] border-t border-[#15803d] pt-0.5 mt-0.5 leading-tight">
+                  All Kinds of Tiles, Sanitary &<br />Fittings Supplier
                 </div>
               </div>
             </div>
 
             {/* Middle "Bill" Badge */}
             <div className="self-center">
-              <span className="px-4 sm:px-5 py-0.5 sm:py-1 print:py-1 rounded bg-[#15803d] text-white font-serif font-black text-base sm:text-lg print:text-lg tracking-wider">
+              <span className="invoice-bill-badge px-3.5 py-0.5 rounded bg-[#15803d] text-white font-serif font-black text-sm sm:text-base print:text-base tracking-wider">
                 Bill
               </span>
             </div>
@@ -323,82 +327,82 @@ export default function InvoiceBillPage({
                 ))}
               </tbody>
             </table>
+
+            {/* Total Amount Table Box attached to bottom right of main table */}
+            <div className="flex justify-end -mt-[1px]">
+              <div className="w-full sm:w-[40%] print:w-[40%]">
+                <table className="w-full border-collapse border border-black text-[12px]">
+                  <tbody>
+                    <tr className="border-b border-black">
+                      <td className="border border-black py-1 px-2 font-bold bg-slate-50 w-1/2">
+                        Total Bill
+                      </td>
+                      <td className="border border-black py-1 px-2 text-right font-mono font-bold w-1/2">
+                        {totalBill.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                    <tr className="border-b border-black">
+                      <td className="border border-black py-1 px-2 font-bold bg-slate-50">
+                        Net Amount
+                      </td>
+                      <td className="border border-black py-1 px-2 text-right font-mono font-bold">
+                        {netAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                    <tr className="border-b border-black">
+                      <td className="border border-black py-1 px-2 font-bold bg-slate-50">
+                        Paid Amount
+                      </td>
+                      <td className="border border-black py-1 px-2 text-right font-mono font-bold text-emerald-800">
+                        {paidAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                    <tr className="border-b border-black">
+                      <td className="border border-black py-1 px-2 font-bold bg-slate-50">
+                        Today Due
+                      </td>
+                      <td className="border border-black py-1 px-2 text-right font-mono font-bold text-rose-700">
+                        {todayDue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                    <tr className="border-b border-black">
+                      <td className="border border-black py-1 px-2 font-bold bg-slate-50">
+                        Previous Due
+                      </td>
+                      <td className="border border-black py-1 px-2 text-right font-mono font-bold">
+                        {prevDue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-black py-1 px-2 font-black bg-slate-100">
+                        Total Due
+                      </td>
+                      <td className="border border-black py-1 px-2 text-right font-mono font-black text-rose-800 text-[13px]">
+                        {grandTotalDue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* 3. BOTTOM SUMMARY SECTION */}
-        <div className="sheet-bottom-content mt-auto pt-2">
-          <div className="flex flex-col sm:flex-row print:flex-row items-start sm:items-end print:items-end justify-between gap-4 mb-6">
-            {/* In Words */}
-            <div className="w-full sm:w-[58%] print:w-[58%] text-[12px]">
-              <div className="flex items-end">
-                <span className="font-semibold whitespace-nowrap mr-1">In Words:</span>
-                <span className="flex-1 border-b border-dotted border-black font-bold pl-1 italic">
-                  {numberToWords(netAmount)} Taka Only
-                </span>
+        <div className="sheet-bottom-content mt-auto pt-4 relative z-10">
+          {/* In Words */}
+          <div className="w-full text-[12px] mb-6">
+            <div className="flex items-end">
+              <span className="font-semibold whitespace-nowrap mr-1">In Words:</span>
+              <span className="flex-1 border-b border-dotted border-black font-bold pl-1 italic">
+                {numberToWords(netAmount)} Taka Only
+              </span>
+            </div>
+            {invoice.order_note && (
+              <div className="mt-2 text-[11px] text-slate-700">
+                <strong>Note:</strong> {invoice.order_note}
               </div>
-              {invoice.order_note && (
-                <div className="mt-2 text-[11px] text-slate-700">
-                  <strong>Note:</strong> {invoice.order_note}
-                </div>
-              )}
-            </div>
-
-            {/* Totals Table matching screenshot 5 */}
-            <div className="w-full sm:w-[40%] print:w-[40%]">
-              <table className="w-full border-collapse border border-black text-[12px]">
-                <tbody>
-                  <tr className="border-b border-black">
-                    <td className="border border-black py-1 px-2 font-bold bg-slate-50 w-1/2">
-                      Total Bill
-                    </td>
-                    <td className="border border-black py-1 px-2 text-right font-mono font-bold w-1/2">
-                      {totalBill.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-black">
-                    <td className="border border-black py-1 px-2 font-bold bg-slate-50">
-                      Net Amount
-                    </td>
-                    <td className="border border-black py-1 px-2 text-right font-mono font-bold">
-                      {netAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-black">
-                    <td className="border border-black py-1 px-2 font-bold bg-slate-50">
-                      Paid Amount
-                    </td>
-                    <td className="border border-black py-1 px-2 text-right font-mono font-bold text-emerald-800">
-                      {paidAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-black">
-                    <td className="border border-black py-1 px-2 font-bold bg-slate-50">
-                      Today Due
-                    </td>
-                    <td className="border border-black py-1 px-2 text-right font-mono font-bold text-rose-700">
-                      {todayDue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-black">
-                    <td className="border border-black py-1 px-2 font-bold bg-slate-50">
-                      Previous Due
-                    </td>
-                    <td className="border border-black py-1 px-2 text-right font-mono font-bold">
-                      {prevDue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-black py-1 px-2 font-black bg-slate-100">
-                      Total Due
-                    </td>
-                    <td className="border border-black py-1 px-2 text-right font-mono font-black text-rose-800 text-[13px]">
-                      {grandTotalDue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            )}
           </div>
 
           {/* Signatures */}
@@ -412,16 +416,33 @@ export default function InvoiceBillPage({
           </div>
 
           {/* Bottom Dual Color Accent Bar matching MARSS screenshot 5 */}
-          <div className="flex h-3 w-[calc(100%+2rem)] sm:w-[calc(100%+4rem)] -mx-4 sm:-mx-8 -mb-4 sm:-mb-8 mt-4">
+          <div className="print:hidden flex h-3 w-[calc(100%+2rem)] sm:w-[calc(100%+4rem)] -mx-4 sm:-mx-8 -mb-4 sm:-mb-8 mt-4">
             <div className="w-1/2 bg-[#dc2626]"></div>
             <div className="w-1/2 bg-[#15803d]"></div>
           </div>
         </div>
+
+        {/* Bare Page Number for Print (1, 2, 3...) */}
+        <div className="print-page-number" />
       </div>
 
       {/* PRINT-SPECIFIC CSS */}
       <style jsx global>{`
         @media print {
+          @page {
+            size: A4 portrait;
+            margin: 20px 20px 28px 20px;
+            @bottom-right {
+              content: counter(page);
+              font-family: 'Valley Sans', sans-serif;
+              font-size: 10px;
+              font-weight: 700;
+              color: #000000;
+              vertical-align: top;
+              padding-right: 5px;
+            }
+          }
+          html,
           body {
             background-color: #ffffff !important;
             color: #000000 !important;
@@ -438,17 +459,64 @@ export default function InvoiceBillPage({
             display: none !important;
           }
           #invoicePrintSheet {
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            min-height: calc(297mm - 48px) !important;
             border: none !important;
             box-shadow: none !important;
-            margin: 0 auto !important;
-            padding: 15px 20px !important;
+            margin: 0 !important;
+            padding: 0 !important;
             width: 100% !important;
             max-width: 100% !important;
-            min-height: auto !important;
+            box-sizing: border-box !important;
           }
-          @page {
-            size: A4 portrait;
-            margin: 10mm;
+          #invoicePrintSheet .sheet-top-content {
+            flex: 1 0 auto !important;
+          }
+          #invoicePrintSheet .sheet-bottom-content {
+            margin-top: auto !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .print-page-number {
+            display: none !important;
+          }
+          /* All text and borders solid black, no gray or light colors */
+          #invoicePrintSheet,
+          #invoicePrintSheet * {
+            color: #000000 !important;
+            border-color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+          }
+          #invoicePrintSheet .bg-slate-50,
+          #invoicePrintSheet .bg-slate-100 {
+            background-color: transparent !important;
+          }
+          #invoicePrintSheet .invoice-logo-box {
+            border-color: #000000 !important;
+            color: #000000 !important;
+          }
+          #invoicePrintSheet .invoice-bill-badge {
+            background: transparent !important;
+            color: #000000 !important;
+            font-size: 16px !important;
+            padding: 0 !important;
+          }
+          #invoicePrintSheet table {
+            page-break-inside: auto !important;
+            width: 100% !important;
+          }
+          #invoicePrintSheet table thead {
+            display: table-header-group !important;
+          }
+          #invoicePrintSheet table tbody tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          #invoicePrintSheet .sheet-bottom-content {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
       `}</style>

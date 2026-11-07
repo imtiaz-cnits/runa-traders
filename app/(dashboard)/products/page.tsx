@@ -31,6 +31,7 @@ import {
 } from "@/lib/tiles-calculator";
 import { CustomSelect, Pagination, DeleteConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
+import { FreshWatermark } from "@/components/common/fresh-watermark";
 
 interface ProductItem {
   id: number;
@@ -551,13 +552,24 @@ export default function ProductsPage() {
   const displayedProducts = filteredProducts.slice(startIndex, startIndex + pageSize);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative print:min-h-[calc(297mm-48px)]">
+      {/* Fresh Ceramics Watermark centered in width & height */}
+      <FreshWatermark />
       {/* Print-Only Styles and Dedicated Report Template */}
       <style jsx global>{`
         @media print {
           @page {
             size: A4 portrait;
-            margin: 10px !important;
+            margin: 20px 20px 28px 20px;
+            @bottom-right {
+              content: counter(page);
+              font-family: 'Valley Sans', sans-serif;
+              font-size: 10px;
+              font-weight: 700;
+              color: #000000;
+              vertical-align: top;
+              padding-right: 5px;
+            }
           }
           body {
             background: #ffffff !important;

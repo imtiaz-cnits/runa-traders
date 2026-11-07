@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
 import { Pagination } from "@/components/ui";
+import { FreshWatermark } from "@/components/common/fresh-watermark";
 
 interface ProductItem {
   id: number;
@@ -86,16 +87,58 @@ export default function StockOutReportPage() {
   const displayedProducts = products.slice(startIndex, startIndex + pageSize);
 
   return (
-    <div className="space-y-4">
-      {/* 1. Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
+    <div className="space-y-4 font-sans relative print:space-y-2 print:flex print:flex-col print:justify-between print:min-h-[calc(297mm-48px)]">
+      {/* Fresh Ceramics Watermark centered in width & height */}
+      <FreshWatermark />
+      {/* Print-Only Company Statement Header (Matching Invoice Layout: Left, Center, Right) */}
+      <div className="hidden print:flex justify-between items-start pb-2 mb-2 border-b border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] text-black">
+        {/* Left: Brand Logo & Name */}
+        <div className="flex items-start gap-2 shrink-0">
+          <div className="w-8 h-8 rounded border-2 border-black flex items-center justify-center font-black text-base text-black bg-white shrink-0">
+            RT
+          </div>
+          <div className="flex flex-col">
+            <h1 className="text-lg font-black tracking-wide text-black m-0 leading-tight">
+              RUNA TRADERS
+            </h1>
+            <div className="text-[10px] font-bold text-black border-t border-black pt-0.5 mt-0.5 leading-tight">
+              All Kinds of Tiles, Sanitary &<br />Fittings Supplier
+            </div>
+          </div>
+        </div>
+
+        {/* Center: Report Title & Period */}
+        <div className="text-center px-2 flex-1">
+          <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-black m-0 leading-tight">
+            Stock-Out Warning Report
+          </h2>
+          <div className="text-[10.5px] font-bold text-slate-800 mt-0.5">
+            মজুদ ঘাটতি ও লো-স্টক সতর্কতা বিবরণী
+          </div>
+          <div className="text-[9.5px] text-black mt-0.5 font-medium">
+            Filter: {activeTab === "critical" ? "All Critical (≤ 5)" : activeTab === "out_of_stock" ? "Out of Stock (0)" : activeTab === "low_stock" ? "Low Stock (1-5)" : "All Catalog"}{" "}
+            &bull; Date: {new Date().toLocaleDateString("en-GB")}
+          </div>
+        </div>
+
+        {/* Right: Office Info */}
+        <div className="text-right text-[10px] text-black leading-tight shrink-0 max-w-[220px]">
+          <div><strong>Office:</strong> Success Super Market,</div>
+          <div>Sadar Police Fari, Ataikula Road, Pabna.</div>
+          <div><strong>Mobile:</strong> 01975-703216, 01715-842083</div>
+          <div><strong>E-mail:</strong> runatraders2018@gmail.com</div>
+        </div>
+      </div>
+
+      {/* 1. Header & Actions (Hidden in Print) */}
+      <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 flex items-center justify-center shrink-0">
             <PackageX className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white m-0 leading-tight">
-              Stock-Out & Low Inventory Warning Center
+              Stock-Out &amp; Low Inventory Warning Center
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 m-0">
               Immediate restocking alerts, depleted inventory lists, and fast-moving demand
@@ -122,58 +165,62 @@ export default function StockOutReportPage() {
         </div>
       </div>
 
-      {/* 2. Four KPI Warning Cards */}
+      {/* 2. Four KPI Warning Cards (2 Columns in Print, Compact, No Icons, Right Aligned Amount) */}
       {summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-          <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-rose-200 dark:border-rose-900/50 shadow-xs">
-            <div className="flex items-center justify-between text-rose-600 text-xs font-bold">
-              <span>Out of Stock (Zero Stock)</span>
-              <PackageX className="w-4 h-4" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 print:grid-cols-2 gap-2.5 sm:gap-3 print:gap-2">
+          <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-rose-200 dark:border-rose-900/50 print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
+            <div>
+              <div className="text-rose-600 print:text-slate-700 text-xs print:text-[10px] font-bold">
+                Out of Stock (Zero Stock)
+              </div>
+              <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">Completely depleted</div>
             </div>
-            <div className="text-xl font-black text-rose-600 mt-1">
+            <div className="text-xl print:text-sm font-black text-rose-600 print:text-black mt-1 print:mt-0 print:text-right shrink-0">
               {summary.out_of_stock_count} Items
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Completely depleted</div>
           </div>
 
-          <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-amber-200 dark:border-amber-900/50 shadow-xs">
-            <div className="flex items-center justify-between text-amber-600 text-xs font-bold">
-              <span>Low Stock Warning (≤ 5 pcs)</span>
-              <AlertTriangle className="w-4 h-4" />
+          <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-amber-200 dark:border-amber-900/50 print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
+            <div>
+              <div className="text-amber-600 print:text-slate-700 text-xs print:text-[10px] font-bold">
+                Low Stock Warning (≤ 5 pcs)
+              </div>
+              <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">Reorder recommended</div>
             </div>
-            <div className="text-xl font-black text-amber-600 mt-1">
+            <div className="text-xl print:text-sm font-black text-amber-600 print:text-black mt-1 print:mt-0 print:text-right shrink-0">
               {summary.low_stock_count} Items
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Reorder recommended</div>
           </div>
 
-          <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-              <span>Healthy Inventory</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
+            <div>
+              <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
+                Healthy Inventory
+              </div>
+              <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">Sufficient stock available</div>
             </div>
-            <div className="text-xl font-black text-emerald-600 mt-1">
+            <div className="text-xl print:text-sm font-black text-emerald-600 print:text-black mt-1 print:mt-0 print:text-right shrink-0">
               {summary.healthy_stock_count} Items
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Sufficient stock available</div>
           </div>
 
-          <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-              <span>Estimated Restock Cost</span>
-              <TrendingUp className="w-4 h-4 text-emerald-600" />
+          <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
+            <div>
+              <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
+                Estimated Restock Cost
+              </div>
+              <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">To replenish critical items</div>
             </div>
-            <div className="text-xl font-black text-slate-900 dark:text-white mt-1">
+            <div className="text-xl print:text-sm font-black text-slate-900 dark:text-white print:text-black mt-1 print:mt-0 print:text-right shrink-0">
               {formatBdCurrency(summary.estimated_restock_cost)}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">To replenish critical items</div>
           </div>
         </div>
       )}
 
-      {/* 3. Fast Movers Showcase Bar */}
+      {/* 3. Fast Movers Showcase Bar (Hidden in Print) */}
       {fastMovers.length > 0 && (
-        <div className="bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
+        <div className="print:hidden bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
           <div className="flex items-center gap-2 mb-3 text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">
             <Flame className="w-4 h-4 text-amber-500" />
             <span>Top Fast Moving Products (Customer Demand Leaderboard)</span>
@@ -213,8 +260,8 @@ export default function StockOutReportPage() {
         </div>
       )}
 
-      {/* 4. Filter Tabs & Search Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-3 rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
+      {/* 4. Filter Tabs & Search Controls (Hidden in Print) */}
+      <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-3 rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
             onClick={() => setActiveTab("critical")}
@@ -270,115 +317,119 @@ export default function StockOutReportPage() {
         </div>
       </div>
 
-      {/* 5. Desktop Critical Inventory Table (Strict Marss Corp Rule: Solid Emerald Header #15803d) */}
-      <div className="hidden md:block bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
-        <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
-              <th className="py-3 px-4 w-12 text-center">SL</th>
-              <th className="py-3 px-4">Product Name</th>
-              <th className="py-3 px-3">Category & Brand</th>
-              <th className="py-3 px-3 text-right">Cost Price (৳)</th>
-              <th className="py-3 px-3 text-right">Selling Price (৳)</th>
-              <th className="py-3 px-4 text-center">Current Stock</th>
-              <th className="py-3 px-4 text-center w-28">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {loading ? (
-              <tr>
-                <td colSpan={7} className="py-10 text-center text-slate-400">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-rose-600" />
-                  <span>Loading inventory items...</span>
-                </td>
+      {/* 5. Desktop Critical Inventory Table (Always Visible in Print) */}
+      <div className="hidden md:block print:block print:w-full bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden print:border-none print:shadow-none print:rounded-none">
+        <div className="overflow-x-auto print:overflow-visible">
+          <table id="stock-out-table" className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="table-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white font-bold whitespace-nowrap">
+                <th className="py-3 px-4 w-12 text-center">SL</th>
+                <th className="py-3 px-4">Product Name</th>
+                <th className="py-3 px-3">Category &amp; Brand</th>
+                <th className="py-3 px-3 text-right">Cost Price (৳)</th>
+                <th className="py-3 px-3 text-right">Selling Price (৳)</th>
+                <th className="py-3 px-4 text-center">Current Stock</th>
+                <th className="py-3 px-4 text-center w-28">Status</th>
               </tr>
-            ) : products.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-10 text-center text-slate-400 font-bold">
-                  No products found under this filter criteria.
-                </td>
-              </tr>
-            ) : (
-              displayedProducts.map((p, idx) => (
-                <tr
-                  key={p.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <td className="py-3 px-4 text-center text-slate-400 font-mono">
-                    {startIndex + idx + 1}
-                  </td>
-                  <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-100">
-                    <div>{p.product_name}</div>
-                    {p.product_code && (
-                      <div className="text-[10px] text-slate-400 font-mono">
-                        Code: {p.product_code}
-                      </div>
-                    )}
-                  </td>
-                  <td className="py-3 px-3">
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                      {p.category}
-                    </span>
-                    <span className="text-[11px] text-slate-400 block">{p.brand}</span>
-                  </td>
-                  <td className="py-3 px-3 text-right font-medium text-slate-600 dark:text-slate-400">
-                    {formatBdCurrency(p.product_cost)}
-                  </td>
-                  <td className="py-3 px-3 text-right font-black text-slate-900 dark:text-white">
-                    {formatBdCurrency(p.price)}
-                  </td>
-                  <td className="py-3 px-4 text-center font-black text-sm">
-                    <span
-                      className={
-                        p.stock <= 0
-                          ? "text-rose-600"
-                          : p.stock <= 5
-                          ? "text-amber-600"
-                          : "text-emerald-600"
-                      }
-                    >
-                      {p.stock} {p.unit}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <span
-                      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                        p.status === "out_of_stock"
-                          ? "bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800"
-                          : p.status === "low_stock"
-                          ? "bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
-                          : "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
-                      }`}
-                    >
-                      {p.status === "out_of_stock"
-                        ? "Out of Stock"
-                        : p.status === "low_stock"
-                        ? "Low Stock"
-                        : "Healthy"}
-                    </span>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="py-10 text-center text-slate-400">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-rose-600" />
+                    <span>Loading inventory items...</span>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : products.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-10 text-center text-slate-400 font-bold">
+                    No products found under this filter criteria.
+                  </td>
+                </tr>
+              ) : (
+                displayedProducts.map((p, idx) => (
+                  <tr
+                    key={p.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <td className="py-3 px-4 text-center text-slate-400 font-mono">
+                      {startIndex + idx + 1}
+                    </td>
+                    <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-100">
+                      <div>{p.product_name}</div>
+                      {p.product_code && (
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          Code: {p.product_code}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">
+                        {p.category}
+                      </span>
+                      <span className="text-[11px] text-slate-400 block">{p.brand}</span>
+                    </td>
+                    <td className="py-3 px-3 text-right font-medium text-slate-600 dark:text-slate-400">
+                      {formatBdCurrency(p.product_cost)}
+                    </td>
+                    <td className="py-3 px-3 text-right font-black text-slate-900 dark:text-white">
+                      {formatBdCurrency(p.price)}
+                    </td>
+                    <td className="py-3 px-4 text-center font-black text-sm">
+                      <span
+                        className={
+                          p.stock <= 0
+                            ? "text-rose-600"
+                            : p.stock <= 5
+                            ? "text-amber-600"
+                            : "text-emerald-600"
+                        }
+                      >
+                        {p.stock} {p.unit}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                          p.status === "out_of_stock"
+                            ? "bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800"
+                            : p.status === "low_stock"
+                            ? "bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                            : "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                        }`}
+                      >
+                        {p.status === "out_of_stock"
+                          ? "Out of Stock"
+                          : p.status === "low_stock"
+                          ? "Low Stock"
+                          : "Healthy"}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-        {/* Desktop Pagination */}
-        <Pagination
-          currentPage={currentPage}
-          totalItems={products.length}
-          pageSize={pageSize}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={(newSize) => {
-            setPageSize(newSize);
-            setCurrentPage(1);
-          }}
-          pageSizeOptions={[20, 50, 100, 200, 500]}
-        />
+        {/* Desktop Pagination (Hidden in Print) */}
+        <div className="print:hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={products.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
 
-      {/* 6. Mobile Cards View */}
-      <div className="block md:hidden space-y-2.5">
+      {/* 6. Mobile Cards View (Strictly Hidden in Print) */}
+      <div className="block md:hidden print:hidden space-y-2.5">
         {displayedProducts.map((p) => (
           <div
             key={p.id}
@@ -429,18 +480,129 @@ export default function StockOutReportPage() {
         ))}
 
         {/* Mobile Pagination */}
-        <Pagination
-          currentPage={currentPage}
-          totalItems={products.length}
-          pageSize={pageSize}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={(newSize) => {
-            setPageSize(newSize);
-            setCurrentPage(1);
-          }}
-          pageSizeOptions={[20, 50, 100, 200, 500]}
-        />
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={products.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[20, 50, 100, 200, 500]}
+          />
+        </div>
       </div>
+
+      {/* Print Signature & Page Number */}
+      <div className="print-signatures hidden print:flex justify-between items-end pt-8 pb-1 print:mt-auto text-xs font-semibold text-black">
+        <div className="w-36 text-center border-t border-black pt-1">Prepared By</div>
+        <div className="w-36 text-center border-t border-black pt-1">Authorized Signature</div>
+      </div>
+      <div className="print-page-number" />
+
+      {/* Print Media Styling */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 20px 20px 28px 20px;
+            @bottom-right {
+              content: counter(page);
+              font-family: 'Valley Sans', sans-serif;
+              font-size: 10px;
+              font-weight: 700;
+              color: #000000;
+              vertical-align: top;
+              padding-right: 5px;
+            }
+          }
+          html,
+          body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+          }
+          header,
+          aside,
+          nav,
+          footer,
+          [data-sidebar],
+          .no-print {
+            display: none !important;
+          }
+          .print-page-number {
+            display: none !important;
+          }
+          .print-signatures {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          #stock-out-table {
+            width: 100% !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+          }
+          #stock-out-table thead {
+            display: table-header-group !important;
+          }
+          #stock-out-table thead tr {
+            white-space: normal !important;
+            background: #881337 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          #stock-out-table th,
+          #stock-out-table td {
+            padding: 5px 4px !important;
+            font-size: 8.5px !important;
+            line-height: 1.2 !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+          }
+          #stock-out-table th:nth-child(1),
+          #stock-out-table td:nth-child(1) {
+            width: 6% !important;
+            text-align: center !important;
+          }
+          #stock-out-table th:nth-child(2),
+          #stock-out-table td:nth-child(2) {
+            width: 28% !important;
+          }
+          #stock-out-table th:nth-child(3),
+          #stock-out-table td:nth-child(3) {
+            width: 20% !important;
+          }
+          #stock-out-table th:nth-child(4),
+          #stock-out-table td:nth-child(4) {
+            width: 12% !important;
+            text-align: right !important;
+          }
+          #stock-out-table th:nth-child(5),
+          #stock-out-table td:nth-child(5) {
+            width: 12% !important;
+            text-align: right !important;
+          }
+          #stock-out-table th:nth-child(6),
+          #stock-out-table td:nth-child(6) {
+            width: 10% !important;
+            text-align: center !important;
+          }
+          #stock-out-table th:nth-child(7),
+          #stock-out-table td:nth-child(7) {
+            width: 12% !important;
+            text-align: center !important;
+          }
+          #stock-out-table tbody tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
