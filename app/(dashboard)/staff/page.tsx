@@ -546,7 +546,7 @@ export default function StaffPage() {
                 className="h-[30px] w-full px-3 rounded-lg bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1"
               >
                 <Banknote className="w-3.5 h-3.5" />
-                <span>Pay Salary</span>
+                <span>Salary</span>
               </button>
               <button
                 type="button"

@@ -13,6 +13,7 @@ import {
   Flame,
   Layers,
   ArrowRight,
+  RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
@@ -83,6 +84,11 @@ export default function StockOutReportPage() {
     loadData();
   }, [activeTab, search]);
 
+  const outOfStockCount = summary?.out_of_stock_count ?? 0;
+  const lowStockCount = summary?.low_stock_count ?? 0;
+  const criticalCount = outOfStockCount + lowStockCount;
+  const allCatalogCount = summary?.total_products ?? 0;
+
   const startIndex = (currentPage - 1) * pageSize;
   const displayedProducts = products.slice(startIndex, startIndex + pageSize);
 
@@ -146,28 +152,30 @@ export default function StockOutReportPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
           <Link
             href="/purchases"
-            className="h-[38px] px-3.5 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+            className="h-[38px] px-3 sm:px-3.5 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shrink-0 whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
-            <span>Create Purchase Order</span>
+            <span className="hidden sm:inline">Create Purchase Order</span>
+            <span className="sm:hidden">Create</span>
           </Link>
 
           <button
             onClick={() => window.print()}
-            className="h-[38px] px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-[#cbd5e1] dark:border-[#334155]"
+            className="h-[38px] px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-[#cbd5e1] dark:border-[#334155] shrink-0 whitespace-nowrap"
           >
             <Printer className="w-4 h-4" />
-            <span>Print Report</span>
+            <span className="hidden sm:inline">Print Report</span>
+            <span className="sm:hidden">Print</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Four KPI Warning Cards (2 Columns in Print, Compact, No Icons, Right Aligned Amount) */}
+      {/* 2. Four KPI Warning Cards (1 col mobile, 2 col sm, 4 col lg, 2 Columns in Print) */}
       {summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 print:grid-cols-2 gap-2.5 sm:gap-3 print:gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-2 gap-2.5 sm:gap-3 print:gap-2">
           <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-rose-200 dark:border-rose-900/50 print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
             <div>
               <div className="text-rose-600 print:text-slate-700 text-xs print:text-[10px] font-bold">
@@ -262,47 +270,73 @@ export default function StockOutReportPage() {
 
       {/* 4. Filter Tabs & Search Controls (Hidden in Print) */}
       <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-3 rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
-        <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Tabs (Horizontal swipeable on mobile with scrollbar) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-thin pb-1 sm:pb-0 w-full sm:w-auto shrink-0">
           <button
-            onClick={() => setActiveTab("critical")}
-            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all ${
+            onClick={() => {
+              setActiveTab("critical");
+              setCurrentPage(1);
+            }}
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "critical"
-                ? "bg-rose-600 text-white shadow-xs"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
             }`}
           >
-            All Critical (≤ 5)
+            All Critical ({criticalCount})
           </button>
           <button
-            onClick={() => setActiveTab("out_of_stock")}
-            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all ${
+            onClick={() => {
+              setActiveTab("out_of_stock");
+              setCurrentPage(1);
+            }}
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "out_of_stock"
-                ? "bg-rose-600 text-white shadow-xs"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
             }`}
           >
-            Out of Stock (0)
+            Out of Stock ({outOfStockCount})
           </button>
           <button
-            onClick={() => setActiveTab("low_stock")}
-            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all ${
+            onClick={() => {
+              setActiveTab("low_stock");
+              setCurrentPage(1);
+            }}
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "low_stock"
-                ? "bg-amber-600 text-white shadow-xs"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
             }`}
           >
-            Low Stock (1-5)
+            Low Stock ({lowStockCount})
           </button>
           <button
-            onClick={() => setActiveTab("all")}
-            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all ${
+            onClick={() => {
+              setActiveTab("all");
+              setCurrentPage(1);
+            }}
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "all"
                 ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
             }`}
           >
-            All Catalog
+            All Catalog ({allCatalogCount})
           </button>
+          {(activeTab !== "critical" || search) && (
+            <button
+              onClick={() => {
+                setActiveTab("critical");
+                setSearch("");
+                setCurrentPage(1);
+              }}
+              className="h-[38px] px-3 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 whitespace-nowrap"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
 
         <div className="relative flex-1 max-w-xs">

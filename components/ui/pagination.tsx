@@ -36,7 +36,7 @@ export function Pagination({
   const startItem = totalItems === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
   const endItem = Math.min(safeCurrentPage * pageSize, totalItems);
 
-  // Generate page numbers with ellipses
+  // Generate page numbers with ellipses (Desktop)
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 7;
@@ -65,7 +65,26 @@ export function Pagination({
     return pages;
   };
 
+  // Mobile page numbers: First 3 buttons, then ellipsis, then last page
+  // Ensures zero horizontal scrollbar and fits on 320px+ mobile screens
+  const getMobilePageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 3) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (safeCurrentPage <= 2) {
+        pages.push(1, 2, 3, "...", totalPages);
+      } else if (safeCurrentPage >= totalPages - 1) {
+        pages.push(1, "...", totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, "...", safeCurrentPage, "...", totalPages);
+      }
+    }
+    return pages;
+  };
+
   const pages = getPageNumbers();
+  const mobilePages = getMobilePageNumbers();
 
   const handlePageClick = (page: number) => {
     if (page >= 1 && page <= totalPages && page !== safeCurrentPage) {
@@ -77,10 +96,10 @@ export function Pagination({
     <div
       className={`px-4 py-3 bg-white dark:bg-[#0f172a] border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3 text-xs ${className}`}
     >
-      {/* Left side: Showing X to Y of Z & Page Size dropdown */}
-      <div className="flex flex-wrap items-center gap-3 text-slate-600 dark:text-slate-300 w-full md:w-auto justify-between md:justify-start">
+      {/* Left side: Showing X to Y of Z & Page Size dropdown (Centered in mobile view) */}
+      <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-2 sm:gap-3 text-slate-600 dark:text-slate-300 w-full md:w-auto text-center md:text-left">
         {showPageSizeSelector && onPageSizeChange && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-center gap-1.5">
             <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
               Show
             </span>
@@ -108,15 +127,15 @@ export function Pagination({
           </div>
         )}
 
-        <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+        <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 text-center">
           Showing <span className="font-bold text-slate-800 dark:text-slate-200">{startItem}</span> to{" "}
           <span className="font-bold text-slate-800 dark:text-slate-200">{endItem}</span> of{" "}
           <span className="font-bold text-slate-900 dark:text-white">{totalItems}</span> entries
         </div>
       </div>
 
-      {/* Right side: Pagination Navigation Buttons */}
-      <div className="flex items-center gap-1 w-full md:w-auto justify-center md:justify-end overflow-x-auto py-0.5">
+      {/* Right side (Desktop): Standard Pagination Navigation (Unchanged, hidden on mobile) */}
+      <div className="hidden md:flex items-center gap-1 justify-end py-0.5">
         {/* First Page */}
         <button
           type="button"
@@ -146,7 +165,7 @@ export function Pagination({
             if (p === "...") {
               return (
                 <span
-                  key={`ellipsis-${idx}`}
+                  key={`ellipsis-dt-${idx}`}
                   className="w-7 text-center text-slate-400 select-none font-bold text-xs"
                 >
                   &hellip;
@@ -159,7 +178,7 @@ export function Pagination({
 
             return (
               <button
-                key={`page-${pageNum}`}
+                key={`page-dt-${pageNum}`}
                 type="button"
                 onClick={() => handlePageClick(pageNum)}
                 className={`h-[32px] min-w-[32px] px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
@@ -195,6 +214,65 @@ export function Pagination({
           className="h-[32px] w-[32px] rounded-lg flex items-center justify-center border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
         >
           <ChevronsRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Right side (Mobile): Centered, compact 1st 3 buttons + ellipsis, NO horizontal scrollbar */}
+      <div className="flex md:hidden items-center justify-center gap-1 w-full py-0.5 overflow-hidden">
+        {/* Previous Page */}
+        <button
+          type="button"
+          onClick={() => handlePageClick(safeCurrentPage - 1)}
+          disabled={safeCurrentPage <= 1}
+          title="Previous Page"
+          className="h-[32px] w-[32px] rounded-lg flex items-center justify-center border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        {/* Mobile Page Numbers */}
+        <div className="flex items-center justify-center gap-1">
+          {mobilePages.map((p, idx) => {
+            if (p === "...") {
+              return (
+                <span
+                  key={`ellipsis-mob-${idx}`}
+                  className="w-5 text-center text-slate-400 select-none font-bold text-xs"
+                >
+                  &hellip;
+                </span>
+              );
+            }
+
+            const pageNum = Number(p);
+            const isActive = pageNum === safeCurrentPage;
+
+            return (
+              <button
+                key={`page-mob-${pageNum}`}
+                type="button"
+                onClick={() => handlePageClick(pageNum)}
+                className={`h-[32px] min-w-[32px] px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
+                  isActive
+                    ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs font-extrabold border border-rose-700"
+                    : "border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/60 shadow-2xs"
+                }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Next Page */}
+        <button
+          type="button"
+          onClick={() => handlePageClick(safeCurrentPage + 1)}
+          disabled={safeCurrentPage >= totalPages}
+          title="Next Page"
+          className="h-[32px] w-[32px] rounded-lg flex items-center justify-center border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+        >
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
     </div>

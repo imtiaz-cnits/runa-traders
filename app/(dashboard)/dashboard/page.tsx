@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
-import { CustomSelect, CustomDatePicker } from "@/components/ui";
+import { CustomSelect, CustomDatePicker, Pagination } from "@/components/ui";
 import {
   TrendingUp,
   Receipt,
@@ -20,6 +20,7 @@ import {
   RotateCcw,
   Percent,
   Building2,
+  Lock,
 } from "lucide-react";
 
 interface RecentOrder {
@@ -90,6 +91,18 @@ export default function DashboardPage() {
     recentOrders: [],
   });
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(true);
+  const [recentPage, setRecentPage] = useState(1);
+  const [recentPageSize, setRecentPageSize] = useState(10);
+
+  useEffect(() => {
+    try {
+      const r = (localStorage.getItem("role") || "").toLowerCase();
+      setIsAdmin(r === "admin" || r === "super_admin" || r === "");
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -142,11 +155,17 @@ export default function DashboardPage() {
     recentOrders,
   } = stats;
 
+  const recentStartIndex = (recentPage - 1) * recentPageSize;
+  const paginatedRecentOrders = recentOrders.slice(
+    recentStartIndex,
+    recentStartIndex + recentPageSize
+  );
+
   return (
     <div className="flex flex-col gap-4">
       {/* Top Header Banner Card with Filter Dropdown & Quick Actions */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] px-4 py-3.5 sm:px-5 sm:py-4 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 flex items-center justify-center shadow-2xs shrink-0">
             <TrendingUp className="w-5 h-5" />
           </div>
@@ -200,9 +219,8 @@ export default function DashboardPage() {
             className="h-[38px] w-[38px] rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-rose-600 flex items-center justify-center transition-all shadow-2xs cursor-pointer disabled:opacity-50"
           >
             <RefreshCw
-              className={`w-4 h-4 text-slate-600 dark:text-slate-300 ${
-                loading ? "animate-spin text-rose-600" : ""
-              }`}
+              className={`w-4 h-4 text-slate-600 dark:text-slate-300 ${loading ? "animate-spin text-rose-600" : ""
+                }`}
             />
           </button>
 
@@ -293,15 +311,21 @@ export default function DashboardPage() {
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div
-            className={`text-xl sm:text-2xl font-black ${
-              profit < 0
-                ? "text-rose-600 dark:text-rose-400"
-                : "text-slate-800 dark:text-white"
-            }`}
-          >
-            {formatBdCurrency(profit)}
-          </div>
+          {isAdmin ? (
+            <div
+              className={`text-xl sm:text-2xl font-black ${profit < 0
+                  ? "text-rose-600 dark:text-rose-400"
+                  : "text-slate-800 dark:text-white"
+                }`}
+            >
+              {formatBdCurrency(profit)}
+            </div>
+          ) : (
+            <div className="text-sm sm:text-base font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1.5 py-1">
+              <Lock className="w-4 h-4 text-slate-400" />
+              <span>Admin Only</span>
+            </div>
+          )}
           <div className="flex items-center gap-1.5 mt-2 text-[11px] text-cyan-600 dark:text-cyan-400 font-bold">
             <TrendingUp className="w-3.5 h-3.5" />
             <span>Net Business Profit</span>
@@ -313,7 +337,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* RECEIVABLE DUE */}
         <div className="px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border-[1.5px] border-[#cbd5e1] dark:border-[#334155] flex items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
               <Users className="w-4 h-4" />
             </div>
@@ -321,19 +345,16 @@ export default function DashboardPage() {
               <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 leading-none">
                 Receivable Due
               </span>
-              <div className="text-sm sm:text-base font-black text-slate-800 dark:text-white leading-tight mt-1 truncate">
+              <div className="text-sm sm:text-base font-black text-slate-800 dark:text-white leading-tight mt-1 whitespace-nowrap">
                 {formatBdCurrency(totalCustomerDue)}
               </div>
             </div>
           </div>
-          <span className="hidden xl:inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-950/40 px-2 py-0.5 rounded-full shrink-0">
-            Customer Balance
-          </span>
         </div>
 
         {/* PAYABLE DUE */}
         <div className="px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border-[1.5px] border-[#cbd5e1] dark:border-[#334155] flex items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
               <Truck className="w-4 h-4" />
             </div>
@@ -341,19 +362,16 @@ export default function DashboardPage() {
               <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 leading-none">
                 Payable Due
               </span>
-              <div className="text-sm sm:text-base font-black text-slate-800 dark:text-white leading-tight mt-1 truncate">
+              <div className="text-sm sm:text-base font-black text-slate-800 dark:text-white leading-tight mt-1 whitespace-nowrap">
                 {formatBdCurrency(totalSupplierDue)}
               </div>
             </div>
           </div>
-          <span className="hidden xl:inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-950/40 px-2 py-0.5 rounded-full shrink-0">
-            Vendor Payable
-          </span>
         </div>
 
         {/* RETURN */}
         <div className="px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border-[1.5px] border-[#cbd5e1] dark:border-[#334155] flex items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
               <RotateCcw className="w-4 h-4" />
             </div>
@@ -361,19 +379,16 @@ export default function DashboardPage() {
               <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 leading-none">
                 Return
               </span>
-              <div className="text-sm sm:text-base font-black text-slate-800 dark:text-white leading-tight mt-1 truncate">
+              <div className="text-sm sm:text-base font-black text-slate-800 dark:text-white leading-tight mt-1 whitespace-nowrap">
                 {formatBdCurrency(returnAmount)}
               </div>
             </div>
           </div>
-          <span className="hidden xl:inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50/80 dark:bg-rose-950/40 px-2 py-0.5 rounded-full shrink-0">
-            Sales Adjustments
-          </span>
         </div>
 
         {/* DISCOUNT */}
         <div className="px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border-[1.5px] border-[#cbd5e1] dark:border-[#334155] flex items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
               <Percent className="w-4 h-4" />
             </div>
@@ -381,14 +396,11 @@ export default function DashboardPage() {
               <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 leading-none">
                 Discount
               </span>
-              <div className="text-sm sm:text-base font-black text-slate-800 dark:text-white leading-tight mt-1 truncate">
+              <div className="text-sm sm:text-base font-black text-slate-800 dark:text-white leading-tight mt-1 whitespace-nowrap">
                 {formatBdCurrency(discountAmount)}
               </div>
             </div>
           </div>
-          <span className="hidden xl:inline-flex items-center gap-1 text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50/80 dark:bg-violet-950/40 px-2 py-0.5 rounded-full shrink-0">
-            Total Discounts
-          </span>
         </div>
       </div>
 
@@ -565,14 +577,14 @@ export default function DashboardPage() {
                   </td>
                 </tr>
               ) : (
-                recentOrders.map((order, idx) => {
+                paginatedRecentOrders.map((order, idx) => {
                   const due = Number(order.due_amount || 0);
                   const status =
                     due <= 0
                       ? "PAID"
                       : order.paid_amount && Number(order.paid_amount) > 0
-                      ? "PARTIAL"
-                      : "DUE";
+                        ? "PARTIAL"
+                        : "DUE";
 
                   return (
                     <tr
@@ -580,7 +592,7 @@ export default function DashboardPage() {
                       className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
                     >
                       <td className="p-[10px] text-center font-bold text-slate-500">
-                        {idx + 1}
+                        {recentStartIndex + idx + 1}
                       </td>
                       <td className="p-[10px] font-bold text-slate-900 dark:text-white">
                         {order.order_no || `ORD-${order.id}`}
@@ -599,13 +611,12 @@ export default function DashboardPage() {
                       </td>
                       <td className="p-[10px] text-center">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                            status === "PAID"
+                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${status === "PAID"
                               ? "bg-teal-600 text-white"
                               : status === "PARTIAL"
-                              ? "bg-amber-500 text-white"
-                              : "bg-rose-500 text-white"
-                          }`}
+                                ? "bg-amber-500 text-white"
+                                : "bg-rose-500 text-white"
+                            }`}
                         >
                           {status}
                         </span>
@@ -628,14 +639,14 @@ export default function DashboardPage() {
               {loading ? "Loading transactions..." : "No orders recorded yet."}
             </div>
           ) : (
-            recentOrders.map((order) => {
+            paginatedRecentOrders.map((order) => {
               const due = Number(order.due_amount || 0);
               const status =
                 due <= 0
                   ? "PAID"
                   : order.paid_amount && Number(order.paid_amount) > 0
-                  ? "PARTIAL"
-                  : "DUE";
+                    ? "PARTIAL"
+                    : "DUE";
 
               return (
                 <div
@@ -647,13 +658,12 @@ export default function DashboardPage() {
                       {order.order_no || `ORD-${order.id}`}
                     </span>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                        status === "PAID"
+                      className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${status === "PAID"
                           ? "bg-teal-600 text-white"
                           : status === "PARTIAL"
-                          ? "bg-amber-500 text-white"
-                          : "bg-rose-500 text-white"
-                      }`}
+                            ? "bg-amber-500 text-white"
+                            : "bg-rose-500 text-white"
+                        }`}
                     >
                       {status}
                     </span>
@@ -683,6 +693,23 @@ export default function DashboardPage() {
             })
           )}
         </div>
+
+        {/* Pagination & Show entries controls matching project table standard */}
+        {recentOrders.length > 0 && (
+          <div className="p-3 border-t border-slate-200 dark:border-slate-800">
+            <Pagination
+              currentPage={recentPage}
+              totalItems={recentOrders.length}
+              pageSize={recentPageSize}
+              onPageChange={setRecentPage}
+              onPageSizeChange={(newSize) => {
+                setRecentPageSize(newSize);
+                setRecentPage(1);
+              }}
+              pageSizeOptions={[10, 20, 50, 100]}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -107,7 +107,7 @@ export default function ChallansPage() {
   return (
     <div className="space-y-5">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 flex items-center justify-center shrink-0">
             <Truck className="w-5 h-5" />
@@ -124,7 +124,7 @@ export default function ChallansPage() {
 
         <button
           onClick={fetchChallans}
-          className="h-[38px] px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+          className="h-[38px] w-fit self-start md:self-auto px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-rose-600" : ""}`} />
           <span>Refresh</span>
@@ -133,7 +133,7 @@ export default function ChallansPage() {
 
       {/* Filter & Search Bar with Custom DatePicker & Custom Select */}
       <div className="bg-white dark:bg-[#0f172a] rounded-2xl p-4 border border-[#cbd5e1] dark:border-[#334155] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex flex-1 flex-col sm:flex-row items-center gap-3 w-full">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full flex-1">
           {/* Search Box */}
           <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -149,22 +149,47 @@ export default function ChallansPage() {
             />
           </div>
 
-          {/* Project Custom Flatpickr Date Picker */}
-          <div className="w-full sm:w-[150px]">
-            <CustomDatePicker
-              value={dateFilter}
-              onChange={(d) => {
-                setDateFilter(d);
-                setPage(1);
-              }}
-              placeholder="Filter Date"
-              allowClear
-            />
+          {/* Date Picker & Show Entries: 1 Row side-by-side on Mobile */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* Project Custom Flatpickr Date Picker */}
+            <div className="flex-1 sm:w-[150px] sm:flex-none">
+              <CustomDatePicker
+                value={dateFilter}
+                onChange={(d) => {
+                  setDateFilter(d);
+                  setPage(1);
+                }}
+                placeholder="Filter Date"
+                allowClear
+              />
+            </div>
+
+            {/* Mobile Show Entries (Side-by-side with date on mobile) */}
+            <div className="flex md:hidden items-center gap-2 shrink-0">
+              <div className="w-[110px]">
+                <CustomSelect
+                  value={String(limit)}
+                  onChange={(val) => {
+                    setLimit(Number(val));
+                    setPage(1);
+                  }}
+                  options={[
+                    { value: "15", label: "Show: 15" },
+                    { value: "50", label: "Show: 50" },
+                    { value: "100", label: "Show: 100" },
+                    { value: "200", label: "Show: 200" },
+                  ]}
+                  matchTriggerWidth={true}
+                  searchThreshold={99}
+                  className="[&_button]:!min-h-[38px] [&_button]:!h-[38px] [&_button]:!py-1 [&_button]:!px-3 whitespace-nowrap"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Compact Auto-Width Show Entries Dropdown */}
-        <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+        {/* Compact Auto-Width Show Entries Dropdown (Desktop only) */}
+        <div className="hidden md:flex items-center gap-2 shrink-0">
           <div className="w-[116px]">
             <CustomSelect
               value={String(limit)}

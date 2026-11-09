@@ -151,7 +151,7 @@ export default function UnitsPage() {
 
         <button
           onClick={handleOpenCreate}
-          className="inline-flex items-center gap-1.5 px-4 h-[38px] bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#dc2626] hover:from-[#700e2b] hover:to-[#b91c1c] active:scale-[0.98] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
+          className="inline-flex items-center justify-center gap-1.5 px-4 h-[38px] w-fit self-start md:self-auto bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#dc2626] hover:from-[#700e2b] hover:to-[#b91c1c] active:scale-[0.98] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Add Unit</span>

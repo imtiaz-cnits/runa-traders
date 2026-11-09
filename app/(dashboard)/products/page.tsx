@@ -798,7 +798,7 @@ export default function ProductsPage() {
           </div>
 
           {/* Right Side: Show Entries Selector (Rule 5.3) */}
-          <div className="flex items-center gap-2.5 self-start xl:self-auto shrink-0 w-full md:w-auto">
+          <div className="flex items-center justify-center md:justify-start gap-2.5 self-center xl:self-auto shrink-0 w-full md:w-auto">
             <div className="w-[125px]">
               <CustomSelect
                 value={String(pageSize)}

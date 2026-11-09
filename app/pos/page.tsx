@@ -688,7 +688,7 @@ export default function PosPage() {
             <span className="sm:hidden">Back</span>
           </Link>
 
-          <div className="flex items-center gap-2 px-2.5 py-1 bg-rose-50 dark:bg-rose-950/40 rounded-xl border border-rose-200 dark:border-rose-900/40">
+          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 bg-rose-50 dark:bg-rose-950/40 rounded-xl border border-rose-200 dark:border-rose-900/40">
             <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
             <span className="text-xs font-black tracking-wider text-rose-800 dark:text-rose-400 uppercase">
               RUNA TRADERS POS
@@ -828,7 +828,7 @@ export default function PosPage() {
               </button>
 
               {isFilterDropdownOpen && (
-                <div className="absolute left-0 sm:right-0 sm:left-auto top-[44px] z-40 w-44 bg-white dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl shadow-2xl py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute right-0 top-[44px] z-40 w-44 bg-white dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl shadow-2xl py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-24px)]">
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800/80">
                     Filter &amp; Sort
                   </div>
@@ -1058,102 +1058,106 @@ export default function PosPage() {
         >
           {/* 1. CUSTOMER & INVOICE META ROW */}
           <div className="p-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-[#1e293b]/50 shrink-0">
-            <div className="flex items-center gap-2">
-              {/* Customer Selector Dropdown */}
-              <div ref={customerDropdownRef} className="relative flex-1 min-w-0">
-                <div
-                  onClick={() => setIsCustomerDropdownOpen(!isCustomerDropdownOpen)}
-                  className="h-[38px] px-3 rounded-xl bg-white dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] flex items-center justify-between cursor-pointer hover:border-rose-500 transition-colors"
-                >
-                  <div className="flex items-center gap-1.5 truncate">
-                    <UserCheck className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                      {selectedCustomer ? selectedCustomer.customer_name : "Select Customer..."}
-                    </span>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              {/* Mobile Row 1: Customer Dropdown (flex-1) + New Customer Button */}
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {/* Customer Selector Dropdown */}
+                <div ref={customerDropdownRef} className="relative flex-1 min-w-0">
+                  <div
+                    onClick={() => setIsCustomerDropdownOpen(!isCustomerDropdownOpen)}
+                    className="h-[38px] px-3 rounded-xl bg-white dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] flex items-center justify-between cursor-pointer hover:border-rose-500 transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5 truncate">
+                      <UserCheck className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                        {selectedCustomer ? selectedCustomer.customer_name : "Select Customer..."}
+                      </span>
+                    </div>
+                    <span className="text-slate-400 text-xs">&#9662;</span>
                   </div>
-                  <span className="text-slate-400 text-xs">&#9662;</span>
+
+                  {/* Dropdown Menu */}
+                  {isCustomerDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-[44px] z-50 bg-white dark:bg-[#0f172a] border-[1.5px] border-[#cbd5e1] dark:border-[#334155] rounded-2xl shadow-2xl p-2.5 max-h-[290px] flex flex-col animate-in fade-in zoom-in-95 duration-100">
+                      {/* Modern Search Box with Icon & Clear Button */}
+                      <div className="relative mb-2 shrink-0">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder="Search customer name or mobile..."
+                          value={customerSearch}
+                          onChange={(e) => setCustomerSearch(e.target.value)}
+                          className="w-full h-[38px] pl-9 pr-8 text-xs font-medium rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-600/20 transition-all shadow-xs"
+                        />
+                        {customerSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomerSearch("")}
+                            className="w-5 h-5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Customer Items List */}
+                      <div className="flex-1 overflow-y-auto space-y-1 pr-0.5">
+                        {filteredCustomers.length === 0 ? (
+                          <div className="py-6 text-center text-xs text-slate-400 font-medium">
+                            No customers found
+                          </div>
+                        ) : (
+                          filteredCustomers.map((c) => (
+                            <div
+                              key={c.id}
+                              onClick={() => {
+                                setCustomer(c);
+                                setIsCustomerDropdownOpen(false);
+                              }}
+                              className={`p-2.5 rounded-xl text-xs cursor-pointer flex items-center justify-between transition-colors ${
+                                selectedCustomer?.id === c.id
+                                  ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white font-bold shadow-xs"
+                                  : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200"
+                              }`}
+                            >
+                              <div>
+                                <div className="font-bold">{c.customer_name}</div>
+                                <div className="text-[10px] opacity-75">{c.mobile}</div>
+                              </div>
+                              {c.previous_due_amount > 0 && (
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${
+                                    selectedCustomer?.id === c.id
+                                      ? "bg-white/20 text-white"
+                                      : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border border-rose-200 dark:border-rose-900"
+                                  }`}
+                                >
+                                  Due: ৳{c.previous_due_amount}
+                                </span>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Dropdown Menu */}
-                {isCustomerDropdownOpen && (
-                  <div className="absolute left-0 right-0 top-[44px] z-50 bg-white dark:bg-[#0f172a] border-[1.5px] border-[#cbd5e1] dark:border-[#334155] rounded-2xl shadow-2xl p-2.5 max-h-[290px] flex flex-col animate-in fade-in zoom-in-95 duration-100">
-                    {/* Modern Search Box with Icon & Clear Button */}
-                    <div className="relative mb-2 shrink-0">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <input
-                        type="text"
-                        autoFocus
-                        placeholder="Search customer name or mobile..."
-                        value={customerSearch}
-                        onChange={(e) => setCustomerSearch(e.target.value)}
-                        className="w-full h-[38px] pl-9 pr-8 text-xs font-medium rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-600/20 transition-all shadow-xs"
-                      />
-                      {customerSearch && (
-                        <button
-                          type="button"
-                          onClick={() => setCustomerSearch("")}
-                          className="w-5 h-5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors cursor-pointer"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Customer Items List */}
-                    <div className="flex-1 overflow-y-auto space-y-1 pr-0.5">
-                      {filteredCustomers.length === 0 ? (
-                        <div className="py-6 text-center text-xs text-slate-400 font-medium">
-                          No customers found
-                        </div>
-                      ) : (
-                        filteredCustomers.map((c) => (
-                          <div
-                            key={c.id}
-                            onClick={() => {
-                              setCustomer(c);
-                              setIsCustomerDropdownOpen(false);
-                            }}
-                            className={`p-2.5 rounded-xl text-xs cursor-pointer flex items-center justify-between transition-colors ${
-                              selectedCustomer?.id === c.id
-                                ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white font-bold shadow-xs"
-                                : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200"
-                            }`}
-                          >
-                            <div>
-                              <div className="font-bold">{c.customer_name}</div>
-                              <div className="text-[10px] opacity-75">{c.mobile}</div>
-                            </div>
-                            {c.previous_due_amount > 0 && (
-                              <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${
-                                  selectedCustomer?.id === c.id
-                                    ? "bg-white/20 text-white"
-                                    : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border border-rose-200 dark:border-rose-900"
-                                }`}
-                              >
-                                Due: ৳{c.previous_due_amount}
-                              </span>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
+                {/* + New Customer Button: Icon only on mobile, text visible on sm+ */}
+                <button
+                  type="button"
+                  onClick={() => setIsCustomerModalOpen(true)}
+                  className="h-[38px] px-2.5 sm:px-3 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white text-xs font-bold flex items-center justify-center gap-1 shrink-0 transition-colors cursor-pointer shadow-xs"
+                  title="Add New Customer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">New</span>
+                </button>
               </div>
 
-              {/* + New Customer Button */}
-              <button
-                type="button"
-                onClick={() => setIsCustomerModalOpen(true)}
-                className="h-[38px] px-3 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white text-xs font-bold flex items-center gap-1 shrink-0 transition-colors cursor-pointer shadow-xs"
-              >
-                <Plus className="w-4 h-4" />
-                <span>New</span>
-              </button>
-
-              {/* Custom Date Picker - Clicking anywhere opens the calendar */}
-              <div className="w-[145px] shrink-0">
+              {/* Custom Date Picker - Mobile 2nd row full width, desktop w-[145px] shrink-0 */}
+              <div className="w-full sm:w-[145px] shrink-0">
                 <PosDatePicker
                   value={invoiceDate}
                   onChange={(d) => setInvoiceDate(d)}
@@ -1207,174 +1211,335 @@ export default function PosPage() {
               (() => {
                 const hasTilesInCart = cart.some((it) => !!(it.tile_size || it.sqft_per_box));
                 return (
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                      <tr>
-                        <th className="py-2 pl-3">Item</th>
-                        <th className="py-2 text-center w-28">Qty</th>
-                        <th className="py-2 text-right w-24">Price</th>
-                        {hasTilesInCart && (
-                          <th className="py-2 text-right w-24">Sqft. Price</th>
-                        )}
-                        <th className="py-2 text-right w-20">Total</th>
-                        <th className="py-2 pr-3 text-center w-10"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {cart.map((item, idx) => (
-                        <tr
-                          key={item.product_id}
-                          className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
-                        >
-                          <td className="py-2 pl-3">
-                            <div className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">
-                              {item.product_name}
-                            </div>
-                            {(item.tile_size || item.sqft_per_box) && (
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                {item.tile_size && (
-                                  <span className="text-[9px] font-bold px-1 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300">
-                                    📐 {item.tile_size}
-                                  </span>
-                                )}
-                                {item.sqft_per_box && (
-                                  <span className="text-[9px] font-semibold text-slate-500">
-                                    ({(item.quantity * item.sqft_per_box).toFixed(1)} Sft)
-                                  </span>
-                                )}
+                  <>
+                    {/* Desktop View: Standard Cart Table (hidden on mobile, visible on desktop >= 768px) */}
+                    <table className="hidden md:table w-full text-left text-xs border-collapse">
+                      <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                        <tr>
+                          <th className="py-2 pl-3">Item</th>
+                          <th className="py-2 text-center w-28">Qty</th>
+                          <th className="py-2 text-right w-24">Price</th>
+                          {hasTilesInCart && (
+                            <th className="py-2 text-right w-24">Sqft. Price</th>
+                          )}
+                          <th className="py-2 text-right w-20">Total</th>
+                          <th className="py-2 pr-3 text-center w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {cart.map((item, idx) => (
+                          <tr
+                            key={item.product_id}
+                            className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                          >
+                            <td className="py-2 pl-3">
+                              <div className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">
+                                {item.product_name}
+                              </div>
+                              {(item.tile_size || item.sqft_per_box) && (
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  {item.tile_size && (
+                                    <span className="text-[9px] font-bold px-1 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300">
+                                      📐 {item.tile_size}
+                                    </span>
+                                  )}
+                                  {item.sqft_per_box && (
+                                    <span className="text-[9px] font-semibold text-slate-500">
+                                      ({(item.quantity * item.sqft_per_box).toFixed(1)} Sft)
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setTileCalcProduct(item);
+                                      setIsTileCalcOpen(true);
+                                    }}
+                                    className="text-[9px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/80 px-1.5 py-0.5 rounded cursor-pointer transition-colors border border-rose-200/60 dark:border-rose-900/60 flex items-center gap-0.5"
+                                    title="Open Sft & Box Calculator"
+                                  >
+                                    📐 Sft Calc
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+
+                            {/* QTY Controller */}
+                            <td className="py-2 text-center">
+                              <div className="inline-flex items-center rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#1e293b] overflow-hidden shadow-2xs">
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setTileCalcProduct(item);
-                                    setIsTileCalcOpen(true);
+                                    const next = Math.max(0.01, parseFloat((item.quantity - 1).toFixed(2)));
+                                    updateQty(item.product_id, next);
                                   }}
-                                  className="text-[9px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/80 px-1.5 py-0.5 rounded cursor-pointer transition-colors border border-rose-200/60 dark:border-rose-900/60 flex items-center gap-0.5"
-                                  title="Open Sft & Box Calculator"
+                                  className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
                                 >
-                                  📐 Sft Calc
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0.01"
+                                  value={item.quantity}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    updateQty(item.product_id, isNaN(val) ? 0 : val);
+                                  }}
+                                  className="w-14 h-6 text-center text-xs font-bold bg-transparent border-x border-[#cbd5e1] dark:border-[#334155] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none px-1"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = parseFloat((item.quantity + 1).toFixed(2));
+                                    updateQty(item.product_id, next);
+                                  }}
+                                  className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                                >
+                                  <Plus className="w-3 h-3" />
                                 </button>
                               </div>
-                            )}
-                          </td>
+                              {/* If fractional tile quantity, show clean dynamic breakdown */}
+                              {item.pcs_per_box && item.quantity % 1 !== 0 && (
+                                <div className="text-[9px] font-bold text-rose-600 dark:text-rose-400 mt-0.5 whitespace-nowrap">
+                                  {formatBoxAndPcs(item.quantity, item.pcs_per_box)}
+                                </div>
+                              )}
+                            </td>
 
-                          {/* QTY Controller */}
-                          <td className="py-2 text-center">
-                            <div className="inline-flex items-center rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#1e293b] overflow-hidden shadow-2xs">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const next = Math.max(0.01, parseFloat((item.quantity - 1).toFixed(2)));
-                                  updateQty(item.product_id, next);
-                                }}
-                                className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
+                            {/* Price (Editable) */}
+                            <td className="py-2 text-right">
                               <input
                                 type="number"
                                 step="any"
-                                min="0.01"
-                                value={item.quantity}
-                                onChange={(e) => {
-                                  const val = parseFloat(e.target.value);
-                                  updateQty(item.product_id, isNaN(val) ? 0 : val);
+                                min="0"
+                                value={
+                                  priceDrafts[item.product_id] !== undefined
+                                    ? priceDrafts[item.product_id]
+                                    : item.selling_price.toFixed(2)
+                                }
+                                onFocus={(e) => {
+                                  setPriceDrafts((prev) => ({
+                                    ...prev,
+                                    [item.product_id]: String(item.selling_price),
+                                  }));
+                                  e.currentTarget.select();
                                 }}
-                                className="w-14 h-6 text-center text-xs font-bold bg-transparent border-x border-[#cbd5e1] dark:border-[#334155] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none px-1"
+                                onChange={(e) => {
+                                  const raw = e.target.value;
+                                  setPriceDrafts((prev) => ({
+                                    ...prev,
+                                    [item.product_id]: raw,
+                                  }));
+                                  const parsed = parseFloat(raw);
+                                  updatePrice(
+                                    item.product_id,
+                                    isNaN(parsed) || parsed < 0 ? 0 : parsed
+                                  );
+                                }}
+                                onBlur={() => {
+                                  setPriceDrafts((prev) => {
+                                    const next = { ...prev };
+                                    delete next[item.product_id];
+                                    return next;
+                                  });
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                                className="w-20 h-6 px-1.5 text-right text-xs font-bold rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 focus:outline-none focus:border-rose-600 focus:ring-1 focus:ring-rose-500/20 shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
+                            </td>
+
+                            {/* Sqft. PRICE (Dynamic - only shown when tiles present in cart) */}
+                            {hasTilesInCart && (
+                              <td className="py-2 text-right text-slate-600 dark:text-slate-400 font-medium">
+                                {item.sqft_per_box && item.sqft_per_box > 0
+                                  ? `৳${(item.selling_price / item.sqft_per_box).toFixed(2)}`
+                                  : "-"}
+                              </td>
+                            )}
+
+                            {/* Line Total */}
+                            <td className="py-2 text-right font-bold text-slate-900 dark:text-white">
+                              {(item.selling_price * item.quantity).toFixed(2)}
+                            </td>
+
+                            {/* Delete */}
+                            <td className="py-2 pr-3 text-center">
                               <button
                                 type="button"
-                                onClick={() => {
-                                  const next = parseFloat((item.quantity + 1).toFixed(2));
-                                  updateQty(item.product_id, next);
-                                }}
-                                className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                                onClick={() => removeItem(item.product_id)}
+                                className="w-6 h-6 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
+                                title="Remove from cart"
                               >
-                                <Plus className="w-3 h-3" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
-                            </div>
-                            {/* If fractional tile quantity, show clean dynamic breakdown */}
-                            {item.pcs_per_box && item.quantity % 1 !== 0 && (
-                              <div className="text-[9px] font-bold text-rose-600 dark:text-rose-400 mt-0.5 whitespace-nowrap">
-                                {formatBoxAndPcs(item.quantity, item.pcs_per_box)}
-                              </div>
-                            )}
-                          </td>
-
-                          {/* Price (Editable) */}
-                          <td className="py-2 text-right">
-                            <input
-                              type="number"
-                              step="any"
-                              min="0"
-                              value={
-                                priceDrafts[item.product_id] !== undefined
-                                  ? priceDrafts[item.product_id]
-                                  : item.selling_price.toFixed(2)
-                              }
-                              onFocus={(e) => {
-                                setPriceDrafts((prev) => ({
-                                  ...prev,
-                                  [item.product_id]: String(item.selling_price),
-                                }));
-                                e.currentTarget.select();
-                              }}
-                              onChange={(e) => {
-                                const raw = e.target.value;
-                                setPriceDrafts((prev) => ({
-                                  ...prev,
-                                  [item.product_id]: raw,
-                                }));
-                                const parsed = parseFloat(raw);
-                                updatePrice(
-                                  item.product_id,
-                                  isNaN(parsed) || parsed < 0 ? 0 : parsed
-                                );
-                              }}
-                              onBlur={() => {
-                                setPriceDrafts((prev) => {
-                                  const next = { ...prev };
-                                  delete next[item.product_id];
-                                  return next;
-                                });
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.currentTarget.blur();
-                                }
-                              }}
-                              className="w-20 h-6 px-1.5 text-right text-xs font-bold rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 focus:outline-none focus:border-rose-600 focus:ring-1 focus:ring-rose-500/20 shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                          </td>
-
-                          {/* Sqft. PRICE (Dynamic - only shown when tiles present in cart) */}
-                          {hasTilesInCart && (
-                            <td className="py-2 text-right text-slate-600 dark:text-slate-400 font-medium">
-                              {item.sqft_per_box && item.sqft_per_box > 0
-                                ? `৳${(item.selling_price / item.sqft_per_box).toFixed(2)}`
-                                : "-"}
                             </td>
-                          )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
 
-                          {/* Line Total */}
-                          <td className="py-2 text-right font-bold text-slate-900 dark:text-white">
-                            {(item.selling_price * item.quantity).toFixed(2)}
-                          </td>
+                    {/* Mobile View: Compact Cart Item Cards (Clean box type, low height) */}
+                    <div className="block md:hidden p-2 space-y-2">
+                      {cart.map((item) => (
+                        <div
+                          key={`mob-cart-${item.product_id}`}
+                          className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1e293b]/70 shadow-2xs space-y-1.5"
+                        >
+                          {/* Row 1: Product Name, Tile Badges, Delete Button */}
+                          <div className="flex items-center justify-between gap-1.5">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold text-xs text-slate-800 dark:text-slate-100 truncate leading-tight">
+                                {item.product_name}
+                              </div>
+                              {(item.tile_size || item.sqft_per_box) && (
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  {item.tile_size && (
+                                    <span className="text-[9px] font-bold px-1 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300">
+                                      📐 {item.tile_size}
+                                    </span>
+                                  )}
+                                  {item.sqft_per_box && (
+                                    <span className="text-[9px] font-semibold text-slate-500">
+                                      ({(item.quantity * item.sqft_per_box).toFixed(1)} Sft)
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setTileCalcProduct(item);
+                                      setIsTileCalcOpen(true);
+                                    }}
+                                    className="text-[9px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/80 px-1.5 py-0.5 rounded cursor-pointer transition-colors border border-rose-200/60 dark:border-rose-900/60 flex items-center gap-0.5"
+                                    title="Open Sft & Box Calculator"
+                                  >
+                                    📐 Sft Calc
+                                  </button>
+                                </div>
+                              )}
+                            </div>
 
-                          {/* Delete */}
-                          <td className="py-2 pr-3 text-center">
+                            {/* Delete */}
                             <button
                               type="button"
                               onClick={() => removeItem(item.product_id)}
-                              className="w-6 h-6 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
+                              className="w-6 h-6 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 flex items-center justify-center transition-colors cursor-pointer shrink-0"
                               title="Remove from cart"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
-                          </td>
-                        </tr>
+                          </div>
+
+                          {/* Row 2: Qty Controls, Price Input, Line Total */}
+                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                            {/* QTY Controller */}
+                            <div className="flex flex-col items-start">
+                              <div className="inline-flex items-center rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-slate-50 dark:bg-[#1e293b] overflow-hidden shadow-2xs">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = Math.max(0.01, parseFloat((item.quantity - 1).toFixed(2)));
+                                    updateQty(item.product_id, next);
+                                  }}
+                                  className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0.01"
+                                  value={item.quantity}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    updateQty(item.product_id, isNaN(val) ? 0 : val);
+                                  }}
+                                  className="w-12 h-6 text-center text-xs font-bold bg-transparent border-x border-[#cbd5e1] dark:border-[#334155] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none px-0.5"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = parseFloat((item.quantity + 1).toFixed(2));
+                                    updateQty(item.product_id, next);
+                                  }}
+                                  className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+                              {item.pcs_per_box && item.quantity % 1 !== 0 && (
+                                <div className="text-[9px] font-bold text-rose-600 dark:text-rose-400 mt-0.5 whitespace-nowrap">
+                                  {formatBoxAndPcs(item.quantity, item.pcs_per_box)}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Price Input */}
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-slate-400 font-medium">Rate:</span>
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                value={
+                                  priceDrafts[item.product_id] !== undefined
+                                    ? priceDrafts[item.product_id]
+                                    : item.selling_price.toFixed(2)
+                                }
+                                onFocus={(e) => {
+                                  setPriceDrafts((prev) => ({
+                                    ...prev,
+                                    [item.product_id]: String(item.selling_price),
+                                  }));
+                                  e.currentTarget.select();
+                                }}
+                                onChange={(e) => {
+                                  const raw = e.target.value;
+                                  setPriceDrafts((prev) => ({
+                                    ...prev,
+                                    [item.product_id]: raw,
+                                  }));
+                                  const parsed = parseFloat(raw);
+                                  updatePrice(
+                                    item.product_id,
+                                    isNaN(parsed) || parsed < 0 ? 0 : parsed
+                                  );
+                                }}
+                                onBlur={() => {
+                                  setPriceDrafts((prev) => {
+                                    const next = { ...prev };
+                                    delete next[item.product_id];
+                                    return next;
+                                  });
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                                className="w-16 h-6 px-1 text-right text-xs font-bold rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 focus:outline-none focus:border-rose-600 shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              />
+                            </div>
+
+                            {/* Total */}
+                            <div className="text-right">
+                              <div className="font-black text-xs text-rose-700 dark:text-rose-400">
+                                ৳{(item.selling_price * item.quantity).toFixed(2)}
+                              </div>
+                              {item.sqft_per_box && item.sqft_per_box > 0 && (
+                                <div className="text-[9px] text-slate-400">
+                                  ৳{(item.selling_price / item.sqft_per_box).toFixed(1)}/sft
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </>
                 );
               })()
             )}
@@ -1641,7 +1806,7 @@ export default function PosPage() {
                 }`}
               >
                 <Send className="w-4 h-4" />
-                <span>Submit Order (F4)</span>
+                <span>Submit Order</span>
               </button>
             </div>
           </div>

@@ -238,23 +238,23 @@ export default function InvoicesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-stretch sm:items-center gap-2 w-full sm:w-auto">
           {/* Revenue */}
-          <div className="h-[38px] px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 flex items-center gap-2">
-            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">
+          <div className="min-h-[38px] sm:h-[38px] py-1.5 sm:py-0 px-2.5 sm:px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-center gap-0.5 sm:gap-2 flex-1 sm:flex-none">
+            <span className="text-[10px] sm:text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase whitespace-nowrap leading-tight">
               Sales Revenue:
             </span>
-            <span className="text-xs font-black text-emerald-800 dark:text-emerald-300">
+            <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 whitespace-nowrap leading-tight">
               {formatBdCurrency(totalSalesRevenue)}
             </span>
           </div>
 
           {/* Sales Due */}
-          <div className="h-[38px] px-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 flex items-center gap-2">
-            <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase">
+          <div className="min-h-[38px] sm:h-[38px] py-1.5 sm:py-0 px-2.5 sm:px-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-center gap-0.5 sm:gap-2 flex-1 sm:flex-none">
+            <span className="text-[10px] sm:text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase whitespace-nowrap leading-tight">
               Sales Due:
             </span>
-            <span className="text-xs font-black text-rose-800 dark:text-rose-300">
+            <span className="text-xs font-black text-rose-800 dark:text-rose-300 whitespace-nowrap leading-tight">
               {formatBdCurrency(totalSalesDue)}
             </span>
           </div>
@@ -277,8 +277,8 @@ export default function InvoicesPage() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
         </div>
 
-        {/* Status Filter Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto">
+        {/* Status Filter Tabs (Horizontal swipeable on mobile with scrollbar) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-thin pb-1 sm:pb-0 w-full sm:w-auto shrink-0">
           {[
             { label: "All Invoices", value: "all" },
             { label: "Paid", value: "paid" },
@@ -291,7 +291,7 @@ export default function InvoicesPage() {
                 setStatusFilter(tab.value);
                 setCurrentPage(1);
               }}
-              className={`h-[32px] px-3.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${statusFilter === tab.value
+              className={`h-[32px] px-3.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${statusFilter === tab.value
                 ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                 : "bg-slate-100 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
                 }`}

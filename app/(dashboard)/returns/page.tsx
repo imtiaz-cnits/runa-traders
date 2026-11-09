@@ -1089,7 +1089,8 @@ function ReturnsManagementContent() {
                     </span>
                   </div>
 
-                  <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-2xs">
+                  {/* Desktop View Table (hidden on mobile, visible on desktop >= 768px) */}
+                  <div className="hidden md:block border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-2xs">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white text-[11px] font-semibold uppercase tracking-wider">
@@ -1226,6 +1227,148 @@ function ReturnsManagementContent() {
                         </tr>
                       </tfoot>
                     </table>
+                  </div>
+
+                  {/* Mobile View: Box / Card Type Items List */}
+                  <div className="block md:hidden space-y-2.5">
+                    {/* Select All Checkbox for Mobile */}
+                    <div className="p-2.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl flex items-center justify-between border border-slate-200 dark:border-slate-700">
+                      <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(isAllEligibleSelected)}
+                          onChange={(e) => toggleSelectAll(e.target.checked)}
+                          className="rounded text-rose-600 focus:ring-rose-500 cursor-pointer w-4 h-4"
+                        />
+                        <span>Select All Eligible Items</span>
+                      </label>
+                      <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                        Total: {loadedRecord.items.length} item(s)
+                      </span>
+                    </div>
+
+                    {/* Item Cards */}
+                    {loadedRecord.items.map((item) => {
+                      const isChecked = Boolean(selectedItems[item.detail_id]);
+                      const returnQty = returnQuantities[item.detail_id] || 0;
+                      const lineRefund = getItemRefundAmount(item, returnQty);
+                      const isEligible = item.returnable_quantity > 0;
+
+                      return (
+                        <div
+                          key={`mob-item-${item.detail_id}`}
+                          className={`p-3 rounded-xl border transition-all ${
+                            isChecked
+                              ? "bg-rose-50/60 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900/60 shadow-xs"
+                              : !isEligible
+                              ? "opacity-40 bg-slate-50 dark:bg-slate-800/20 border-slate-200 dark:border-slate-800"
+                              : "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 shadow-2xs"
+                          }`}
+                        >
+                          {/* Item Card Header */}
+                          <div className="flex items-start gap-2.5">
+                            <input
+                              type="checkbox"
+                              disabled={!isEligible}
+                              checked={isChecked}
+                              onChange={() =>
+                                toggleItemCheckbox(item.detail_id, item.returnable_quantity)
+                              }
+                              className="mt-0.5 rounded text-rose-600 focus:ring-rose-500 cursor-pointer disabled:cursor-not-allowed w-4 h-4 shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold text-xs text-slate-800 dark:text-white leading-tight">
+                                {item.product_name}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                <span className="font-mono text-[10px] text-slate-400">
+                                  {item.product_code}
+                                </span>
+                                {item.tile_size && (
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
+                                    📐 {item.tile_size}
+                                  </span>
+                                )}
+                                {item.already_returned_quantity > 0 && (
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+                                    Returned: {item.already_returned_quantity} Pcs
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Item Details Grid */}
+                          <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-[10px] text-slate-400 block">Purchased:</span>
+                              <span className="font-bold text-slate-700 dark:text-slate-200">
+                                {formatTileOrItemQty(item.purchased_quantity, item)}
+                              </span>
+                              {item.returnable_quantity < (item.total_purchased_pcs || item.purchased_quantity) && (
+                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold block">
+                                  Eligible: {item.returnable_quantity.toLocaleString()} Pcs
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="text-right">
+                              <span className="text-[10px] text-slate-400 block">Unit Price:</span>
+                              <span className="font-bold text-slate-700 dark:text-slate-200">
+                                {formatBdCurrency(item.unit_price)}
+                                {item.is_tiles && <span className="text-[10px] text-slate-400 font-normal"> / pc</span>}
+                              </span>
+                            </div>
+
+                            <div className="col-span-2 flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-700/40">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                                  Return Qty:
+                                </span>
+                                <div className="inline-flex items-center rounded-lg border border-[#cbd5e1] dark:border-[#334155] bg-white dark:bg-slate-800 overflow-hidden focus-within:border-rose-600 shadow-2xs">
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max={item.returnable_quantity}
+                                    disabled={!isChecked || !isEligible}
+                                    value={isChecked ? (returnQty > 0 ? returnQty : "") : 0}
+                                    onChange={(e) =>
+                                      handleQuantityChange(
+                                        item.detail_id,
+                                        parseInt(e.target.value) || 0,
+                                        item.returnable_quantity
+                                      )
+                                    }
+                                    placeholder="0"
+                                    className="w-14 h-[30px] px-2 text-center font-bold text-slate-800 dark:text-white bg-transparent focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed text-xs"
+                                  />
+                                  <span className="px-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 border-l border-[#cbd5e1] dark:border-[#334155] h-[30px] flex items-center select-none uppercase">
+                                    {item.is_tiles ? "Pcs" : (item.unit || "Pcs")}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="text-right">
+                                <span className="text-[10px] text-slate-400 block">Refund Total:</span>
+                                <span className="font-black text-rose-700 dark:text-rose-400 text-xs">
+                                  {isChecked ? formatBdCurrency(lineRefund) : "৳ 0.00"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Total Refund Summary Box on Mobile */}
+                    <div className="p-3 bg-slate-100 dark:bg-slate-800/80 rounded-xl flex items-center justify-between border border-slate-200 dark:border-slate-700">
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">
+                        Total Refund Amount:
+                      </span>
+                      <span className="font-black text-rose-700 dark:text-rose-400 text-sm">
+                        {formatBdCurrency(grandRefundTotal)}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Return Date & Note (2 Columns) */}

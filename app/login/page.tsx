@@ -50,6 +50,11 @@ export default function LoginPage() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("role", data.role);
+        if (data.permissions) {
+          localStorage.setItem("permissions", JSON.stringify(data.permissions));
+        } else {
+          localStorage.removeItem("permissions");
+        }
       }
 
       setTimeout(() => {

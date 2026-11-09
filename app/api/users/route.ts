@@ -6,7 +6,7 @@ import { getAuthUser, hashPassword } from "@/lib/auth";
 export async function GET(req: NextRequest) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || authUser.role !== "admin") {
+    if (!authUser || (authUser.role !== "admin" && authUser.role !== "super_admin")) {
       return NextResponse.json({ status: "fail", message: "Unauthorized" }, { status: 403 });
     }
 
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || authUser.role !== "admin") {
+    if (!authUser || (authUser.role !== "admin" && authUser.role !== "super_admin")) {
       return NextResponse.json({ status: "fail", message: "Unauthorized" }, { status: 403 });
     }
 

@@ -13,6 +13,7 @@ import {
   DollarSign,
   ArrowUpRight,
   Filter,
+  RotateCcw,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
@@ -54,12 +55,24 @@ export default function SalesReportPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Filters
+  // Filters & Auth
+  const getTodayStr = () => new Date().toISOString().split("T")[0];
+  const [activePreset, setActivePreset] = useState<string>("today");
+  const [startDate, setStartDate] = useState(getTodayStr());
+  const [endDate, setEndDate] = useState(getTodayStr());
   const [search, setSearch] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [isAdmin, setIsAdmin] = useState(true);
+
+  useEffect(() => {
+    try {
+      const r = (localStorage.getItem("role") || "").toLowerCase();
+      setIsAdmin(r === "admin" || r === "super_admin" || r === "");
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const loadData = async () => {
     try {
@@ -85,33 +98,35 @@ export default function SalesReportPage() {
     loadData();
   }, [search, startDate, endDate]);
 
-  const setPreset = (preset: "today" | "yesterday" | "7days" | "month" | "all") => {
+  const setPreset = (preset: "today" | "yesterday" | "7days" | "month" | "reset") => {
     const now = new Date();
     const todayStr = now.toISOString().split("T")[0];
 
-    if (preset === "today") {
+    if (preset === "today" || preset === "reset") {
+      setActivePreset("today");
       setStartDate(todayStr);
       setEndDate(todayStr);
+      if (preset === "reset") setSearch("");
     } else if (preset === "yesterday") {
+      setActivePreset("yesterday");
       const y = new Date();
       y.setDate(y.getDate() - 1);
       const yStr = y.toISOString().split("T")[0];
       setStartDate(yStr);
       setEndDate(yStr);
     } else if (preset === "7days") {
+      setActivePreset("7days");
       const past = new Date();
       past.setDate(past.getDate() - 7);
       setStartDate(past.toISOString().split("T")[0]);
       setEndDate(todayStr);
     } else if (preset === "month") {
+      setActivePreset("month");
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
         .toISOString()
         .split("T")[0];
       setStartDate(firstDay);
       setEndDate(todayStr);
-    } else if (preset === "all") {
-      setStartDate("");
-      setEndDate("");
     }
     setCurrentPage(1);
   };
@@ -190,8 +205,8 @@ export default function SalesReportPage() {
         </button>
       </div>
 
-      {/* 2. Four Financial Summary Cards (2 Columns in Print, Compact, No Icons, Right Aligned Amount) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 print:grid-cols-2 gap-2.5 sm:gap-3 print:gap-2">
+      {/* 2. Four Financial Summary Cards (1 col mobile, 2 col sm, 4 col lg, 2 Columns in Print) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-2 gap-2.5 sm:gap-3 print:gap-2">
         <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
           <div>
             <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
@@ -234,19 +249,21 @@ export default function SalesReportPage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
-          <div>
-            <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
-              Estimated Gross Profit
+        {isAdmin && (
+          <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
+            <div>
+              <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
+                Estimated Gross Profit
+              </div>
+              <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">
+                Sales less buying cost & returns
+              </div>
             </div>
-            <div className="text-[11px] print:text-[8.5px] text-slate-400 print:text-slate-500 mt-0.5 print:mt-0">
-              Sales less buying cost & returns
+            <div className="text-xl print:text-sm font-black text-emerald-700 dark:text-emerald-300 print:text-black mt-1 print:mt-0 print:text-right shrink-0">
+              {formatBdCurrency(summary?.total_gross_profit || 0)}
             </div>
           </div>
-          <div className="text-xl print:text-sm font-black text-emerald-700 dark:text-emerald-300 print:text-black mt-1 print:mt-0 print:text-right shrink-0">
-            {formatBdCurrency(summary?.total_gross_profit || 0)}
-          </div>
-        </div>
+        )}
       </div>
 
       {/* 3. Date Filters & Presets (Hidden in Print) */}
@@ -272,6 +289,7 @@ export default function SalesReportPage() {
                 value={startDate}
                 onChange={(d) => {
                   setStartDate(d);
+                  setActivePreset("");
                   setCurrentPage(1);
                 }}
                 placeholder="From Date"
@@ -283,6 +301,7 @@ export default function SalesReportPage() {
                 value={endDate}
                 onChange={(d) => {
                   setEndDate(d);
+                  setActivePreset("");
                   setCurrentPage(1);
                 }}
                 placeholder="To Date"
@@ -290,38 +309,55 @@ export default function SalesReportPage() {
             </div>
           </div>
 
-          {/* Quick presets */}
-          <div className="flex items-center gap-1">
+          {/* Quick presets (Horizontal swipeable on mobile with scrollbar) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-thin pb-1 sm:pb-0 w-full sm:w-auto shrink-0">
             <button
               onClick={() => setPreset("today")}
-              className="h-[38px] px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "today"
+                  ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+              }`}
             >
               Today
             </button>
             <button
               onClick={() => setPreset("yesterday")}
-              className="h-[38px] px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "yesterday"
+                  ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+              }`}
             >
               Yesterday
             </button>
             <button
               onClick={() => setPreset("7days")}
-              className="h-[38px] px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "7days"
+                  ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+              }`}
             >
               7 Days
             </button>
             <button
               onClick={() => setPreset("month")}
-              className="h-[38px] px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "month"
+                  ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+              }`}
             >
               This Month
             </button>
-            {(startDate || endDate) && (
+            {(activePreset !== "today" || search || startDate !== getTodayStr() || endDate !== getTodayStr()) && (
               <button
-                onClick={() => setPreset("all")}
-                className="h-[38px] px-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-bold"
+                onClick={() => setPreset("reset")}
+                className="h-[38px] px-3 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 whitespace-nowrap"
               >
-                Clear
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
               </button>
             )}
           </div>
@@ -342,20 +378,20 @@ export default function SalesReportPage() {
                 <th className="py-3 px-3 text-right">Selling Total (৳)</th>
                 <th className="py-3 px-3 text-right">Paid (৳)</th>
                 <th className="py-3 px-3 text-right">Due (৳)</th>
-                <th className="py-3 px-4 text-right">Profit (৳)</th>
+                {isAdmin && <th className="py-3 px-4 text-right">Profit (৳)</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 9 : 8} className="py-10 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                     <span>Loading sales report...</span>
                   </td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400 font-bold">
+                  <td colSpan={isAdmin ? 9 : 8} className="py-10 text-center text-slate-400 font-bold">
                     No sales invoices found for the specified period.
                   </td>
                 </tr>
@@ -401,9 +437,11 @@ export default function SalesReportPage() {
                     <td className="py-3 px-3 text-right font-bold text-rose-600 dark:text-rose-400">
                       {formatBdCurrency(o.due_amount)}
                     </td>
-                    <td className="py-3 px-4 text-right font-black text-emerald-700 dark:text-emerald-300">
-                      {formatBdCurrency(o.profit_amount)}
-                    </td>
+                    {isAdmin && (
+                      <td className="py-3 px-4 text-right font-black text-emerald-700 dark:text-emerald-300">
+                        {formatBdCurrency(o.profit_amount)}
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

@@ -11,6 +11,7 @@ import {
   Coins,
   Loader2,
   Search,
+  RotateCcw,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
@@ -47,9 +48,10 @@ export default function DailyLedgerPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const todayStr = new Date().toISOString().split("T")[0];
-  const [startDate, setStartDate] = useState(todayStr);
-  const [endDate, setEndDate] = useState(todayStr);
+  const getTodayStr = () => new Date().toISOString().split("T")[0];
+  const [activePreset, setActivePreset] = useState<string>("today");
+  const [startDate, setStartDate] = useState(getTodayStr());
+  const [endDate, setEndDate] = useState(getTodayStr());
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -80,25 +82,30 @@ export default function DailyLedgerPage() {
     setCurrentPage(1);
   }, [search]);
 
-  const setPreset = (preset: "today" | "yesterday" | "7days" | "month") => {
+  const setPreset = (preset: "today" | "yesterday" | "7days" | "month" | "reset") => {
     const now = new Date();
     const tStr = now.toISOString().split("T")[0];
 
-    if (preset === "today") {
+    if (preset === "today" || preset === "reset") {
+      setActivePreset("today");
       setStartDate(tStr);
       setEndDate(tStr);
+      if (preset === "reset") setSearch("");
     } else if (preset === "yesterday") {
+      setActivePreset("yesterday");
       const y = new Date();
       y.setDate(y.getDate() - 1);
       const yStr = y.toISOString().split("T")[0];
       setStartDate(yStr);
       setEndDate(yStr);
     } else if (preset === "7days") {
+      setActivePreset("7days");
       const past = new Date();
       past.setDate(past.getDate() - 7);
       setStartDate(past.toISOString().split("T")[0]);
       setEndDate(tStr);
     } else if (preset === "month") {
+      setActivePreset("month");
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
         .toISOString()
         .split("T")[0];
@@ -188,8 +195,8 @@ export default function DailyLedgerPage() {
         </button>
       </div>
 
-      {/* 2. Four Ledger Financial KPI Cards (2 Columns in Print, Compact, No Icons, Right Aligned Amount) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 print:grid-cols-2 gap-2.5 sm:gap-3 print:gap-2">
+      {/* 2. Four Ledger Financial KPI Cards (1 col mobile, 2 col sm, 4 col lg, 2 Columns in Print) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-2 gap-2.5 sm:gap-3 print:gap-2">
         <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
           <div>
             <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
@@ -263,7 +270,10 @@ export default function DailyLedgerPage() {
             <div className="w-[135px]">
               <CustomDatePicker
                 value={startDate}
-                onChange={(d) => setStartDate(d)}
+                onChange={(d) => {
+                  setStartDate(d);
+                  setActivePreset("");
+                }}
                 placeholder="From Date"
               />
             </div>
@@ -271,41 +281,66 @@ export default function DailyLedgerPage() {
             <div className="w-[135px]">
               <CustomDatePicker
                 value={endDate}
-                onChange={(d) => setEndDate(d)}
+                onChange={(d) => {
+                  setEndDate(d);
+                  setActivePreset("");
+                }}
                 placeholder="To Date"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          {/* Quick presets (Horizontal swipeable on mobile with scrollbar) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-thin pb-1 sm:pb-0 w-full sm:w-auto shrink-0">
             <button
               onClick={() => setPreset("today")}
-              className={`h-[38px] px-2.5 rounded-xl text-xs font-bold ${
-                startDate === todayStr && endDate === todayStr
-                  ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "today"
+                  ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
               }`}
             >
               Today
             </button>
             <button
               onClick={() => setPreset("yesterday")}
-              className="h-[38px] px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "yesterday"
+                  ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+              }`}
             >
               Yesterday
             </button>
             <button
               onClick={() => setPreset("7days")}
-              className="h-[38px] px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "7days"
+                  ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+              }`}
             >
               7 Days
             </button>
             <button
               onClick={() => setPreset("month")}
-              className="h-[38px] px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "month"
+                  ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+              }`}
             >
               This Month
             </button>
+            {(activePreset !== "today" || search || startDate !== getTodayStr() || endDate !== getTodayStr()) && (
+              <button
+                onClick={() => setPreset("reset")}
+                className="h-[38px] px-3 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 whitespace-nowrap"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

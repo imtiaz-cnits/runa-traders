@@ -209,23 +209,23 @@ export default function CancelledTilesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-stretch sm:items-center gap-2 w-full sm:w-auto">
           {/* Cancelled Revenue */}
-          <div className="h-[38px] px-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 flex items-center gap-2">
-            <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase">
+          <div className="min-h-[38px] sm:h-[38px] py-1.5 sm:py-0 px-2.5 sm:px-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-center gap-0.5 sm:gap-2 flex-1 sm:flex-none">
+            <span className="text-[10px] sm:text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase whitespace-nowrap leading-tight">
               Cancelled Amount:
             </span>
-            <span className="text-xs font-black text-rose-800 dark:text-rose-300">
+            <span className="text-xs font-black text-rose-800 dark:text-rose-300 whitespace-nowrap leading-tight">
               {formatBdCurrency(totalCancelledRevenue)}
             </span>
           </div>
 
           {/* Records Count */}
-          <div className="h-[38px] px-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2">
-            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">
+          <div className="min-h-[38px] sm:h-[38px] py-1.5 sm:py-0 px-2.5 sm:px-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-center gap-0.5 sm:gap-2 flex-1 sm:flex-none">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase whitespace-nowrap leading-tight">
               Total Records:
             </span>
-            <span className="text-xs font-black text-slate-800 dark:text-white">
+            <span className="text-xs font-black text-slate-800 dark:text-white whitespace-nowrap leading-tight">
               {totalCancelledCount}
             </span>
           </div>

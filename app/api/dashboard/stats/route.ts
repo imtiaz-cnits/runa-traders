@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
       prisma.suppliers.count(),
       prisma.orders.count(),
       prisma.orders.findMany({
-        take: 10,
+        take: 100,
         orderBy: { id: "desc" },
         include: {
           customers: true,
@@ -283,6 +284,9 @@ export async function GET(req: NextRequest) {
       created_at: order.created_at,
     }));
 
+    const authUser = await getAuthUser(req);
+    const isAdmin = !authUser || authUser.role === "admin" || authUser.role === "super_admin";
+
     return NextResponse.json({
       status: "success",
       data: {
@@ -293,7 +297,7 @@ export async function GET(req: NextRequest) {
         todayInvoicesCount: ordersInPeriod.length,
         todayPaid: todayCollected,
         todayExpense,
-        profit: netProfit,
+        profit: isAdmin ? netProfit : null,
         returnAmount: totalReturn,
         discountAmount: totalDiscount,
         totalCustomerDue,

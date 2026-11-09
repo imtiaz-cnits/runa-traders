@@ -334,23 +334,23 @@ export default function PurchasesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-stretch sm:items-center gap-2 w-full sm:w-auto">
           {/* Total Inward Value */}
-          <div className="h-[38px] px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 flex items-center gap-2">
-            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">
+          <div className="min-h-[38px] sm:h-[38px] py-1.5 sm:py-0 px-2.5 sm:px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-center gap-0.5 sm:gap-2 flex-1 sm:flex-none">
+            <span className="text-[10px] sm:text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase whitespace-nowrap leading-tight">
               Total Inward:
             </span>
-            <span className="text-xs font-black text-emerald-800 dark:text-emerald-300">
+            <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 whitespace-nowrap leading-tight">
               {formatBdCurrency(totalPurchasesCost)}
             </span>
           </div>
 
           {/* Total Purchase Due */}
-          <div className="h-[38px] px-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 flex items-center gap-2">
-            <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase">
+          <div className="min-h-[38px] sm:h-[38px] py-1.5 sm:py-0 px-2.5 sm:px-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-center gap-0.5 sm:gap-2 flex-1 sm:flex-none">
+            <span className="text-[10px] sm:text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase whitespace-nowrap leading-tight">
               Due:
             </span>
-            <span className="text-xs font-black text-rose-800 dark:text-rose-300">
+            <span className="text-xs font-black text-rose-800 dark:text-rose-300 whitespace-nowrap leading-tight">
               {formatBdCurrency(totalPurchasesDue)}
             </span>
           </div>
@@ -360,10 +360,11 @@ export default function PurchasesPage() {
               setNewItems([]);
               setIsNewPurchaseOpen(true);
             }}
-            className="h-[38px] px-3.5 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+            className="h-[38px] px-3 sm:px-3.5 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer shrink-0"
+            title="New Purchase"
           >
             <Plus className="w-4 h-4" />
-            <span>New Purchase</span>
+            <span className="hidden sm:inline">New Purchase</span>
           </button>
         </div>
       </div>

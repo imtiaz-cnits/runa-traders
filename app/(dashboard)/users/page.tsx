@@ -35,81 +35,137 @@ interface UserItem {
   status: string;
   created_at: string;
   img_url?: string | null;
-  permissions?: {
-    pos?: boolean;
-    products?: boolean;
-    purchases?: boolean;
-    customers?: boolean;
-    expenses?: boolean;
-    reports?: boolean;
-    users?: boolean;
-  } | null;
+  permissions?: Record<string, boolean> | null;
 }
 
-const DEFAULT_PERMISSIONS = {
-  pos: true,
-  products: true,
-  purchases: false,
-  customers: true,
-  expenses: false,
-  reports: false,
-  users: false,
+interface SubmenuDef {
+  key: string;
+  label: string;
+  desc: string;
+}
+
+interface ModuleDef {
+  key: string;
+  label: string;
+  desc: string;
+  submenus?: SubmenuDef[];
+}
+
+const PERMISSION_MODULES: ModuleDef[] = [
+  {
+    key: "dashboard",
+    label: "ড্যাশবোর্ড (Dashboard)",
+    desc: "মূল সার্বিক ড্যাশবোর্ড ওভারভিউ ও ব্যবসায়িক তথ্য",
+  },
+  {
+    key: "sales",
+    label: "বিক্রয় পোর্টাল (Sales Portal)",
+    desc: "পণ্য নির্বাচন, নগদ বিক্রয় ও দ্রুত ক্যাশ বিলিং",
+    submenus: [
+      { key: "pos", label: "পজ টার্মিনাল (POS Terminal)", desc: "কাউন্টার বিলিং ও দ্রুত বিক্রয় রশিদ তৈরি" },
+      { key: "invoices", label: "ইনভয়েস তালিকা (Invoice List)", desc: "বিক্রিত চালানের পূর্ণাঙ্গ তালিকা ও প্রিন্ট" },
+      { key: "challans", label: "চালান তালিকা (Challan List)", desc: "ডেলিভারি চালান তৈরি ও প্রিন্ট" },
+      { key: "returns", label: "সেলস রিটার্ন (Sales Return)", desc: "গ্রাহকের ফেরত আইটেম সমন্বয়" },
+    ],
+  },
+  {
+    key: "products",
+    label: "স্টক ও প্রডাক্ট (Stock & Products)",
+    desc: "টাইলস ক্যাটালগ, ক্যাটাগরি, ব্র্যান্ড ও স্টক সমন্বয়",
+    submenus: [
+      { key: "inventory", label: "স্টক ওভারভিউ (Stock Overview)", desc: "গুদাম ও শো-রুমের বর্তমান স্টক ব্যালেন্স" },
+      { key: "product_list", label: "পণ্য তালিকা (Product List)", desc: "সকল টাইলস ও স্যানিটারি সামগ্রীর তথ্য" },
+      { key: "categories_brands", label: "ক্যাটাগরি ও ব্র্যান্ড (Categories & Brands)", desc: "পণ্য শ্রেণীবিন্যাস ও ব্র্যান্ডিং" },
+      { key: "barcode_print", label: "বারকোড প্রিন্ট (Barcode Print)", desc: "পণ্য ও কার্টুন বারকোড লেবেল তৈরি" },
+    ],
+  },
+  {
+    key: "purchases",
+    label: "ক্রয় ও সরবরাহকারী (Purchases & Suppliers)",
+    desc: "মাল ক্রয়, ইনওয়ার্ড ও মহাজন বিলিং",
+    submenus: [
+      { key: "purchase_list", label: "ক্রয় তালিকা (Purchase List)", desc: "সরবরাহকারীর নিকট থেকে নতুন মাল ক্রয়" },
+      { key: "suppliers", label: "সরবরাহকারী তালিকা (Suppliers)", desc: "মহাজন ও ডিলারদের পরিচিতি" },
+      { key: "supplier_dues", label: "মহাজন বাকি পরিশোধ (Supplier Due Pay)", desc: "সরবরাহকারীর দেনা পরিশোধ ও খাতা" },
+      { key: "purchase_returns", label: "ক্রয় রিটার্ন (Purchase Returns)", desc: "ত্রুটিপূর্ণ মাল মহাজনকে ফেরত" },
+    ],
+  },
+  {
+    key: "customers",
+    label: "গ্রাহক ও বাকি খাতা (Customers & Dues)",
+    desc: "কাস্টমার ডাটাবেস ও লেজার সমন্বয়",
+    submenus: [
+      { key: "customer_list", label: "গ্রাহক তালিকা (Customer List)", desc: "খুচরা ও পাইকারী গ্রাহকদের ডাটাবেস" },
+      { key: "customer_dues", label: "বাকি আদায় ও জমা (Customer Due)", desc: "কাস্টমারের বকেয়া আদায় ও হিসাব খাতা" },
+    ],
+  },
+  {
+    key: "expenses",
+    label: "হিসাব ও খরচ (Accounts & Expenses)",
+    desc: "দোকানের দৈনিক খরচ ও স্টাফ বেতন",
+    submenus: [
+      { key: "daily_expenses", label: "দৈনিক খরচ (Daily Expenses)", desc: "দোকানের প্রাত্যহিক বিভিন্ন খরচের ভাউচার" },
+      { key: "expense_types", label: "খরচের খাত (Expense Categories)", desc: "অফিস, ভাড়া, আপ্যায়ন ইত্যাদি খাত" },
+      { key: "staff_payroll", label: "স্টাফ ও বেতন (Staff & Payroll)", desc: "কর্মচারী হাজিরা ও মাসিক বেতন খাতা" },
+    ],
+  },
+  {
+    key: "reports",
+    label: "রিপোর্ট ও বিবরণী (Reports & Analytics)",
+    desc: "ব্যবসার সামগ্রিক হিসাব ও স্টক রিপোর্ট",
+    submenus: [
+      { key: "report_sales", label: "সেলস রিপোর্ট (Sales Report)", desc: "বিক্রয় ও আদায়কৃত টাকার স্টেটমেন্ট" },
+      { key: "report_ledger", label: "দৈনিক লেজার (Daily Ledger)", desc: "প্রতিদিনের ডেবিট-ক্রেডিট হিসাব খাতা" },
+      { key: "report_income_expense", label: "আয়-ব্যয় বিবরণী (Income & Expense)", desc: "ব্যবসার লাভ-লোকসান ও আর্থিক চিত্র" },
+      { key: "report_stock_out", label: "স্টক-আউট রিপোর্ট (Stock-Out Report)", desc: "ঘাটতি ও কম স্টক পণ্য সতর্কতা" },
+    ],
+  },
+  {
+    key: "users",
+    label: "ব্যবহারকারী ও রোল (Users & Role Settings)",
+    desc: "সিস্টেম ব্যবহারকারী তৈরি ও পারমিশন নিয়ন্ত্রণ",
+  },
+];
+
+// Helper to get all permission keys
+const ALL_PERMISSION_KEYS: string[] = [];
+PERMISSION_MODULES.forEach((m) => {
+  ALL_PERMISSION_KEYS.push(m.key);
+  if (m.submenus) {
+    m.submenus.forEach((s) => ALL_PERMISSION_KEYS.push(s.key));
+  }
+});
+
+const getAllPermissionsObject = (val: boolean): Record<string, boolean> => {
+  const obj: Record<string, boolean> = {};
+  ALL_PERMISSION_KEYS.forEach((k) => {
+    obj[k] = val;
+  });
+  return obj;
 };
 
-const ROLE_PRESETS: Record<string, typeof DEFAULT_PERMISSIONS> = {
-  admin: {
-    pos: true,
-    products: true,
-    purchases: true,
-    customers: true,
-    expenses: true,
-    reports: true,
-    users: true,
-  },
+const ROLE_PRESETS: Record<string, Record<string, boolean>> = {
+  admin: getAllPermissionsObject(true),
   manager: {
-    pos: true,
-    products: true,
-    purchases: true,
-    customers: true,
-    expenses: true,
-    reports: true,
-    users: false,
-  },
-  cashier: {
-    pos: true,
-    products: false,
-    purchases: false,
-    customers: true,
-    expenses: false,
-    reports: false,
-    users: false,
-  },
-  accountant: {
-    pos: false,
-    products: false,
-    purchases: true,
-    customers: true,
-    expenses: true,
-    reports: true,
+    ...getAllPermissionsObject(true),
     users: false,
   },
   staff: {
-    pos: false,
-    products: false,
-    purchases: true,
+    ...getAllPermissionsObject(false),
+    dashboard: true,
+    sales: true,
+    pos: true,
+    invoices: true,
+    challans: true,
+    returns: true,
+    products: true,
+    inventory: true,
+    product_list: true,
+    categories_brands: true,
+    barcode_print: true,
     customers: true,
-    expenses: true,
-    reports: false,
-    users: false,
-  },
-  users: {
-    pos: false,
-    products: false,
-    purchases: false,
-    customers: false,
-    expenses: false,
-    reports: false,
-    users: false,
+    customer_list: true,
+    customer_dues: true,
   },
 };
 
@@ -136,10 +192,10 @@ export default function UsersPage() {
     email: "",
     mobile: "",
     password: "",
-    role: "cashier",
+    role: "staff",
     status: "approved",
     img_url: "",
-    permissions: { ...ROLE_PRESETS.cashier },
+    permissions: { ...ROLE_PRESETS.staff },
   });
 
   async function loadUsers() {
@@ -167,10 +223,10 @@ export default function UsersPage() {
       email: "",
       mobile: "",
       password: "",
-      role: "cashier",
+      role: "staff",
       status: "approved",
       img_url: "",
-      permissions: { ...ROLE_PRESETS.cashier },
+      permissions: { ...ROLE_PRESETS.staff },
     });
     setSelectedUser(null);
     setError("");
@@ -184,23 +240,26 @@ export default function UsersPage() {
   const handleOpenEdit = (user: UserItem) => {
     setSelectedUser(user);
     setError("");
+    const roleKey = ["admin", "manager", "staff"].includes(user.role.toLowerCase())
+      ? user.role.toLowerCase()
+      : "staff";
     setFormData({
       name: user.name,
       email: user.email || "",
       mobile: user.mobile,
       password: "",
-      role: user.role,
+      role: roleKey,
       status: user.status,
       img_url: user.img_url || "",
       permissions: user.permissions
-        ? { ...DEFAULT_PERMISSIONS, ...user.permissions }
-        : { ...(ROLE_PRESETS[user.role] || DEFAULT_PERMISSIONS) },
+        ? { ...ROLE_PRESETS[roleKey], ...user.permissions }
+        : { ...(ROLE_PRESETS[roleKey] || ROLE_PRESETS.staff) },
     });
     setModalOpen(true);
   };
 
   const handleRoleChange = (newRole: string) => {
-    const preset = ROLE_PRESETS[newRole] || DEFAULT_PERMISSIONS;
+    const preset = ROLE_PRESETS[newRole] || ROLE_PRESETS.staff;
     setFormData((prev) => ({
       ...prev,
       role: newRole,
@@ -208,14 +267,43 @@ export default function UsersPage() {
     }));
   };
 
-  const togglePermission = (key: keyof typeof DEFAULT_PERMISSIONS) => {
+  const handleSelectAll = () => {
     setFormData((prev) => ({
       ...prev,
-      permissions: {
-        ...prev.permissions,
-        [key]: !prev.permissions[key],
-      },
+      permissions: getAllPermissionsObject(true),
     }));
+  };
+
+  const handleDeselectAll = () => {
+    setFormData((prev) => ({
+      ...prev,
+      permissions: getAllPermissionsObject(false),
+    }));
+  };
+
+  const toggleModule = (mod: ModuleDef) => {
+    setFormData((prev) => {
+      const isCurrentlyChecked = Boolean(prev.permissions[mod.key]);
+      const nextVal = !isCurrentlyChecked;
+      const updated = { ...prev.permissions, [mod.key]: nextVal };
+      if (mod.submenus) {
+        mod.submenus.forEach((sub) => {
+          updated[sub.key] = nextVal;
+        });
+      }
+      return { ...prev, permissions: updated };
+    });
+  };
+
+  const toggleSubmenu = (parentKey: string, subKey: string) => {
+    setFormData((prev) => {
+      const nextVal = !Boolean(prev.permissions[subKey]);
+      const updated = { ...prev.permissions, [subKey]: nextVal };
+      if (nextVal) {
+        updated[parentKey] = true;
+      }
+      return { ...prev, permissions: updated };
+    });
   };
 
   const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -320,11 +408,14 @@ export default function UsersPage() {
   const adminCount = users.filter(
     (u) => u.role.toLowerCase() === "admin" || u.role.toLowerCase() === "super_admin"
   ).length;
-  const cashierCount = users.filter(
-    (u) => u.role.toLowerCase() === "cashier" || u.role.toLowerCase() === "pos_operator"
-  ).length;
   const managerCount = users.filter(
-    (u) => u.role.toLowerCase() === "manager" || u.role.toLowerCase() === "accountant"
+    (u) => u.role.toLowerCase() === "manager"
+  ).length;
+  const staffCount = users.filter(
+    (u) =>
+      u.role.toLowerCase() === "staff" ||
+      u.role.toLowerCase() === "cashier" ||
+      u.role.toLowerCase() === "accountant"
   ).length;
 
   const filteredUsers = users.filter((u) => {
@@ -347,10 +438,9 @@ export default function UsersPage() {
         return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900";
       case "manager":
         return "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-900";
+      case "staff":
       case "cashier":
         return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-900";
-      case "accountant":
-        return "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-900";
       default:
         return "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
     }
@@ -508,33 +598,33 @@ export default function UsersPage() {
           </h2>
         </div>
 
-        {/* Cashier / POS Operator */}
+        {/* Manager */}
         <div className="p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 shadow-xs hover:-translate-y-0.5 transition-transform">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">
-              CASHIER / POS OPERATOR
+              STORE MANAGER
             </span>
             <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-300 flex items-center justify-center">
-              <Receipt className="w-4 h-4" />
-            </div>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-amber-700 dark:text-amber-300 m-0">
-            {cashierCount}
-          </h2>
-        </div>
-
-        {/* Accountant / Manager */}
-        <div className="p-4 rounded-2xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 shadow-xs hover:-translate-y-0.5 transition-transform">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-purple-800 dark:text-purple-400">
-              ACCOUNTANT / MANAGER
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 flex items-center justify-center">
               <Calculator className="w-4 h-4" />
             </div>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-purple-700 dark:text-purple-300 m-0">
+          <h2 className="text-2xl sm:text-3xl font-black text-amber-700 dark:text-amber-300 m-0">
             {managerCount}
+          </h2>
+        </div>
+
+        {/* Staff */}
+        <div className="p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 shadow-xs hover:-translate-y-0.5 transition-transform">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
+              STAFF / OPERATOR
+            </span>
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
+              <Receipt className="w-4 h-4" />
+            </div>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-300 m-0">
+            {staffCount}
           </h2>
         </div>
       </div>
@@ -829,16 +919,16 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* 5. CREATE / EDIT USER MODAL */}
+      {/* 5. CREATE / EDIT USER MODAL (Matching User Role Spec Images 1 & 2) */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl bg-white dark:bg-[#0f172a] rounded-[16px] shadow-2xl overflow-hidden border border-[#cbd5e1] dark:border-[#334155] max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-3xl bg-white dark:bg-[#0f172a] rounded-[16px] shadow-2xl overflow-hidden border border-[#cbd5e1] dark:border-[#334155] max-h-[90vh] flex flex-col">
             {/* Sticky Header */}
             <div className="bg-[#15803d] px-5 py-3.5 flex items-center justify-between text-white shrink-0">
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-white" />
-                <h3 className="text-sm font-bold tracking-wide uppercase m-0 text-white">
-                  {selectedUser ? "Edit User Role & Permissions" : "Create New User & Permissions"}
+                <h3 className="text-sm font-bold tracking-wide m-0 text-white">
+                  {selectedUser ? "ব্যবহারকারী ও পারমিশন সম্পাদনা" : "নতুন ব্যবহারকারী ও পারমিশন তৈরি"}
                 </h3>
               </div>
               <button
@@ -851,32 +941,34 @@ export default function UsersPage() {
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-5">
               {error && (
                 <div className="p-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold">
                   {error}
                 </div>
               )}
 
-              {/* Personal Information */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Personal Information (Matching Image 1) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* Left: Full Name */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Full Name <span className="text-red-500">*</span>
+                    পূর্ণ নাম (Full Name) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Enter user full name"
+                    placeholder="যেমন: মোঃ রফিকুল ইসলাম"
                     className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   />
                 </div>
 
+                {/* Right: Mobile */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Mobile Number <span className="text-red-500">*</span>
+                    মোবাইল নম্বর <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -888,24 +980,26 @@ export default function UsersPage() {
                   />
                 </div>
 
+                {/* Left: Email */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Email Address (Optional)
+                    ইমেইল এড্রেস (ঐচ্ছিক)
                   </label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="user@runatraders.com"
+                    placeholder="admin@gmail.com"
                     className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   />
                 </div>
 
+                {/* Right: Password */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Password{" "}
+                    পাসওয়ার্ড{" "}
                     {selectedUser ? (
-                      "(Leave blank to keep unchanged)"
+                      "(অপরিবর্তিত রাখতে খালি রাখুন)"
                     ) : (
                       <span className="text-red-500">*</span>
                     )}
@@ -915,46 +1009,46 @@ export default function UsersPage() {
                     required={!selectedUser}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Minimum 4 characters"
+                    placeholder="••••••••"
                     className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   />
                 </div>
 
+                {/* Left: System Role (Strictly 3 options: Admin, Manager, Staff) */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    System Role <span className="text-red-500">*</span>
+                    পদবী / রোল (System Role) <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.role}
                     onChange={(e) => handleRoleChange(e.target.value)}
                     className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   >
-                    <option value="admin">👑 Admin / Super Admin</option>
-                    <option value="manager">💼 Store Manager</option>
-                    <option value="cashier">🧾 Cashier / POS Operator</option>
-                    <option value="accountant">📊 Accountant</option>
-                    <option value="staff">👤 Staff</option>
-                    <option value="users">👤 General User</option>
+                    <option value="admin">👑 Admin (অ্যাডমিন)</option>
+                    <option value="manager">🧑‍💼 Manager (ম্যানেজার)</option>
+                    <option value="staff">👤 Staff (স্টাফ)</option>
                   </select>
                 </div>
 
+                {/* Right: Account Status */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Account Status <span className="text-red-500">*</span>
+                    একাউন্ট স্ট্যাটাস <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                     className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   >
-                    <option value="approved">Approved / Active</option>
-                    <option value="pending">Pending Approval</option>
+                    <option value="approved">সক্রিয় (Approved / Active)</option>
+                    <option value="pending">পেন্ডিং (Pending Approval)</option>
                   </select>
                 </div>
 
+                {/* Optional Avatar Photo */}
                 <div className="sm:col-span-2 space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Profile Photo (Optional)
+                    প্রোফাইল ছবি (ঐচ্ছিক)
                   </label>
                   <div className="flex items-center gap-3">
                     {formData.img_url ? (
@@ -971,7 +1065,7 @@ export default function UsersPage() {
                     )}
                     <label className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 cursor-pointer flex items-center gap-1.5">
                       <Camera className="w-3.5 h-3.5" />
-                      <span>{uploadingAvatar ? "Uploading..." : "Upload Photo"}</span>
+                      <span>{uploadingAvatar ? "আপলোড হচ্ছে..." : "ছবি আপলোড করুন"}</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -986,60 +1080,128 @@ export default function UsersPage() {
                         onClick={() => setFormData({ ...formData, img_url: "" })}
                         className="text-xs text-rose-600 hover:underline cursor-pointer"
                       >
-                        Remove
+                        মুছে ফেলুন
                       </button>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Module Permission Switches */}
-              <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                    Module Access Permissions
-                  </span>
-                  <span className="text-[11px] text-slate-400">
-                    Toggle individual modules for this user
-                  </span>
+              {/* Sidebar Menu Access Permissions (Matching Image 2) */}
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wide m-0">
+                      সাইডবার মেনু অ্যাক্সেস পারমিশন (MODULE ACCESS PERMISSIONS)
+                    </h4>
+                    <p className="text-[11px] text-slate-400 m-0 mt-0.5">
+                      প্রত্যেকটি মেনু ও সাবমেনুর পারমিশন চেকবক্স দিয়ে নিয়ন্ত্রণ করুন
+                    </p>
+                  </div>
+
+                  {/* Top Right Action Buttons: সব নির্বাচন & সব বাতিল */}
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleSelectAll}
+                      className="px-3.5 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-[#166534] dark:text-emerald-300 text-xs font-bold cursor-pointer transition-colors shadow-2xs"
+                    >
+                      সব নির্বাচন
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeselectAll}
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition-colors shadow-2xs"
+                    >
+                      সব বাতিল
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  {[
-                    { key: "pos", label: "POS Billing & Sales", desc: "Sell tiles, cash receipts, sales returns" },
-                    { key: "products", label: "Product & Inventory", desc: "View & edit tiles, brands, categories" },
-                    { key: "purchases", label: "Purchase & Suppliers", desc: "Purchase inwards, supplier payables" },
-                    { key: "customers", label: "Customers & Due Register", desc: "Customer list, due collection" },
-                    { key: "expenses", label: "Expenses & Staff Payroll", desc: "Daily shop expenses, staff accounts" },
-                    { key: "reports", label: "Reports & Analytics", desc: "Sales, income statement, ledger" },
-                    { key: "users", label: "User & Role Management", desc: "Manage accounts and permissions" },
-                  ].map((mod) => {
-                    const isChecked = Boolean((formData.permissions as any)[mod.key]);
+                {/* Hierarchical Module Cards Matching Image 2 */}
+                <div className="space-y-3">
+                  {PERMISSION_MODULES.map((mod) => {
+                    const isParentChecked = Boolean(formData.permissions[mod.key]);
                     return (
                       <div
                         key={mod.key}
-                        onClick={() => togglePermission(mod.key as any)}
-                        className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                          isChecked
-                            ? "bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-900/60"
-                            : "bg-slate-50 dark:bg-[#1e293b] border-slate-200 dark:border-slate-800"
-                        }`}
+                        className={`rounded-2xl border transition-all ${
+                          isParentChecked
+                            ? "border-emerald-300 dark:border-emerald-800 bg-white dark:bg-slate-900/70 shadow-xs"
+                            : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30"
+                        } p-3.5`}
                       >
-                        <div>
-                          <div className="font-bold text-slate-900 dark:text-white">
-                            {mod.label}
-                          </div>
-                          <div className="text-[10px] text-slate-500">{mod.desc}</div>
-                        </div>
+                        {/* Parent Row */}
                         <div
-                          className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors shrink-0 ${
-                            isChecked
-                              ? "bg-emerald-600 text-white"
-                              : "border border-slate-300 dark:border-slate-600"
-                          }`}
+                          onClick={() => toggleModule(mod)}
+                          className="flex items-start justify-between gap-3 cursor-pointer select-none"
                         >
-                          {isChecked && <Check className="w-4 h-4" />}
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                                isParentChecked
+                                  ? "bg-[#16a34a] text-white"
+                                  : "border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                              }`}
+                            >
+                              {isParentChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            </div>
+                            <div>
+                              <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                                {mod.label}
+                              </div>
+                              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                {mod.desc}
+                              </div>
+                            </div>
+                          </div>
+
+                          {mod.submenus && (
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
+                              {mod.submenus.length} টি সাবমেনু
+                            </span>
+                          )}
                         </div>
+
+                        {/* Nested Submenu Box if Available (Matching Image 2) */}
+                        {mod.submenus && (
+                          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2 pl-4 sm:pl-7">
+                            {mod.submenus.map((sub) => {
+                              const isSubChecked = Boolean(formData.permissions[sub.key]);
+                              return (
+                                <div
+                                  key={sub.key}
+                                  onClick={() => toggleSubmenu(mod.key, sub.key)}
+                                  className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                                    isSubChecked
+                                      ? "border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20"
+                                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div
+                                      className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition-colors ${
+                                        isSubChecked
+                                          ? "bg-[#16a34a] text-white"
+                                          : "border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                                      }`}
+                                    >
+                                      {isSubChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                                        {sub.label}
+                                      </div>
+                                      <div className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">
+                                        {sub.desc}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1047,11 +1209,11 @@ export default function UsersPage() {
               </div>
 
               {/* Sticky Footer */}
-              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2 shrink-0">
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="h-[40px] px-5 rounded-xl bg-[#dc2626] hover:bg-red-700 text-white font-bold text-xs cursor-pointer transition-colors"
+                  className="h-[40px] px-6 rounded-xl bg-[#dc2626] hover:bg-red-700 text-white font-bold text-xs cursor-pointer transition-colors shadow-xs"
                 >
                   Cancel
                 </button>
@@ -1060,8 +1222,12 @@ export default function UsersPage() {
                   disabled={submitting}
                   className="h-[40px] px-6 rounded-xl bg-[#15803d] hover:bg-[#166534] text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
                 >
-                  {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{selectedUser ? "Update User" : "Create User"}</span>
+                  {submitting ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4" />
+                  )}
+                  <span>✓ Save User</span>
                 </button>
               </div>
             </form>

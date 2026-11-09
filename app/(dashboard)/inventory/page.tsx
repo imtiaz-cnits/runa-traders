@@ -16,6 +16,7 @@ import {
   Sparkles,
   Printer,
   RotateCcw,
+  Lock,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -81,6 +82,16 @@ export default function InventoryPage() {
   const [categories, setCategories] = useState<OptionItem[]>([]);
   const [brands, setBrands] = useState<OptionItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(true);
+
+  useEffect(() => {
+    try {
+      const r = (localStorage.getItem("role") || "").toLowerCase();
+      setIsAdmin(r === "admin" || r === "super_admin" || r === "");
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -410,7 +421,7 @@ export default function InventoryPage() {
 
       {/* 2. Valuation KPI Cards (Screen View) */}
       {summary && (
-        <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Total Stock Units (Separated Tiles vs Fittings/Sanitary) */}
           <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
@@ -475,19 +486,28 @@ export default function InventoryPage() {
               <span>Potential Margin</span>
               <TrendingUp className="w-4 h-4 text-purple-600" />
             </div>
-            <div className="text-xl font-black text-purple-700 dark:text-purple-400 mt-1">
-              {formatBdCurrency(summary.potential_profit)}
-            </div>
-            <div className="text-[11px] text-emerald-600 font-bold mt-0.5">
-              +
-              {summary.total_cost_valuation > 0
-                ? (
-                  (summary.potential_profit / summary.total_cost_valuation) *
-                  100
-                ).toFixed(1)
-                : 0}
-              % Markup
-            </div>
+            {isAdmin ? (
+              <>
+                <div className="text-xl font-black text-purple-700 dark:text-purple-400 mt-1">
+                  {formatBdCurrency(summary.potential_profit)}
+                </div>
+                <div className="text-[11px] text-emerald-600 font-bold mt-0.5">
+                  +
+                  {summary.total_cost_valuation > 0
+                    ? (
+                      (summary.potential_profit / summary.total_cost_valuation) *
+                      100
+                    ).toFixed(1)
+                    : 0}
+                  % Markup
+                </div>
+              </>
+            ) : (
+              <div className="text-sm font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1.5 py-2 mt-1">
+                <Lock className="w-3.5 h-3.5 text-slate-400" />
+                <span>Admin Only</span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -611,7 +631,7 @@ export default function InventoryPage() {
           </div>
 
           {/* Right Side: Show Entries Selector */}
-          <div className="flex items-center gap-2.5 self-start xl:self-auto shrink-0 w-full md:w-auto">
+          <div className="flex items-center justify-center md:justify-start gap-2.5 self-center xl:self-auto shrink-0 w-full md:w-auto">
             <div className="w-[125px]">
               <CustomSelect
                 value={String(pageSize)}

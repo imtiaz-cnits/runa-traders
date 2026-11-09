@@ -143,11 +143,11 @@ export default function CustomerDuesPage() {
           </div>
         </div>
 
-        <div className="h-[42px] px-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex items-center gap-2.5">
-          <span className="text-xs font-bold text-rose-700 dark:text-rose-400 uppercase">
+        <div className="min-h-[38px] sm:h-[42px] py-1.5 sm:py-0 px-3 sm:px-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex flex-col sm:flex-row items-start sm:items-center justify-center gap-0.5 sm:gap-2.5 w-full sm:w-auto">
+          <span className="text-[10px] sm:text-xs font-bold text-rose-700 dark:text-rose-400 uppercase whitespace-nowrap leading-tight">
             Total Customer Receivable:
           </span>
-          <span className="text-sm font-black text-rose-800 dark:text-rose-300">
+          <span className="text-xs sm:text-sm font-black text-rose-800 dark:text-rose-300 whitespace-nowrap leading-tight">
             {formatBdCurrency(totalDueAmount)}
           </span>
         </div>

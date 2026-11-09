@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Tag,
   Truck,
+  RotateCcw,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
@@ -47,14 +48,10 @@ export default function IncomeExpensePage() {
   const [suppliers, setSuppliers] = useState<SupplierBreakdown[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const now = new Date();
-  const firstDayStr = new Date(now.getFullYear(), now.getMonth(), 1)
-    .toISOString()
-    .split("T")[0];
-  const todayStr = now.toISOString().split("T")[0];
-
-  const [startDate, setStartDate] = useState(firstDayStr);
-  const [endDate, setEndDate] = useState(todayStr);
+  const getTodayStr = () => new Date().toISOString().split("T")[0];
+  const [activePreset, setActivePreset] = useState<string>("today");
+  const [startDate, setStartDate] = useState(getTodayStr());
+  const [endDate, setEndDate] = useState(getTodayStr());
 
   const loadData = async () => {
     try {
@@ -78,18 +75,32 @@ export default function IncomeExpensePage() {
     loadData();
   }, [startDate, endDate]);
 
-  const setPreset = (preset: "today" | "month" | "last30") => {
-    const tStr = new Date().toISOString().split("T")[0];
-    if (preset === "today") {
+  const setPreset = (preset: "today" | "yesterday" | "7days" | "month" | "reset") => {
+    const now = new Date();
+    const tStr = now.toISOString().split("T")[0];
+    if (preset === "today" || preset === "reset") {
+      setActivePreset("today");
       setStartDate(tStr);
       setEndDate(tStr);
-    } else if (preset === "month") {
-      setStartDate(firstDayStr);
-      setEndDate(tStr);
-    } else if (preset === "last30") {
+    } else if (preset === "yesterday") {
+      setActivePreset("yesterday");
+      const y = new Date();
+      y.setDate(y.getDate() - 1);
+      const yStr = y.toISOString().split("T")[0];
+      setStartDate(yStr);
+      setEndDate(yStr);
+    } else if (preset === "7days") {
+      setActivePreset("7days");
       const past = new Date();
-      past.setDate(past.getDate() - 30);
+      past.setDate(past.getDate() - 7);
       setStartDate(past.toISOString().split("T")[0]);
+      setEndDate(tStr);
+    } else if (preset === "month") {
+      setActivePreset("month");
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+        .toISOString()
+        .split("T")[0];
+      setStartDate(firstDay);
       setEndDate(tStr);
     }
   };
@@ -162,9 +173,9 @@ export default function IncomeExpensePage() {
         </button>
       </div>
 
-      {/* 2. Top Summary KPI Row (2 Columns in Print, Compact, No Icons, Right Aligned Amount) */}
+      {/* 2. Top Summary KPI Row (1 col mobile, 2 col sm, 4 col lg, 2 Columns in Print) */}
       {summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 print:grid-cols-2 gap-2.5 sm:gap-3 print:gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-2 gap-2.5 sm:gap-3 print:gap-2">
           <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
             <div>
               <div className="text-slate-500 dark:text-slate-400 print:text-slate-700 text-xs print:text-[10px] font-bold">
@@ -223,7 +234,10 @@ export default function IncomeExpensePage() {
           <div className="w-[135px]">
             <CustomDatePicker
               value={startDate}
-              onChange={(d) => setStartDate(d)}
+              onChange={(d) => {
+                setStartDate(d);
+                setActivePreset("");
+              }}
               placeholder="From Date"
             />
           </div>
@@ -231,31 +245,66 @@ export default function IncomeExpensePage() {
           <div className="w-[135px]">
             <CustomDatePicker
               value={endDate}
-              onChange={(d) => setEndDate(d)}
+              onChange={(d) => {
+                setEndDate(d);
+                setActivePreset("");
+              }}
               placeholder="To Date"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        {/* Quick presets (Horizontal swipeable on mobile with scrollbar) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-thin pb-1 sm:pb-0 w-full sm:w-auto shrink-0">
           <button
             onClick={() => setPreset("today")}
-            className="h-[38px] px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold"
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              activePreset === "today"
+                ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+            }`}
           >
             Today
           </button>
           <button
+            onClick={() => setPreset("yesterday")}
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              activePreset === "yesterday"
+                ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+            }`}
+          >
+            Yesterday
+          </button>
+          <button
+            onClick={() => setPreset("7days")}
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              activePreset === "7days"
+                ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+            }`}
+          >
+            7 Days
+          </button>
+          <button
             onClick={() => setPreset("month")}
-            className="h-[38px] px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold"
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              activePreset === "month"
+                ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
+                : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+            }`}
           >
             This Month
           </button>
-          <button
-            onClick={() => setPreset("last30")}
-            className="h-[38px] px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold"
-          >
-            Last 30 Days
-          </button>
+          {(activePreset !== "today" || startDate !== getTodayStr() || endDate !== getTodayStr()) && (
+            <button
+              onClick={() => setPreset("reset")}
+              className="h-[38px] px-3 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 whitespace-nowrap"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
       </div>
 

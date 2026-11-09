@@ -10,7 +10,7 @@ export async function PUT(
 ) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || authUser.role !== "admin") {
+    if (!authUser || (authUser.role !== "admin" && authUser.role !== "super_admin")) {
       return NextResponse.json({ status: "fail", message: "Unauthorized" }, { status: 403 });
     }
 
@@ -57,7 +57,7 @@ export async function DELETE(
 ) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || authUser.role !== "admin") {
+    if (!authUser || (authUser.role !== "admin" && authUser.role !== "super_admin")) {
       return NextResponse.json({ status: "fail", message: "Unauthorized" }, { status: 403 });
     }
 

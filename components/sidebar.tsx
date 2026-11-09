@@ -143,9 +143,77 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
 
+  const [userRole, setUserRole] = useState<string>("admin");
+  const [userPerms, setUserPerms] = useState<Record<string, boolean> | null>(null);
+
+  useEffect(() => {
+    try {
+      const r = (localStorage.getItem("role") || "admin").toLowerCase();
+      setUserRole(r);
+      const p = localStorage.getItem("permissions");
+      if (p) setUserPerms(JSON.parse(p));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const filteredNavItems = useMemo(() => {
+    if (userRole === "admin" || userRole === "super_admin" || !userPerms) {
+      return NAV_ITEMS;
+    }
+
+    return NAV_ITEMS.map((item) => {
+      let parentAllowed = true;
+      if (item.id === "dashboard") parentAllowed = userPerms.dashboard !== false;
+      else if (item.id === "pos") parentAllowed = userPerms.pos !== false || userPerms.sales !== false;
+      else if (item.id === "inventory") parentAllowed = userPerms.products !== false;
+      else if (item.id === "sales") parentAllowed = userPerms.sales !== false;
+      else if (item.id === "purchases") parentAllowed = userPerms.purchases !== false;
+      else if (item.id === "customers") parentAllowed = userPerms.customers !== false;
+      else if (item.id === "expenses") parentAllowed = userPerms.expenses !== false;
+      else if (item.id === "reports") parentAllowed = userPerms.reports !== false;
+      else if (item.id === "settings") parentAllowed = true;
+
+      if (!parentAllowed) return null;
+
+      if (item.children) {
+        const allowedChildren = item.children.filter((c) => {
+          if (c.href === "/users") return Boolean(userPerms.users);
+          if (c.href === "/profile") return true;
+          if (c.href === "/pos") return userPerms.pos !== false;
+          if (c.href === "/invoices") return userPerms.invoices !== false && userPerms.sales !== false;
+          if (c.href === "/challans") return userPerms.challans !== false && userPerms.sales !== false;
+          if (c.href === "/returns") return userPerms.returns !== false && userPerms.sales !== false;
+          if (c.href === "/inventory") return userPerms.inventory !== false && userPerms.products !== false;
+          if (c.href === "/products") return userPerms.product_list !== false && userPerms.products !== false;
+          if (c.href === "/categories" || c.href === "/brands") return userPerms.categories_brands !== false && userPerms.products !== false;
+          if (c.href === "/barcode-print") return userPerms.barcode_print !== false && userPerms.products !== false;
+          if (c.href === "/purchases") return userPerms.purchase_list !== false && userPerms.purchases !== false;
+          if (c.href === "/purchase-returns") return userPerms.purchase_returns !== false && userPerms.purchases !== false;
+          if (c.href === "/suppliers") return userPerms.suppliers !== false && userPerms.purchases !== false;
+          if (c.href === "/supplier-dues") return userPerms.supplier_dues !== false && userPerms.purchases !== false;
+          if (c.href === "/customers") return userPerms.customer_list !== false && userPerms.customers !== false;
+          if (c.href === "/customer-dues") return userPerms.customer_dues !== false && userPerms.customers !== false;
+          if (c.href === "/expenses") return userPerms.daily_expenses !== false && userPerms.expenses !== false;
+          if (c.href === "/expense-types") return userPerms.expense_types !== false && userPerms.expenses !== false;
+          if (c.href === "/staff") return userPerms.staff_payroll !== false && userPerms.expenses !== false;
+          if (c.href === "/reports/sales") return userPerms.report_sales !== false && userPerms.reports !== false;
+          if (c.href === "/reports/daily-ledger") return userPerms.report_ledger !== false && userPerms.reports !== false;
+          if (c.href === "/reports/income-expense") return userPerms.report_income_expense !== false && userPerms.reports !== false;
+          if (c.href === "/reports/stock-out") return userPerms.report_stock_out !== false && userPerms.reports !== false;
+          return true;
+        });
+        if (allowedChildren.length === 0) return null;
+        return { ...item, children: allowedChildren };
+      }
+
+      return item;
+    }).filter(Boolean) as NavItem[];
+  }, [userRole, userPerms]);
+
   // Find active parent ID dynamically from current pathname
   const activeParentId = useMemo(() => {
-    for (const item of NAV_ITEMS) {
+    for (const item of filteredNavItems) {
       if (item.children) {
         if (
           item.children.some(
@@ -157,7 +225,7 @@ export function Sidebar({
       }
     }
     return null;
-  }, [pathname]);
+  }, [pathname, filteredNavItems]);
 
   // Expanded Drilling navigation state
   const [drilledParent, setDrilledParent] = useState<string | null>(null);
@@ -256,11 +324,11 @@ export function Sidebar({
 
   // Active flyout menu object
   const activeFlyoutMenuId = pinnedFlyoutId || hoveredFlyoutId;
-  const activeFlyoutItem = NAV_ITEMS.find((n) => n.id === activeFlyoutMenuId);
+  const activeFlyoutItem = filteredNavItems.find((n) => n.id === activeFlyoutMenuId);
 
   // Main scrollable items (Dashboard through Reports)
-  const scrollableItems = NAV_ITEMS.filter((item) => item.id !== "settings");
-  const settingsItem = NAV_ITEMS.find((item) => item.id === "settings")!;
+  const scrollableItems = filteredNavItems.filter((item) => item.id !== "settings");
+  const settingsItem = filteredNavItems.find((item) => item.id === "settings") || NAV_ITEMS.find((item) => item.id === "settings")!;
 
   return (
     <>
@@ -294,10 +362,10 @@ export function Sidebar({
             </div>
             {!isCollapsed && (
               <div className="min-w-0">
-                <h1 className="text-sm font-black tracking-wider text-white leading-none truncate">
+                <h1 className="text-xs sm:text-sm font-black tracking-wider text-white leading-none truncate">
                   RUNA TRADERS
                 </h1>
-                <p className="text-[10px] text-rose-200/80 tracking-tight mt-0.5 font-medium truncate">
+                <p className="text-[9px] sm:text-[10px] text-rose-200/80 tracking-tight mt-0.5 font-medium truncate">
                   Retail Shop POS
                 </p>
               </div>
@@ -306,9 +374,10 @@ export function Sidebar({
           {!isCollapsed && (
             <button
               onClick={onClose}
-              className="lg:hidden p-1 text-rose-200 hover:text-white rounded-lg cursor-pointer"
+              className="lg:hidden w-7 h-7 bg-white hover:bg-slate-100 text-black rounded-lg flex items-center justify-center cursor-pointer shadow-xs transition-colors shrink-0"
+              title="Close Navigation"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 text-black" />
             </button>
           )}
         </div>
@@ -391,7 +460,7 @@ export function Sidebar({
             </div>
 
             {/* 2. Submenu Drilldown Panels (Slide In from Right) */}
-            {NAV_ITEMS.filter((item) => item.children).map((parent) => (
+            {filteredNavItems.filter((item) => item.children).map((parent) => (
               <div
                 key={parent.id}
                 className={`absolute inset-0 w-full h-full overflow-y-auto px-2 py-2.5 space-y-1 text-xs transition-transform duration-300 ease-in-out scrollbar-thin ${

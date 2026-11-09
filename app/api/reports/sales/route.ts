@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -147,19 +148,29 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const authUser = await getAuthUser(req);
+    const isAdmin = !authUser || authUser.role === "admin" || authUser.role === "super_admin";
+
+    const sanitizedData = isAdmin
+      ? formatted
+      : formatted.map((o) => ({
+          ...o,
+          profit_amount: 0,
+        }));
+
     return NextResponse.json({
       status: "success",
       summary: {
         total_orders: formatted.length,
         total_sales_amount: totalSalesAmount,
         total_cost_amount: totalCostAmount,
-        total_gross_profit: totalGrossProfit,
+        total_gross_profit: isAdmin ? totalGrossProfit : null,
         total_paid_amount: totalPaidAmount,
         total_due_amount: totalDueAmount,
         total_discount_amount: totalDiscountAmount,
         total_return_amount: totalReturnAmount,
       },
-      data: formatted,
+      data: sanitizedData,
     });
   } catch (error: any) {
     console.error("Sales Report API Error:", error);

@@ -139,6 +139,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const authUser = await getAuthUser(req);
+    const isAdmin = !authUser || authUser.role === "admin" || authUser.role === "super_admin";
+
     return NextResponse.json({
       status: "success",
       summary: {
@@ -157,7 +160,7 @@ export async function GET(req: NextRequest) {
         },
         total_cost_valuation: totalCostValuation,
         total_retail_valuation: totalRetailValuation,
-        potential_profit: Math.max(0, totalRetailValuation - totalCostValuation),
+        potential_profit: isAdmin ? Math.max(0, totalRetailValuation - totalCostValuation) : 0,
         low_stock_count: lowStockCount,
         out_of_stock_count: outOfStockCount,
       },
