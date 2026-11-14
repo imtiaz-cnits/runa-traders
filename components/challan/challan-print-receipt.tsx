@@ -57,17 +57,17 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
     totalBoxes > 0 && totalPcs > 0
       ? `${totalBoxes} Boxes ${totalPcs} Pcs`
       : totalBoxes > 0
-      ? `${totalBoxes} Boxes`
-      : totalPcs > 0
-      ? `${totalPcs} Pcs`
-      : "0 Box";
+        ? `${totalBoxes} Boxes`
+        : totalPcs > 0
+          ? `${totalPcs} Pcs`
+          : "0 Box";
 
   const formattedDate = challan.challan_date
     ? new Date(challan.challan_date).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })
     : "";
 
   return (
@@ -208,20 +208,17 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
             <div className="space-y-2.5 relative z-10 print:space-y-1.5">
               {/* Header matching Image 1: M/S Runa Traders, Fresh Ceramics Dealer, Pabna */}
               <div className="text-center border-b-2 border-red-700 pb-2 print:pb-1">
-                <div className="flex justify-between items-center text-[9px] print:text-[7.5px] text-slate-600 mb-0.5">
-                  <span className="font-semibold text-rose-900">প্রোঃ মোঃ আরশাদ হোসেন &bull; 01711-968720</span>
-                  <span className="font-mono">বিকাশ: 01975-703216, 01715-842083</span>
+                <div className="flex justify-center items-center text-[9px] print:text-[7.5px] text-slate-600 mb-0.5">
+                  <span className="font-semibold text-rose-900">প্রোঃ মোঃ আরাফাত হোসেন &bull; 01711-968720</span>
                 </div>
                 <div className="flex items-center justify-center gap-2">
-                  <div className="w-8 h-8 print:w-6 print:h-6 rounded-lg bg-red-700 text-white font-black text-xs print:text-[9.5px] flex items-center justify-center tracking-tighter shrink-0">
-                    MRT
-                  </div>
+
                   <div>
                     <h1 className="text-base sm:text-lg print:text-[13px] font-black text-rose-900 tracking-wider uppercase leading-none">
                       মেসার্স রুনা ট্রেডার্স (RUNA TRADERS)
                     </h1>
                     <div className="text-[10.5px] sm:text-[11px] print:text-[9px] font-bold text-emerald-800 leading-tight mt-0.5">
-                      ডিলার ঃ ফ্রেশ সিরামিকস
+                      ডিলার : ফ্রেশ সিরামিকস
                     </div>
                   </div>
                 </div>
@@ -304,8 +301,8 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
                         ? fullBoxes > 0 && pcs > 0
                           ? "Box, Pcs"
                           : fullBoxes > 0
-                          ? "Box"
-                          : "Pcs"
+                            ? "Box"
+                            : "Pcs"
                         : item.unit || "Pcs";
                       return (
                         <tr key={item.id || idx} className="hover:bg-slate-50/50 print:bg-transparent">
