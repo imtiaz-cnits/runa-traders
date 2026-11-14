@@ -58,7 +58,16 @@ export default function LoginPage() {
       }
 
       setTimeout(() => {
-        window.location.replace("/dashboard");
+        const uName = (data.user?.name || "").toLowerCase();
+        if (
+          data.role === "warehouse" ||
+          uName.includes("warehouse") ||
+          (data.permissions && data.permissions.dashboard === false && data.permissions.inventory)
+        ) {
+          window.location.replace("/inventory");
+        } else {
+          window.location.replace("/dashboard");
+        }
       }, 600);
     } catch (err: any) {
       setError(err?.message || "An unexpected error occurred.");

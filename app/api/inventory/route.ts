@@ -141,6 +141,20 @@ export async function GET(req: NextRequest) {
 
     const authUser = await getAuthUser(req);
     const isAdmin = !authUser || authUser.role === "admin" || authUser.role === "super_admin";
+    const isWarehouseUser = Boolean(
+      authUser?.role?.toLowerCase() === "warehouse" ||
+      authUser?.name?.toLowerCase().includes("warehouse")
+    );
+
+    const sanitizedList = isWarehouseUser
+      ? filteredList.map((p) => ({
+          ...p,
+          cost_price: 0,
+          sell_price: 0,
+          total_cost_value: 0,
+          total_retail_value: 0,
+        }))
+      : filteredList;
 
     return NextResponse.json({
       status: "success",
@@ -158,13 +172,13 @@ export async function GET(req: NextRequest) {
           skus: otherSkusCount,
           formatted: `${otherTotalUnits.toLocaleString("en-US")} Pcs`,
         },
-        total_cost_valuation: totalCostValuation,
-        total_retail_valuation: totalRetailValuation,
-        potential_profit: isAdmin ? Math.max(0, totalRetailValuation - totalCostValuation) : 0,
+        total_cost_valuation: isWarehouseUser ? 0 : totalCostValuation,
+        total_retail_valuation: isWarehouseUser ? 0 : totalRetailValuation,
+        potential_profit: isWarehouseUser ? 0 : (isAdmin ? Math.max(0, totalRetailValuation - totalCostValuation) : 0),
         low_stock_count: lowStockCount,
         out_of_stock_count: outOfStockCount,
       },
-      data: filteredList,
+      data: sanitizedList,
     });
   } catch (error: any) {
     console.error("Inventory GET Error:", error);

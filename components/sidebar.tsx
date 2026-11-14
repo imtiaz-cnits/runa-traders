@@ -144,6 +144,7 @@ export function Sidebar({
   const pathname = usePathname();
 
   const [userRole, setUserRole] = useState<string>("admin");
+  const [userName, setUserName] = useState<string>("");
   const [userPerms, setUserPerms] = useState<Record<string, boolean> | null>(null);
 
   useEffect(() => {
@@ -152,12 +153,29 @@ export function Sidebar({
       setUserRole(r);
       const p = localStorage.getItem("permissions");
       if (p) setUserPerms(JSON.parse(p));
+      const uStr = localStorage.getItem("user");
+      if (uStr) {
+        const u = JSON.parse(uStr);
+        setUserName((u?.name || "").toLowerCase());
+      }
     } catch {
       // ignore
     }
   }, []);
 
   const filteredNavItems = useMemo(() => {
+    const isWarehouse = userRole === "warehouse" || userName.includes("warehouse");
+
+    if (isWarehouse) {
+      return NAV_ITEMS.map((item) => {
+        if (item.id !== "inventory") return null;
+        return {
+          ...item,
+          children: (item.children || []).filter((c) => c.href === "/inventory"),
+        };
+      }).filter(Boolean) as NavItem[];
+    }
+
     if (userRole === "admin" || userRole === "super_admin" || !userPerms) {
       return NAV_ITEMS;
     }

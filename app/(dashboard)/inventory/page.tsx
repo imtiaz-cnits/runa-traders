@@ -83,11 +83,20 @@ export default function InventoryPage() {
   const [brands, setBrands] = useState<OptionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(true);
+  const [isWarehouse, setIsWarehouse] = useState(false);
 
   useEffect(() => {
     try {
       const r = (localStorage.getItem("role") || "").toLowerCase();
       setIsAdmin(r === "admin" || r === "super_admin" || r === "");
+      const uStr = localStorage.getItem("user");
+      let uName = "";
+      if (uStr) {
+        const u = JSON.parse(uStr);
+        uName = (u?.name || "").toLowerCase();
+      }
+      const isWh = r === "warehouse" || uName.includes("warehouse");
+      setIsWarehouse(isWh);
     } catch {
       // ignore
     }
@@ -421,7 +430,7 @@ export default function InventoryPage() {
 
       {/* 2. Valuation KPI Cards (Screen View) */}
       {summary && (
-        <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className={`no-print grid gap-3 ${isWarehouse ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"}`}>
           {/* Total Stock Units (Separated Tiles vs Fittings/Sanitary) */}
           <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
@@ -456,59 +465,63 @@ export default function InventoryPage() {
             </div>
           </div>
 
-          {/* Cost Valuation */}
-          <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
-              <span>Stock Cost Value</span>
-              <DollarSign className="w-4 h-4 text-sky-600" />
-            </div>
-            <div className="text-xl font-black text-sky-700 dark:text-sky-400 mt-1">
-              {formatBdCurrency(summary.total_cost_valuation)}
-            </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Total capital invested</div>
-          </div>
-
-          {/* Retail Valuation */}
-          <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
-              <span>Retail Selling Value</span>
-              <Package className="w-4 h-4 text-emerald-600" />
-            </div>
-            <div className="text-xl font-black text-emerald-700 dark:text-emerald-400 mt-1">
-              {formatBdCurrency(summary.total_retail_valuation)}
-            </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Expected sales revenue</div>
-          </div>
-
-          {/* Potential Gross Profit */}
-          <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
-              <span>Potential Margin</span>
-              <TrendingUp className="w-4 h-4 text-purple-600" />
-            </div>
-            {isAdmin ? (
-              <>
-                <div className="text-xl font-black text-purple-700 dark:text-purple-400 mt-1">
-                  {formatBdCurrency(summary.potential_profit)}
+          {!isWarehouse && (
+            <>
+              {/* Cost Valuation */}
+              <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
+                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
+                  <span>Stock Cost Value</span>
+                  <DollarSign className="w-4 h-4 text-sky-600" />
                 </div>
-                <div className="text-[11px] text-emerald-600 font-bold mt-0.5">
-                  +
-                  {summary.total_cost_valuation > 0
-                    ? (
-                      (summary.potential_profit / summary.total_cost_valuation) *
-                      100
-                    ).toFixed(1)
-                    : 0}
-                  % Markup
+                <div className="text-xl font-black text-sky-700 dark:text-sky-400 mt-1">
+                  {formatBdCurrency(summary.total_cost_valuation)}
                 </div>
-              </>
-            ) : (
-              <div className="text-sm font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1.5 py-2 mt-1">
-                <Lock className="w-3.5 h-3.5 text-slate-400" />
-                <span>Admin Only</span>
+                <div className="text-[11px] text-slate-400 mt-0.5">Total capital invested</div>
               </div>
-            )}
-          </div>
+
+              {/* Retail Valuation */}
+              <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
+                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
+                  <span>Retail Selling Value</span>
+                  <Package className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="text-xl font-black text-emerald-700 dark:text-emerald-400 mt-1">
+                  {formatBdCurrency(summary.total_retail_valuation)}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Expected sales revenue</div>
+              </div>
+
+              {/* Potential Gross Profit */}
+              <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
+                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
+                  <span>Potential Margin</span>
+                  <TrendingUp className="w-4 h-4 text-purple-600" />
+                </div>
+                {isAdmin ? (
+                  <>
+                    <div className="text-xl font-black text-purple-700 dark:text-purple-400 mt-1">
+                      {formatBdCurrency(summary.potential_profit)}
+                    </div>
+                    <div className="text-[11px] text-emerald-600 font-bold mt-0.5">
+                      +
+                      {summary.total_cost_valuation > 0
+                        ? (
+                          (summary.potential_profit / summary.total_cost_valuation) *
+                          100
+                        ).toFixed(1)
+                        : 0}
+                      % Markup
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1.5 py-2 mt-1">
+                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Admin Only</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -666,23 +679,27 @@ export default function InventoryPage() {
                 <th className="py-3 px-3">Barcode</th>
                 <th className="py-3 px-3">Category & Brand</th>
                 <th className="py-3 px-3 text-center">Stock Level</th>
-                <th className="py-3 px-3 text-right">Cost (৳)</th>
-                <th className="py-3 px-3 text-right">Sell (৳)</th>
-                <th className="py-3 px-3 text-right">Total Cost Value</th>
+                {!isWarehouse && (
+                  <>
+                    <th className="py-3 px-3 text-right">Cost (৳)</th>
+                    <th className="py-3 px-3 text-right">Sell (৳)</th>
+                    <th className="py-3 px-3 text-right">Total Cost Value</th>
+                  </>
+                )}
                 <th className="py-3 px-4 text-center w-24">Adjust</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400">
+                  <td colSpan={isWarehouse ? 6 : 9} className="py-10 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-rose-600" />
                     <span>Loading inventory status...</span>
                   </td>
                 </tr>
               ) : filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400 font-bold">
+                  <td colSpan={isWarehouse ? 6 : 9} className="py-10 text-center text-slate-400 font-bold">
                     No items matching filter.
                   </td>
                 </tr>
@@ -747,15 +764,19 @@ export default function InventoryPage() {
                           : `${item.quantity} ${item.unit}`}
                       </span>
                     </td>
-                    <td className="py-3 px-3 text-right font-medium text-slate-600 dark:text-slate-300">
-                      {item.cost_price.toFixed(2)}
-                    </td>
-                    <td className="py-3 px-3 text-right font-bold text-slate-900 dark:text-white">
-                      {item.sell_price.toFixed(2)}
-                    </td>
-                    <td className="py-3 px-3 text-right font-black text-sky-700 dark:text-sky-400">
-                      {formatBdCurrency(item.total_cost_value)}
-                    </td>
+                    {!isWarehouse && (
+                      <>
+                        <td className="py-3 px-3 text-right font-medium text-slate-600 dark:text-slate-300">
+                          {item.cost_price.toFixed(2)}
+                        </td>
+                        <td className="py-3 px-3 text-right font-bold text-slate-900 dark:text-white">
+                          {item.sell_price.toFixed(2)}
+                        </td>
+                        <td className="py-3 px-3 text-right font-black text-sky-700 dark:text-sky-400">
+                          {formatBdCurrency(item.total_cost_value)}
+                        </td>
+                      </>
+                    )}
                     <td className="py-3 px-4 text-center">
                       <button
                         type="button"
@@ -836,20 +857,22 @@ export default function InventoryPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-[#1e293b] p-2 rounded-xl">
-                <div className="text-right">
-                  <span className="text-[10px] text-slate-400 block">Cost / Sell:</span>
-                  <span className="font-bold">
-                    ৳{item.cost_price} / ৳{item.sell_price}
-                  </span>
+              {!isWarehouse && (
+                <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-[#1e293b] p-2 rounded-xl">
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block">Cost / Sell:</span>
+                    <span className="font-bold">
+                      ৳{item.cost_price} / ৳{item.sell_price}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Total Value:</span>
+                    <span className="font-black text-sky-700 dark:text-sky-400">
+                      {formatBdCurrency(item.total_cost_value)}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block">Total Value:</span>
-                  <span className="font-black text-sky-700 dark:text-sky-400">
-                    {formatBdCurrency(item.total_cost_value)}
-                  </span>
-                </div>
-              </div>
+              )}
 
               <button
                 type="button"
@@ -995,35 +1018,39 @@ export default function InventoryPage() {
           </div>
 
           {/* Quick Valuation Summary Bar */}
-          <div className="grid grid-cols-4 gap-2 mt-2 pt-2 border-t border-slate-300 text-[10px]">
+          <div className={`grid gap-2 mt-2 pt-2 border-t border-slate-300 text-[10px] ${isWarehouse ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-4"}`}>
             <div className="p-1 bg-slate-100 rounded border border-slate-300">
               <span className="text-slate-500 block">Total SKUs</span>
               <strong className="text-slate-900 text-[11px]">{filteredItems.length}</strong>
             </div>
-            <div className="p-1 bg-slate-100 rounded border border-slate-300">
-              <span className="text-slate-500 block">Total Stock Cost Value</span>
-              <strong className="text-slate-900 text-[11px]">
-                {formatBdCurrency(filteredItems.reduce((acc, i) => acc + i.total_cost_value, 0))}
-              </strong>
-            </div>
-            <div className="p-1 bg-slate-100 rounded border border-slate-300">
-              <span className="text-slate-500 block">Total Retail Value</span>
-              <strong className="text-slate-900 text-[11px]">
-                {formatBdCurrency(filteredItems.reduce((acc, i) => acc + i.total_retail_value, 0))}
-              </strong>
-            </div>
-            <div className="p-1 bg-slate-100 rounded border border-slate-300">
-              <span className="text-slate-500 block">Potential Margin</span>
-              <strong className="text-slate-900 text-[11px]">
-                {formatBdCurrency(
-                  Math.max(
-                    0,
-                    filteredItems.reduce((acc, i) => acc + i.total_retail_value, 0) -
-                    filteredItems.reduce((acc, i) => acc + i.total_cost_value, 0)
-                  )
-                )}
-              </strong>
-            </div>
+            {!isWarehouse && (
+              <>
+                <div className="p-1 bg-slate-100 rounded border border-slate-300">
+                  <span className="text-slate-500 block">Total Stock Cost Value</span>
+                  <strong className="text-slate-900 text-[11px]">
+                    {formatBdCurrency(filteredItems.reduce((acc, i) => acc + i.total_cost_value, 0))}
+                  </strong>
+                </div>
+                <div className="p-1 bg-slate-100 rounded border border-slate-300">
+                  <span className="text-slate-500 block">Total Retail Value</span>
+                  <strong className="text-slate-900 text-[11px]">
+                    {formatBdCurrency(filteredItems.reduce((acc, i) => acc + i.total_retail_value, 0))}
+                  </strong>
+                </div>
+                <div className="p-1 bg-slate-100 rounded border border-slate-300">
+                  <span className="text-slate-500 block">Potential Margin</span>
+                  <strong className="text-slate-900 text-[11px]">
+                    {formatBdCurrency(
+                      Math.max(
+                        0,
+                        filteredItems.reduce((acc, i) => acc + i.total_retail_value, 0) -
+                        filteredItems.reduce((acc, i) => acc + i.total_cost_value, 0)
+                      )
+                    )}
+                  </strong>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -1037,9 +1064,13 @@ export default function InventoryPage() {
               <th>Category</th>
               <th>Brand</th>
               <th className="text-center">Stock Level</th>
-              <th className="text-right">Cost (৳)</th>
-              <th className="text-right">Sell (৳)</th>
-              <th className="text-right">Cost Value (৳)</th>
+              {!isWarehouse && (
+                <>
+                  <th className="text-right">Cost (৳)</th>
+                  <th className="text-right">Sell (৳)</th>
+                  <th className="text-right">Cost Value (৳)</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -1068,23 +1099,31 @@ export default function InventoryPage() {
                     ? formatBoxAndPcs(item.quantity, item.pcs_per_box)
                     : `${item.quantity} ${item.unit}`}
                 </td>
-                <td className="text-right">{item.cost_price.toFixed(2)}</td>
-                <td className="text-right">{item.sell_price.toFixed(2)}</td>
-                <td className="text-right font-bold">{formatBdCurrency(item.total_cost_value)}</td>
+                {!isWarehouse && (
+                  <>
+                    <td className="text-right">{item.cost_price.toFixed(2)}</td>
+                    <td className="text-right">{item.sell_price.toFixed(2)}</td>
+                    <td className="text-right font-bold">{formatBdCurrency(item.total_cost_value)}</td>
+                  </>
+                )}
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="bg-slate-100 font-bold border-t-2 border-slate-900">
-              <td colSpan={5} className="text-right py-1.5 px-2">Total Inventory Valuation:</td>
+              <td colSpan={5} className="text-right py-1.5 px-2">Total Inventory Units:</td>
               <td className="text-center py-1.5 px-2">
                 {filteredItems.reduce((acc, i) => acc + i.quantity, 0)} Units
               </td>
-              <td></td>
-              <td></td>
-              <td className="text-right py-1.5 px-2 font-black">
-                {formatBdCurrency(filteredItems.reduce((acc, i) => acc + i.total_cost_value, 0))}
-              </td>
+              {!isWarehouse && (
+                <>
+                  <td></td>
+                  <td></td>
+                  <td className="text-right py-1.5 px-2 font-black">
+                    {formatBdCurrency(filteredItems.reduce((acc, i) => acc + i.total_cost_value, 0))}
+                  </td>
+                </>
+              )}
             </tr>
           </tfoot>
         </table>

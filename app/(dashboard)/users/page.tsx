@@ -54,76 +54,76 @@ interface ModuleDef {
 const PERMISSION_MODULES: ModuleDef[] = [
   {
     key: "dashboard",
-    label: "ড্যাশবোর্ড (Dashboard)",
-    desc: "মূল সার্বিক ড্যাশবোর্ড ওভারভিউ ও ব্যবসায়িক তথ্য",
+    label: "Dashboard (ড্যাশবোর্ড)",
+    desc: "Main dashboard overview & business metrics (মূল সার্বিক ড্যাশবোর্ড ওভারভিউ ও ব্যবসায়িক তথ্য)",
   },
   {
     key: "sales",
-    label: "বিক্রয় পোর্টাল (Sales Portal)",
-    desc: "পণ্য নির্বাচন, নগদ বিক্রয় ও দ্রুত ক্যাশ বিলিং",
+    label: "Sales Portal (বিক্রয় পোর্টাল)",
+    desc: "Product selection, cash sales & billing (পণ্য নির্বাচন, নগদ বিক্রয় ও দ্রুত ক্যাশ বিলিং)",
     submenus: [
-      { key: "pos", label: "পজ টার্মিনাল (POS Terminal)", desc: "কাউন্টার বিলিং ও দ্রুত বিক্রয় রশিদ তৈরি" },
-      { key: "invoices", label: "ইনভয়েস তালিকা (Invoice List)", desc: "বিক্রিত চালানের পূর্ণাঙ্গ তালিকা ও প্রিন্ট" },
-      { key: "challans", label: "চালান তালিকা (Challan List)", desc: "ডেলিভারি চালান তৈরি ও প্রিন্ট" },
-      { key: "returns", label: "সেলস রিটার্ন (Sales Return)", desc: "গ্রাহকের ফেরত আইটেম সমন্বয়" },
+      { key: "pos", label: "POS Terminal (পজ টার্মিনাল)", desc: "Counter billing & instant invoice (কাউন্টার বিলিং ও দ্রুত বিক্রয় রশিদ তৈরি)" },
+      { key: "invoices", label: "Invoice List (ইনভয়েস তালিকা)", desc: "Completed sales invoices & print (বিক্রিত চালানের পূর্ণাঙ্গ তালিকা ও প্রিন্ট)" },
+      { key: "challans", label: "Delivery Challans (চালান তালিকা)", desc: "Delivery challan dispatch & print (ডেলিভারি চালান তৈরি ও প্রিন্ট)" },
+      { key: "returns", label: "Sales Return (সেলস রিটার্ন)", desc: "Customer returned items adjustment (গ্রাহকের ফেরত আইটেম সমন্বয়)" },
     ],
   },
   {
     key: "products",
-    label: "স্টক ও প্রডাক্ট (Stock & Products)",
-    desc: "টাইলস ক্যাটালগ, ক্যাটাগরি, ব্র্যান্ড ও স্টক সমন্বয়",
+    label: "Stock & Products (স্টক ও প্রডাক্ট)",
+    desc: "Tiles catalog, categories, brands & stock adjustments (টাইলস ক্যাটালগ, ক্যাটাগরি, ব্র্যান্ড ও স্টক সমন্বয়)",
     submenus: [
-      { key: "inventory", label: "স্টক ওভারভিউ (Stock Overview)", desc: "গুদাম ও শো-রুমের বর্তমান স্টক ব্যালেন্স" },
-      { key: "product_list", label: "পণ্য তালিকা (Product List)", desc: "সকল টাইলস ও স্যানিটারি সামগ্রীর তথ্য" },
-      { key: "categories_brands", label: "ক্যাটাগরি ও ব্র্যান্ড (Categories & Brands)", desc: "পণ্য শ্রেণীবিন্যাস ও ব্র্যান্ডিং" },
-      { key: "barcode_print", label: "বারকোড প্রিন্ট (Barcode Print)", desc: "পণ্য ও কার্টুন বারকোড লেবেল তৈরি" },
+      { key: "inventory", label: "Stock Overview (স্টক ওভারভিউ)", desc: "Warehouse & showroom stock balance (গুদাম ও শো-রুমের বর্তমান স্টক ব্যালেন্স)" },
+      { key: "product_list", label: "Product List (পণ্য তালিকা)", desc: "All tiles & sanitary catalog info (সকল টাইলস ও স্যানিটারি সামগ্রীর তথ্য)" },
+      { key: "categories_brands", label: "Categories & Brands (ক্যাটাগরি ও ব্র্যান্ড)", desc: "Product classification & branding (পণ্য শ্রেণীবিন্যাস ও ব্র্যান্ডিং)" },
+      { key: "barcode_print", label: "Barcode Print (বারকোড প্রিন্ট)", desc: "Product & cartoon barcode label generator (পণ্য ও কার্টুন বারকোড লেবেল তৈরি)" },
     ],
   },
   {
     key: "purchases",
-    label: "ক্রয় ও সরবরাহকারী (Purchases & Suppliers)",
-    desc: "মাল ক্রয়, ইনওয়ার্ড ও মহাজন বিলিং",
+    label: "Purchases & Suppliers (ক্রয় ও সরবরাহকারী)",
+    desc: "Goods inward, purchase orders & vendor bills (মাল ক্রয়, ইনওয়ার্ড ও মহাজন বিলিং)",
     submenus: [
-      { key: "purchase_list", label: "ক্রয় তালিকা (Purchase List)", desc: "সরবরাহকারীর নিকট থেকে নতুন মাল ক্রয়" },
-      { key: "suppliers", label: "সরবরাহকারী তালিকা (Suppliers)", desc: "মহাজন ও ডিলারদের পরিচিতি" },
-      { key: "supplier_dues", label: "মহাজন বাকি পরিশোধ (Supplier Due Pay)", desc: "সরবরাহকারীর দেনা পরিশোধ ও খাতা" },
-      { key: "purchase_returns", label: "ক্রয় রিটার্ন (Purchase Returns)", desc: "ত্রুটিপূর্ণ মাল মহাজনকে ফেরত" },
+      { key: "purchase_list", label: "Purchase List (ক্রয় তালিকা)", desc: "Inward purchases from suppliers (সরবরাহকারীর নিকট থেকে নতুন মাল ক্রয়)" },
+      { key: "suppliers", label: "Suppliers (সরবরাহকারী তালিকা)", desc: "Vendor & manufacturer profiles (মহাজন ও ডিলারদের পরিচিতি)" },
+      { key: "supplier_dues", label: "Supplier Due Pay (মহাজন বাকি পরিশোধ)", desc: "Supplier debt payments & ledger (সরবরাহকারীর দেনা পরিশোধ ও খাতা)" },
+      { key: "purchase_returns", label: "Purchase Returns (ক্রয় রিটার্ন)", desc: "Damaged/excess goods return to vendor (ত্রুটিপূর্ণ মাল মহাজনকে ফেরত)" },
     ],
   },
   {
     key: "customers",
-    label: "গ্রাহক ও বাকি খাতা (Customers & Dues)",
-    desc: "কাস্টমার ডাটাবেস ও লেজার সমন্বয়",
+    label: "Customers & Dues (গ্রাহক ও বাকি খাতা)",
+    desc: "Customer database & accounts ledger (কাস্টমার ডাটাবেস ও লেজার সমন্বয়)",
     submenus: [
-      { key: "customer_list", label: "গ্রাহক তালিকা (Customer List)", desc: "খুচরা ও পাইকারী গ্রাহকদের ডাটাবেস" },
-      { key: "customer_dues", label: "বাকি আদায় ও জমা (Customer Due)", desc: "কাস্টমারের বকেয়া আদায় ও হিসাব খাতা" },
+      { key: "customer_list", label: "Customer List (গ্রাহক তালিকা)", desc: "Retail & wholesale customer directory (খুচরা ও পাইকারী গ্রাহকদের ডাটাবেস)" },
+      { key: "customer_dues", label: "Customer Due (বাকি আদায় ও জমা)", desc: "Customer due collection & ledger (কাস্টমারের বকেয়া আদায় ও হিসাব খাতা)" },
     ],
   },
   {
     key: "expenses",
-    label: "হিসাব ও খরচ (Accounts & Expenses)",
-    desc: "দোকানের দৈনিক খরচ ও স্টাফ বেতন",
+    label: "Accounts & Expenses (হিসাব ও খরচ)",
+    desc: "Daily operational costs & staff payroll (দোকানের দৈনিক খরচ ও স্টাফ বেতন)",
     submenus: [
-      { key: "daily_expenses", label: "দৈনিক খরচ (Daily Expenses)", desc: "দোকানের প্রাত্যহিক বিভিন্ন খরচের ভাউচার" },
-      { key: "expense_types", label: "খরচের খাত (Expense Categories)", desc: "অফিস, ভাড়া, আপ্যায়ন ইত্যাদি খাত" },
-      { key: "staff_payroll", label: "স্টাফ ও বেতন (Staff & Payroll)", desc: "কর্মচারী হাজিরা ও মাসিক বেতন খাতা" },
+      { key: "daily_expenses", label: "Daily Expenses (দৈনিক খরচ)", desc: "Daily petty cash & overhead vouchers (দোকানের প্রাত্যহিক বিভিন্ন খরচের ভাউচার)" },
+      { key: "expense_types", label: "Expense Categories (খরচের খাত)", desc: "Office rent, utilities, entertainment categories (অফিস, ভাড়া, আপ্যায়ন ইত্যাদি খাত)" },
+      { key: "staff_payroll", label: "Staff & Payroll (স্টাফ ও বেতন)", desc: "Employee attendance & monthly salary ledger (কর্মচারী হাজিরা ও মাসিক বেতন খাতা)" },
     ],
   },
   {
     key: "reports",
-    label: "রিপোর্ট ও বিবরণী (Reports & Analytics)",
-    desc: "ব্যবসার সামগ্রিক হিসাব ও স্টক রিপোর্ট",
+    label: "Reports & Analytics (রিপোর্ট ও বিবরণী)",
+    desc: "Financial analytics, ledger & stock reports (ব্যবসার সামগ্রিক হিসাব ও স্টক রিপোর্ট)",
     submenus: [
-      { key: "report_sales", label: "সেলস রিপোর্ট (Sales Report)", desc: "বিক্রয় ও আদায়কৃত টাকার স্টেটমেন্ট" },
-      { key: "report_ledger", label: "দৈনিক লেজার (Daily Ledger)", desc: "প্রতিদিনের ডেবিট-ক্রেডিট হিসাব খাতা" },
-      { key: "report_income_expense", label: "আয়-ব্যয় বিবরণী (Income & Expense)", desc: "ব্যবসার লাভ-লোকসান ও আর্থিক চিত্র" },
-      { key: "report_stock_out", label: "স্টক-আউট রিপোর্ট (Stock-Out Report)", desc: "ঘাটতি ও কম স্টক পণ্য সতর্কতা" },
+      { key: "report_sales", label: "Sales Report (সেলস রিপোর্ট)", desc: "Sales & collection statements (বিক্রয় ও আদায়কৃত টাকার স্টেটমেন্ট)" },
+      { key: "report_ledger", label: "Daily Ledger (দৈনিক লেজার)", desc: "Daily debit-credit cashbook ledger (প্রতিদিনের ডেবিট-ক্রেডিট হিসাব খাতা)" },
+      { key: "report_income_expense", label: "Income & Expense (আয়-ব্যয় বিবরণী)", desc: "Profit & loss financial statements (ব্যবসার লাভ-লোকসান ও আর্থিক চিত্র)" },
+      { key: "report_stock_out", label: "Stock-Out Report (স্টক-আউট রিপোর্ট)", desc: "Low stock & out of stock alerts (ঘাটতি ও কম স্টক পণ্য সতর্কতা)" },
     ],
   },
   {
     key: "users",
-    label: "ব্যবহারকারী ও রোল (Users & Role Settings)",
-    desc: "সিস্টেম ব্যবহারকারী তৈরি ও পারমিশন নিয়ন্ত্রণ",
+    label: "User Roles & Permissions (ব্যবহারকারী ও রোল)",
+    desc: "System users & access control settings (সিস্টেম ব্যবহারকারী তৈরি ও পারমিশন নিয়ন্ত্রণ)",
   },
 ];
 
@@ -726,7 +726,7 @@ export default function UsersPage() {
                         )}`}
                       >
                         {user.role.toLowerCase() === "admin" ||
-                        user.role.toLowerCase() === "super_admin" ? (
+                          user.role.toLowerCase() === "super_admin" ? (
                           <>
                             <Crown className="w-3.5 h-3.5 text-rose-600" />
                             <span>Super Admin</span>
@@ -744,11 +744,10 @@ export default function UsersPage() {
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span
-                        className={`inline-block px-3 py-0.5 rounded-full text-xs font-semibold ${
-                          user.status === "approved"
+                        className={`inline-block px-3 py-0.5 rounded-full text-xs font-semibold ${user.status === "approved"
                             ? "text-emerald-700 bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
                             : "text-amber-700 bg-amber-50 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
-                        }`}
+                          }`}
                       >
                         {user.status === "approved" ? "Approved" : "Pending"}
                       </span>
@@ -765,9 +764,9 @@ export default function UsersPage() {
                         </button>
 
                         {user.id === 1 ||
-                        user.id === 7 ||
-                        user.role.toLowerCase() === "admin" ||
-                        user.role.toLowerCase() === "super_admin" ? (
+                          user.id === 7 ||
+                          user.role.toLowerCase() === "admin" ||
+                          user.role.toLowerCase() === "super_admin" ? (
                           <button
                             type="button"
                             disabled
@@ -848,14 +847,14 @@ export default function UsersPage() {
                   user.role.toLowerCase() === "admin" ||
                   user.role.toLowerCase() === "super_admin"
                 ) && (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteUser(user)}
-                    className="px-3 py-1 rounded-lg bg-rose-50 text-rose-700 text-xs font-bold"
-                  >
-                    Delete
-                  </button>
-                )}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteUser(user)}
+                      className="px-3 py-1 rounded-lg bg-rose-50 text-rose-700 text-xs font-bold"
+                    >
+                      Delete
+                    </button>
+                  )}
               </div>
             </div>
           ))}
@@ -928,7 +927,9 @@ export default function UsersPage() {
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-white" />
                 <h3 className="text-sm font-bold tracking-wide m-0 text-white">
-                  {selectedUser ? "ব্যবহারকারী ও পারমিশন সম্পাদনা" : "নতুন ব্যবহারকারী ও পারমিশন তৈরি"}
+                  {selectedUser
+                    ? "Edit User & Permissions (ব্যবহারকারী ও পারমিশন সম্পাদনা)"
+                    : "Create New User & Permissions (নতুন ব্যবহারকারী ও পারমিশন তৈরি)"}
                 </h3>
               </div>
               <button
@@ -953,14 +954,14 @@ export default function UsersPage() {
                 {/* Left: Full Name */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    পূর্ণ নাম (Full Name) <span className="text-red-500">*</span>
+                    Full Name (পূর্ণ নাম) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="যেমন: মোঃ রফিকুল ইসলাম"
+                    placeholder="e.g. Md. Rafiqul Islam (যেমন: মোঃ রফিকুল ইসলাম)"
                     className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   />
                 </div>
@@ -968,7 +969,7 @@ export default function UsersPage() {
                 {/* Right: Mobile */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    মোবাইল নম্বর <span className="text-red-500">*</span>
+                    Mobile Number (মোবাইল নম্বর) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -983,7 +984,7 @@ export default function UsersPage() {
                 {/* Left: Email */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    ইমেইল এড্রেস (ঐচ্ছিক)
+                    Email Address (ইমেইল - ঐচ্ছিক)
                   </label>
                   <input
                     type="email"
@@ -997,9 +998,9 @@ export default function UsersPage() {
                 {/* Right: Password */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    পাসওয়ার্ড{" "}
+                    Password (পাসওয়ার্ড){" "}
                     {selectedUser ? (
-                      "(অপরিবর্তিত রাখতে খালি রাখুন)"
+                      "(Leave blank to keep unchanged / অপরিবর্তিত রাখতে খালি রাখুন)"
                     ) : (
                       <span className="text-red-500">*</span>
                     )}
@@ -1017,7 +1018,7 @@ export default function UsersPage() {
                 {/* Left: System Role (Strictly 3 options: Admin, Manager, Staff) */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    পদবী / রোল (System Role) <span className="text-red-500">*</span>
+                    System Role (পদবী / রোল) <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.role}
@@ -1033,22 +1034,22 @@ export default function UsersPage() {
                 {/* Right: Account Status */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    একাউন্ট স্ট্যাটাস <span className="text-red-500">*</span>
+                    Account Status (স্ট্যাটাস) <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                     className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   >
-                    <option value="approved">সক্রিয় (Approved / Active)</option>
-                    <option value="pending">পেন্ডিং (Pending Approval)</option>
+                    <option value="approved">Approved / Active (সক্রিয়)</option>
+                    <option value="pending">Pending Approval (পেন্ডিং)</option>
                   </select>
                 </div>
 
                 {/* Optional Avatar Photo */}
                 <div className="sm:col-span-2 space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    প্রোফাইল ছবি (ঐচ্ছিক)
+                    Profile Photo (প্রোফাইল ছবি - ঐচ্ছিক)
                   </label>
                   <div className="flex items-center gap-3">
                     {formData.img_url ? (
@@ -1065,7 +1066,7 @@ export default function UsersPage() {
                     )}
                     <label className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 cursor-pointer flex items-center gap-1.5">
                       <Camera className="w-3.5 h-3.5" />
-                      <span>{uploadingAvatar ? "আপলোড হচ্ছে..." : "ছবি আপলোড করুন"}</span>
+                      <span>{uploadingAvatar ? "Uploading... (আপলোড হচ্ছে...)" : "Upload Photo (ছবি আপলোড করুন)"}</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -1080,7 +1081,7 @@ export default function UsersPage() {
                         onClick={() => setFormData({ ...formData, img_url: "" })}
                         className="text-xs text-rose-600 hover:underline cursor-pointer"
                       >
-                        মুছে ফেলুন
+                        Remove (মুছে ফেলুন)
                       </button>
                     )}
                   </div>
@@ -1092,10 +1093,10 @@ export default function UsersPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <h4 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wide m-0">
-                      সাইডবার মেনু অ্যাক্সেস পারমিশন (MODULE ACCESS PERMISSIONS)
+                      Sidebar Module Access Permissions (সাইডবার মেনু অ্যাক্সেস পারমিশন)
                     </h4>
                     <p className="text-[11px] text-slate-400 m-0 mt-0.5">
-                      প্রত্যেকটি মেনু ও সাবমেনুর পারমিশন চেকবক্স দিয়ে নিয়ন্ত্রণ করুন
+                      Control menu and submenu permissions using checkboxes (প্রত্যেকটি মেনু ও সাবমেনুর পারমিশন চেকবক্স দিয়ে নিয়ন্ত্রণ করুন)
                     </p>
                   </div>
 
@@ -1106,14 +1107,14 @@ export default function UsersPage() {
                       onClick={handleSelectAll}
                       className="px-3.5 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-[#166534] dark:text-emerald-300 text-xs font-bold cursor-pointer transition-colors shadow-2xs"
                     >
-                      সব নির্বাচন
+                      Select All (সব নির্বাচন)
                     </button>
                     <button
                       type="button"
                       onClick={handleDeselectAll}
                       className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition-colors shadow-2xs"
                     >
-                      সব বাতিল
+                      Deselect All (সব বাতিল)
                     </button>
                   </div>
                 </div>
@@ -1125,11 +1126,10 @@ export default function UsersPage() {
                     return (
                       <div
                         key={mod.key}
-                        className={`rounded-2xl border transition-all ${
-                          isParentChecked
+                        className={`rounded-2xl border transition-all ${isParentChecked
                             ? "border-emerald-300 dark:border-emerald-800 bg-white dark:bg-slate-900/70 shadow-xs"
                             : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30"
-                        } p-3.5`}
+                          } p-3.5`}
                       >
                         {/* Parent Row */}
                         <div
@@ -1138,11 +1138,10 @@ export default function UsersPage() {
                         >
                           <div className="flex items-start gap-3">
                             <div
-                              className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                                isParentChecked
+                              className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-colors ${isParentChecked
                                   ? "bg-[#16a34a] text-white"
                                   : "border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                              }`}
+                                }`}
                             >
                               {isParentChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                             </div>
@@ -1158,7 +1157,7 @@ export default function UsersPage() {
 
                           {mod.submenus && (
                             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
-                              {mod.submenus.length} টি সাবমেনু
+                              {mod.submenus.length} Submenus ({mod.submenus.length} টি সাবমেনু)
                             </span>
                           )}
                         </div>
@@ -1172,19 +1171,17 @@ export default function UsersPage() {
                                 <div
                                   key={sub.key}
                                   onClick={() => toggleSubmenu(mod.key, sub.key)}
-                                  className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
-                                    isSubChecked
+                                  className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${isSubChecked
                                       ? "border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20"
                                       : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40"
-                                  }`}
+                                    }`}
                                 >
                                   <div className="flex items-center gap-2.5 min-w-0">
                                     <div
-                                      className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                                        isSubChecked
+                                      className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition-colors ${isSubChecked
                                           ? "bg-[#16a34a] text-white"
                                           : "border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                                      }`}
+                                        }`}
                                     >
                                       {isSubChecked && <Check className="w-3 h-3 stroke-[3]" />}
                                     </div>
@@ -1215,7 +1212,7 @@ export default function UsersPage() {
                   onClick={() => setModalOpen(false)}
                   className="h-[40px] px-6 rounded-xl bg-[#dc2626] hover:bg-red-700 text-white font-bold text-xs cursor-pointer transition-colors shadow-xs"
                 >
-                  Cancel
+                  Cancel (বাতিল)
                 </button>
                 <button
                   type="submit"
@@ -1227,7 +1224,7 @@ export default function UsersPage() {
                   ) : (
                     <Check className="w-4 h-4" />
                   )}
-                  <span>✓ Save User</span>
+                  <span>✓ Save User (ব্যবহারকারী সংরক্ষণ)</span>
                 </button>
               </div>
             </form>
