@@ -53,6 +53,13 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ status: "fail", message: "Unauthorized" }, { status: 401 });
     }
 
+    if (authUser.role === "staff" || authUser.role === "warehouse") {
+      return NextResponse.json(
+        { status: "fail", message: "Staff accounts cannot modify profile information. Only profile photo can be changed." },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { name, mobile, img_url, current_password, new_password } = body;
 

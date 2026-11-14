@@ -214,6 +214,13 @@ export default function UsersPage() {
   }
 
   useEffect(() => {
+    try {
+      const r = (localStorage.getItem("role") || "").toLowerCase();
+      if (r === "staff" || r === "warehouse") {
+        window.location.replace("/profile");
+        return;
+      }
+    } catch {}
     loadUsers();
   }, []);
 
@@ -745,8 +752,8 @@ export default function UsersPage() {
                     <td className="py-3 px-3 text-center">
                       <span
                         className={`inline-block px-3 py-0.5 rounded-full text-xs font-semibold ${user.status === "approved"
-                            ? "text-emerald-700 bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
-                            : "text-amber-700 bg-amber-50 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                          ? "text-emerald-700 bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                          : "text-amber-700 bg-amber-50 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
                           }`}
                       >
                         {user.status === "approved" ? "Approved" : "Pending"}
@@ -1127,8 +1134,8 @@ export default function UsersPage() {
                       <div
                         key={mod.key}
                         className={`rounded-2xl border transition-all ${isParentChecked
-                            ? "border-emerald-300 dark:border-emerald-800 bg-white dark:bg-slate-900/70 shadow-xs"
-                            : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30"
+                          ? "border-emerald-300 dark:border-emerald-800 bg-white dark:bg-slate-900/70 shadow-xs"
+                          : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30"
                           } p-3.5`}
                       >
                         {/* Parent Row */}
@@ -1139,8 +1146,8 @@ export default function UsersPage() {
                           <div className="flex items-start gap-3">
                             <div
                               className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-colors ${isParentChecked
-                                  ? "bg-[#16a34a] text-white"
-                                  : "border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                                ? "bg-[#16a34a] text-white"
+                                : "border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
                                 }`}
                             >
                               {isParentChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
@@ -1172,15 +1179,15 @@ export default function UsersPage() {
                                   key={sub.key}
                                   onClick={() => toggleSubmenu(mod.key, sub.key)}
                                   className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${isSubChecked
-                                      ? "border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20"
-                                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40"
+                                    ? "border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20"
+                                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40"
                                     }`}
                                 >
                                   <div className="flex items-center gap-2.5 min-w-0">
                                     <div
                                       className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition-colors ${isSubChecked
-                                          ? "bg-[#16a34a] text-white"
-                                          : "border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                                        ? "bg-[#16a34a] text-white"
+                                        : "border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
                                         }`}
                                     >
                                       {isSubChecked && <Check className="w-3 h-3 stroke-[3]" />}

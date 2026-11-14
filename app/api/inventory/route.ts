@@ -193,6 +193,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser(req);
+    if (
+      user?.role?.toLowerCase() === "warehouse" ||
+      user?.name?.toLowerCase().includes("warehouse")
+    ) {
+      return NextResponse.json(
+        { status: "fail", message: "Warehouse users do not have permission to adjust stock" },
+        { status: 403 }
+      );
+    }
     const fallbackUser = await prisma.users.findFirst({ select: { id: true } });
     const userId = user?.id || (fallbackUser ? Number(fallbackUser.id) : 7);
 

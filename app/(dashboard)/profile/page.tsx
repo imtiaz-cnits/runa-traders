@@ -119,6 +119,16 @@ export default function ProfilePage() {
         if (profile) {
           setProfile({ ...profile, img_url: data.img_url });
         }
+        try {
+          const uStr = localStorage.getItem("user");
+          if (uStr) {
+            const u = JSON.parse(uStr);
+            u.img_url = data.img_url;
+            localStorage.setItem("user", JSON.stringify(u));
+          }
+        } catch {
+          // ignore
+        }
       } else {
         toast.error(data?.message || "Failed to upload profile photo");
       }
@@ -143,6 +153,11 @@ export default function ProfilePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+
+    if (isStaff) {
+      setErrorMsg("Staff accounts cannot edit profile details. You can only change your profile photo.");
+      return;
+    }
 
     if (!fullName.trim() || !mobileNumber.trim()) {
       setErrorMsg("Full Name and Phone Number are required");
@@ -199,19 +214,27 @@ export default function ProfilePage() {
     );
   }
 
+  const isStaff =
+    profile?.role?.toLowerCase() === "staff" ||
+    profile?.role?.toLowerCase() === "warehouse" ||
+    (typeof window !== "undefined" &&
+      ["staff", "warehouse"].includes((localStorage.getItem("role") || "").toLowerCase()));
+
   const roleLabel =
     profile?.role === "admin" || profile?.role === "super_admin"
       ? "Store Administrator"
       : profile?.role === "manager"
-      ? "Store Manager"
-      : profile?.role === "cashier"
-      ? "Cashier / POS Operator"
-      : profile?.role === "accountant"
-      ? "Accountant"
-      : "Store User";
+        ? "Store Manager"
+        : profile?.role === "staff" || profile?.role === "warehouse"
+          ? "Staff User"
+          : profile?.role === "cashier"
+            ? "Cashier / POS Operator"
+            : profile?.role === "accountant"
+              ? "Accountant"
+              : "Store User";
 
   return (
-    <div className="space-y-4 max-w-6xl mx-auto font-sans pb-8">
+    <div className="space-y-4 font-sans pb-8">
       {/* 1. Header Toolbar matching MARSS CORPORATION Screenshot */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
@@ -252,7 +275,7 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left Profile Summary Card (lg:col-span-4) */}
         <div className="lg:col-span-4">
-          <div className="bg-white dark:bg-[#0f172a] rounded-[20px] p-6 text-center border border-[#cbd5e1] dark:border-[#334155] shadow-xs relative overflow-hidden border-t-4 border-t-emerald-600">
+          <div className="bg-white dark:bg-[#0f172a] rounded-[20px] p-6 text-center border border-[#991b1b] dark:border-[#334155] shadow-xs relative overflow-hidden border-t-4 border-t-[#991b1b]">
             {/* Avatar Container with Camera Trigger */}
             <div className="relative inline-block mx-auto mb-4">
               <div className="w-32 h-32 rounded-full overflow-hidden shadow-md border-4 border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto relative">
@@ -270,7 +293,7 @@ export default function ProfilePage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-tr from-emerald-600 to-teal-700 flex items-center justify-center text-white">
+                  <div className="w-full h-full bg-gradient-to-r from-[#991b1b] to-[#dc2626] flex items-center justify-center text-white">
                     <span className="text-4xl font-black uppercase">
                       {profile?.name?.charAt(0) || "A"}
                     </span>
@@ -378,10 +401,15 @@ export default function ProfilePage() {
                     <input
                       type="text"
                       required
+                      disabled={isStaff}
+                      readOnly={isStaff}
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Enter full name"
-                      className="w-full h-[42px] pl-10 pr-3.5 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                      className={`w-full h-[42px] pl-10 pr-3.5 text-xs rounded-xl font-bold border transition-colors ${isStaff
+                        ? "bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-500 cursor-not-allowed"
+                        : "bg-slate-50 dark:bg-[#1e293b] border-[#cbd5e1] dark:border-[#334155] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                        }`}
                     />
                   </div>
                 </div>
@@ -395,10 +423,15 @@ export default function ProfilePage() {
                     <input
                       type="text"
                       required
+                      disabled={isStaff}
+                      readOnly={isStaff}
                       value={mobileNumber}
                       onChange={(e) => setMobileNumber(e.target.value)}
                       placeholder="017XXXXXXXX"
-                      className="w-full h-[42px] pl-10 pr-3.5 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                      className={`w-full h-[42px] pl-10 pr-3.5 text-xs rounded-xl font-mono font-bold border transition-colors ${isStaff
+                        ? "bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-500 cursor-not-allowed"
+                        : "bg-slate-50 dark:bg-[#1e293b] border-[#cbd5e1] dark:border-[#334155] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                        }`}
                     />
                   </div>
                 </div>
@@ -418,7 +451,11 @@ export default function ProfilePage() {
                   </div>
                   <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
                     <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Email address is used for login identification and cannot be changed.</span>
+                    <span>
+                      {isStaff
+                        ? "Name, mobile number, and email address can only be changed by system administrators."
+                        : "Email address is used for login identification and cannot be changed."}
+                    </span>
                   </p>
                 </div>
               </div>
@@ -446,16 +483,23 @@ export default function ProfilePage() {
                       type={showNew ? "text" : "password"}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter new password"
-                      className="w-full h-[42px] pl-10 pr-10 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                      placeholder={isStaff ? "Password change restricted for staff" : "Enter new password"}
+                      disabled={isStaff}
+                      readOnly={isStaff}
+                      className={`w-full h-[42px] pl-10 pr-10 text-xs rounded-xl font-medium border transition-colors ${isStaff
+                        ? "bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed"
+                        : "bg-slate-50 dark:bg-[#1e293b] border-[#cbd5e1] dark:border-[#334155] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                        }`}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowNew(!showNew)}
-                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
-                    >
-                      {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                    {!isStaff && (
+                      <button
+                        type="button"
+                        onClick={() => setShowNew(!showNew)}
+                        className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -469,45 +513,70 @@ export default function ProfilePage() {
                       type={showConfirm ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm new password"
-                      className="w-full h-[42px] pl-10 pr-10 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                      placeholder={isStaff ? "Password change restricted for staff" : "Confirm new password"}
+                      disabled={isStaff}
+                      readOnly={isStaff}
+                      className={`w-full h-[42px] pl-10 pr-10 text-xs rounded-xl font-medium border transition-colors ${isStaff
+                        ? "bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed"
+                        : "bg-slate-50 dark:bg-[#1e293b] border-[#cbd5e1] dark:border-[#334155] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                        }`}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirm(!showConfirm)}
-                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
-                    >
-                      {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                    {!isStaff && (
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm(!showConfirm)}
+                        className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    )}
                   </div>
                 </div>
+
+                {isStaff && (
+                  <div className="sm:col-span-2">
+                    <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
+                      <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>Password management for staff accounts is maintained by administrators.</span>
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* 3. Action Buttons matching MARSS Screenshot */}
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handleReset}
-                disabled={saving}
-                className="h-[42px] px-6 rounded-xl bg-[#dc2626] hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset</span>
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="h-[42px] px-6 rounded-xl bg-[#15803d] hover:bg-[#166534] text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                <span>Save Profile Changes</span>
-              </button>
-            </div>
+            {!isStaff ? (
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  disabled={saving}
+                  className="h-[42px] px-6 rounded-xl bg-[#dc2626] hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset</span>
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="h-[42px] px-6 rounded-xl bg-[#15803d] hover:bg-[#166534] text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  <span>Save Profile Changes</span>
+                </button>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/50 text-xs font-semibold flex items-center gap-2">
+                <Info className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <span>
+                  Staff accounts can only update their profile photo using the camera icon on the avatar. Profile information and password credentials can only be edited by administrators.
+                </span>
+              </div>
+            )}
           </form>
         </div>
       </div>

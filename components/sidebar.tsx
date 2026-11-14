@@ -165,39 +165,63 @@ export function Sidebar({
 
   const filteredNavItems = useMemo(() => {
     const isWarehouse = userRole === "warehouse" || userName.includes("warehouse");
+    const isStaff = userRole === "staff" || isWarehouse;
 
     if (isWarehouse) {
       return NAV_ITEMS.map((item) => {
-        if (item.id !== "inventory") return null;
-        return {
-          ...item,
-          children: (item.children || []).filter((c) => c.href === "/inventory"),
-        };
+        if (item.id === "inventory") {
+          return {
+            ...item,
+            children: (item.children || []).filter((c) => c.href === "/inventory"),
+          };
+        }
+        if (item.id === "settings") {
+          return {
+            ...item,
+            href: "/profile",
+            children: (item.children || []).filter((c) => c.href === "/profile"),
+          };
+        }
+        return null;
       }).filter(Boolean) as NavItem[];
     }
 
-    if (userRole === "admin" || userRole === "super_admin" || !userPerms) {
+    if (userRole === "admin" || userRole === "super_admin") {
+      return NAV_ITEMS;
+    }
+
+    if (!userPerms && !isStaff) {
       return NAV_ITEMS;
     }
 
     return NAV_ITEMS.map((item) => {
       let parentAllowed = true;
-      if (item.id === "dashboard") parentAllowed = userPerms.dashboard !== false;
-      else if (item.id === "pos") parentAllowed = userPerms.pos !== false || userPerms.sales !== false;
-      else if (item.id === "inventory") parentAllowed = userPerms.products !== false;
-      else if (item.id === "sales") parentAllowed = userPerms.sales !== false;
-      else if (item.id === "purchases") parentAllowed = userPerms.purchases !== false;
-      else if (item.id === "customers") parentAllowed = userPerms.customers !== false;
-      else if (item.id === "expenses") parentAllowed = userPerms.expenses !== false;
-      else if (item.id === "reports") parentAllowed = userPerms.reports !== false;
-      else if (item.id === "settings") parentAllowed = true;
+      if (item.id === "dashboard") parentAllowed = userPerms ? userPerms.dashboard !== false : true;
+      else if (item.id === "pos") parentAllowed = userPerms ? (userPerms.pos !== false || userPerms.sales !== false) : true;
+      else if (item.id === "inventory") parentAllowed = userPerms ? userPerms.products !== false : true;
+      else if (item.id === "sales") parentAllowed = userPerms ? userPerms.sales !== false : true;
+      else if (item.id === "purchases") parentAllowed = userPerms ? userPerms.purchases !== false : true;
+      else if (item.id === "customers") parentAllowed = userPerms ? userPerms.customers !== false : true;
+      else if (item.id === "expenses") parentAllowed = userPerms ? userPerms.expenses !== false : true;
+      else if (item.id === "reports") parentAllowed = userPerms ? userPerms.reports !== false : true;
+      else if (item.id === "settings") {
+        if (isStaff) {
+          return {
+            ...item,
+            href: "/profile",
+            children: (item.children || []).filter((c) => c.href === "/profile"),
+          };
+        }
+        parentAllowed = true;
+      }
 
       if (!parentAllowed) return null;
 
       if (item.children) {
         const allowedChildren = item.children.filter((c) => {
-          if (c.href === "/users") return Boolean(userPerms.users);
+          if (c.href === "/users") return Boolean(userPerms?.users) && !isStaff;
           if (c.href === "/profile") return true;
+          if (!userPerms) return true;
           if (c.href === "/pos") return userPerms.pos !== false;
           if (c.href === "/invoices") return userPerms.invoices !== false && userPerms.sales !== false;
           if (c.href === "/challans") return userPerms.challans !== false && userPerms.sales !== false;
@@ -227,7 +251,7 @@ export function Sidebar({
 
       return item;
     }).filter(Boolean) as NavItem[];
-  }, [userRole, userPerms]);
+  }, [userRole, userPerms, userName]);
 
   // Find active parent ID dynamically from current pathname
   const activeParentId = useMemo(() => {
@@ -345,8 +369,10 @@ export function Sidebar({
   const activeFlyoutItem = filteredNavItems.find((n) => n.id === activeFlyoutMenuId);
 
   // Main scrollable items (Dashboard through Reports)
+  const isStaffUser = userRole === "staff" || userRole === "warehouse" || userName.includes("warehouse");
   const scrollableItems = filteredNavItems.filter((item) => item.id !== "settings");
   const settingsItem = filteredNavItems.find((item) => item.id === "settings") || NAV_ITEMS.find((item) => item.id === "settings")!;
+  const settingsHref = isStaffUser ? "/profile" : (settingsItem.href || "/users");
 
   return (
     <>
@@ -602,12 +628,12 @@ export function Sidebar({
             className="relative"
           >
             <Link
-              href={settingsItem.href || "/users"}
+              href={settingsHref}
               onClick={() => {
                 if (isOpen) onClose();
               }}
               className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl font-semibold transition-all text-xs cursor-pointer ${
-                isActive(settingsItem.href)
+                isActive(settingsHref) || (settingsItem.children && settingsItem.children.some((c) => isActive(c.href)))
                   ? "bg-white text-rose-950 shadow-md font-bold"
                   : "text-rose-100 hover:bg-white/10 hover:text-white"
               } ${isCollapsed ? "justify-center w-10 h-10 mx-auto px-0" : "w-full"}`}
