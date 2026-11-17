@@ -68,10 +68,12 @@ export async function proxy(request: NextRequest) {
   const isAuthenticated = await isValidJwtToken(token);
 
   const isLoginPage = pathname === "/login";
+  const isSignupPage = pathname === "/signup";
+  const isPublicAuthPage = isLoginPage || isSignupPage;
 
   // Unauthenticated users must NEVER reach dashboard or any protected route (0ms server redirect)
   if (!isAuthenticated) {
-    if (!isLoginPage) {
+    if (!isPublicAuthPage) {
       const loginUrl = new URL("/login", request.url);
       const res = NextResponse.redirect(loginUrl);
       if (token) {
@@ -95,7 +97,7 @@ export async function proxy(request: NextRequest) {
 
   // Prevent browser back-button from caching protected HTML after logout/expiry
   const res = NextResponse.next();
-  if (!isLoginPage) {
+  if (!isPublicAuthPage) {
     res.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
   }
   return res;

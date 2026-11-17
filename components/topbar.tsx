@@ -155,7 +155,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
               <p className="font-bold text-slate-800 dark:text-white leading-none">
                 {userName}
               </p>
-              <p className="text-[10px] text-slate-400 capitalize mt-0.5">{userRole}</p>
+              <p className="text-[10px] text-slate-400 capitalize mt-0.5">{userRole.replace(/_/g, " ")}</p>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
@@ -167,7 +167,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
             >
               <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
                 <p className="text-xs font-bold text-slate-800 dark:text-white">{userName}</p>
-                <p className="text-[11px] text-slate-400 capitalize">{userRole}</p>
+                <p className="text-[11px] text-slate-400 capitalize">{userRole.replace(/_/g, " ")}</p>
               </div>
 
               <Link

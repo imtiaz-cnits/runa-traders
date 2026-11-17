@@ -221,8 +221,10 @@ export default function ProfilePage() {
       ["staff", "warehouse"].includes((localStorage.getItem("role") || "").toLowerCase()));
 
   const roleLabel =
-    profile?.role === "admin" || profile?.role === "super_admin"
-      ? "Store Administrator"
+    profile?.role === "super_admin"
+      ? "Super Administrator"
+      : profile?.role === "admin"
+        ? "Store Administrator"
       : profile?.role === "manager"
         ? "Store Manager"
         : profile?.role === "staff" || profile?.role === "warehouse"

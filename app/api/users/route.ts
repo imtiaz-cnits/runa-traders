@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser, hashPassword } from "@/lib/auth";
+import {
+  ALL_SYSTEM_ROLES,
+  getRolePresetPermissions,
+  isAdminOrSuperAdmin,
+  isSuperAdminRole,
+} from "@/lib/permissions";
 
 // GET: All Users (Ordered descending by ID as per PROJECT_RULES)
 export async function GET(req: NextRequest) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || (authUser.role !== "admin" && authUser.role !== "super_admin")) {
+    if (!authUser || !isAdminOrSuperAdmin(authUser.role)) {
       return NextResponse.json({ status: "fail", message: "Unauthorized" }, { status: 403 });
     }
 
@@ -35,19 +41,20 @@ export async function GET(req: NextRequest) {
       status: "success",
       data: serializedUsers,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to load users";
     return NextResponse.json(
-      { status: "fail", message: error?.message || "Failed to load users" },
+      { status: "fail", message },
       { status: 500 }
     );
   }
 }
 
-// POST: Create User by Admin
+// POST: Create User by Admin / Super Admin
 export async function POST(req: NextRequest) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || (authUser.role !== "admin" && authUser.role !== "super_admin")) {
+    if (!authUser || !isAdminOrSuperAdmin(authUser.role)) {
       return NextResponse.json({ status: "fail", message: "Unauthorized" }, { status: 403 });
     }
 
@@ -61,10 +68,43 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check duplicate
-    if (email) {
-      const existing = await prisma.users.findFirst({ where: { email } });
-      if (existing) {
+    const normalizedRole = String(role).trim().toLowerCase();
+    if (!(ALL_SYSTEM_ROLES as readonly string[]).includes(normalizedRole)) {
+      return NextResponse.json(
+        { status: "fail", message: "Invalid role specified" },
+        { status: 400 }
+      );
+    }
+
+    // Strict hierarchy guard: only Super Admin can assign the super_admin role
+    if (normalizedRole === "super_admin" && !isSuperAdminRole(authUser.role)) {
+      return NextResponse.json(
+        { status: "fail", message: "Only Super Admin can assign the Super Admin role." },
+        { status: 403 }
+      );
+    }
+
+    const trimmedMobile = String(mobile).trim();
+    const trimmedEmail = typeof email === "string" && email.trim() ? email.trim().toLowerCase() : null;
+
+    // Check duplicates
+    const existingMobile = await prisma.users.findFirst({
+      where: { mobile: trimmedMobile },
+      select: { id: true },
+    });
+    if (existingMobile) {
+      return NextResponse.json(
+        { status: "fail", message: "Mobile number already in use" },
+        { status: 400 }
+      );
+    }
+
+    if (trimmedEmail) {
+      const existingEmail = await prisma.users.findFirst({
+        where: { email: trimmedEmail },
+        select: { id: true },
+      });
+      if (existingEmail) {
         return NextResponse.json(
           { status: "fail", message: "Email already in use" },
           { status: 400 }
@@ -73,18 +113,19 @@ export async function POST(req: NextRequest) {
     }
 
     const hashedPassword = await hashPassword(password);
+    const resolvedPermissions = permissions || getRolePresetPermissions(normalizedRole);
 
     const newUser = await prisma.users.create({
       data: {
-        name,
-        email: email || null,
-        mobile,
+        name: String(name).trim(),
+        email: trimmedEmail,
+        mobile: trimmedMobile,
         password: hashedPassword,
-        role,
-        status: status || "approved",
+        role: normalizedRole,
+        status: status === "pending" ? "pending" : "approved",
         img_url: img_url || null,
         otp: "000000",
-        permissions: permissions ? JSON.stringify(permissions) : null,
+        permissions: JSON.stringify(resolvedPermissions),
       },
     });
 
@@ -98,9 +139,10 @@ export async function POST(req: NextRequest) {
         role: newUser.role,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to create user";
     return NextResponse.json(
-      { status: "fail", message: error?.message || "Failed to create user" },
+      { status: "fail", message },
       { status: 500 }
     );
   }

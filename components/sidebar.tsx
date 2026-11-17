@@ -149,8 +149,8 @@ export function Sidebar({
 
   useEffect(() => {
     try {
-      const r = (localStorage.getItem("role") || "admin").toLowerCase();
-      setUserRole(r);
+      const r = (localStorage.getItem("role") || "").toLowerCase();
+      if (r) setUserRole(r);
       const p = localStorage.getItem("permissions");
       if (p) setUserPerms(JSON.parse(p));
       const uStr = localStorage.getItem("user");
@@ -161,40 +161,71 @@ export function Sidebar({
     } catch {
       // ignore
     }
+
+    // Authoritative sync from session cookie so stale localStorage never misroutes Settings
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => {
+        if (res?.status === "success" && res.data) {
+          const meRole = String(res.data.role || "").toLowerCase();
+          setUserRole(meRole);
+          setUserName(String(res.data.name || "").toLowerCase());
+          setUserPerms(res.data.permissions || null);
+          try {
+            localStorage.setItem("role", res.data.role);
+          } catch {}
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const isSuperAdmin = userRole === "super_admin";
 
   const filteredNavItems = useMemo(() => {
     const isWarehouse = userRole === "warehouse" || userName.includes("warehouse");
     const isStaff = userRole === "staff" || isWarehouse;
 
+    const mapSettingsForRole = (items: NavItem[]): NavItem[] =>
+      items.map((item) => {
+        if (item.id !== "settings") return item;
+        if (isSuperAdmin) {
+          return { ...item, href: "/users" };
+        }
+        // Everyone except Super Admin goes directly to Profile when clicking Settings
+        return {
+          id: item.id,
+          label: item.label,
+          icon: item.icon,
+          href: "/profile",
+        };
+      });
+
     if (isWarehouse) {
-      return NAV_ITEMS.map((item) => {
-        if (item.id === "inventory") {
-          return {
-            ...item,
-            children: (item.children || []).filter((c) => c.href === "/inventory"),
-          };
-        }
-        if (item.id === "settings") {
-          return {
-            ...item,
-            href: "/profile",
-            children: (item.children || []).filter((c) => c.href === "/profile"),
-          };
-        }
-        return null;
-      }).filter(Boolean) as NavItem[];
+      return mapSettingsForRole(
+        NAV_ITEMS.map((item) => {
+          if (item.id === "inventory") {
+            return {
+              ...item,
+              children: (item.children || []).filter((c) => c.href === "/inventory"),
+            };
+          }
+          if (item.id === "settings") {
+            return item;
+          }
+          return null;
+        }).filter(Boolean) as NavItem[]
+      );
     }
 
-    if (userRole === "admin" || userRole === "super_admin") {
-      return NAV_ITEMS;
+    if (userRole === "admin" || isSuperAdmin) {
+      return mapSettingsForRole(NAV_ITEMS);
     }
 
     if (!userPerms && !isStaff) {
-      return NAV_ITEMS;
+      return mapSettingsForRole(NAV_ITEMS);
     }
 
-    return NAV_ITEMS.map((item) => {
+    const roleFiltered = NAV_ITEMS.map((item) => {
       let parentAllowed = true;
       if (item.id === "dashboard") parentAllowed = userPerms ? userPerms.dashboard !== false : true;
       else if (item.id === "pos") parentAllowed = userPerms ? (userPerms.pos !== false || userPerms.sales !== false) : true;
@@ -205,21 +236,14 @@ export function Sidebar({
       else if (item.id === "expenses") parentAllowed = userPerms ? userPerms.expenses !== false : true;
       else if (item.id === "reports") parentAllowed = userPerms ? userPerms.reports !== false : true;
       else if (item.id === "settings") {
-        if (isStaff) {
-          return {
-            ...item,
-            href: "/profile",
-            children: (item.children || []).filter((c) => c.href === "/profile"),
-          };
-        }
-        parentAllowed = true;
+        return item;
       }
 
       if (!parentAllowed) return null;
 
       if (item.children) {
         const allowedChildren = item.children.filter((c) => {
-          if (c.href === "/users") return Boolean(userPerms?.users) && !isStaff;
+          if (c.href === "/users") return isSuperAdmin;
           if (c.href === "/profile") return true;
           if (!userPerms) return true;
           if (c.href === "/pos") return userPerms.pos !== false;
@@ -251,7 +275,9 @@ export function Sidebar({
 
       return item;
     }).filter(Boolean) as NavItem[];
-  }, [userRole, userPerms, userName]);
+
+    return mapSettingsForRole(roleFiltered);
+  }, [userRole, userPerms, userName, isSuperAdmin]);
 
   // Find active parent ID dynamically from current pathname
   const activeParentId = useMemo(() => {
@@ -369,10 +395,9 @@ export function Sidebar({
   const activeFlyoutItem = filteredNavItems.find((n) => n.id === activeFlyoutMenuId);
 
   // Main scrollable items (Dashboard through Reports)
-  const isStaffUser = userRole === "staff" || userRole === "warehouse" || userName.includes("warehouse");
   const scrollableItems = filteredNavItems.filter((item) => item.id !== "settings");
   const settingsItem = filteredNavItems.find((item) => item.id === "settings") || NAV_ITEMS.find((item) => item.id === "settings")!;
-  const settingsHref = isStaffUser ? "/profile" : (settingsItem.href || "/users");
+  const settingsHref = isSuperAdmin ? "/users" : "/profile";
 
   return (
     <>

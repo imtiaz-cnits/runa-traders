@@ -20,7 +20,6 @@ import {
   RotateCcw,
   Percent,
   Building2,
-  Lock,
 } from "lucide-react";
 
 interface RecentOrder {
@@ -91,14 +90,14 @@ export default function DashboardPage() {
     recentOrders: [],
   });
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [recentPage, setRecentPage] = useState(1);
   const [recentPageSize, setRecentPageSize] = useState(10);
 
   useEffect(() => {
     try {
       const r = (localStorage.getItem("role") || "").toLowerCase();
-      setIsAdmin(r === "admin" || r === "super_admin" || r === "");
+      setIsAdmin(r === "admin" || r === "super_admin");
       const pStr = localStorage.getItem("permissions");
       const uStr = localStorage.getItem("user");
       let uName = "";
@@ -120,6 +119,19 @@ export default function DashboardPage() {
     } catch {
       // ignore
     }
+
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => {
+        if (res?.status === "success" && res.data) {
+          const meRole = String(res.data.role || "").toLowerCase();
+          setIsAdmin(meRole === "admin" || meRole === "super_admin");
+          try {
+            localStorage.setItem("role", res.data.role);
+          } catch {}
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const fetchStats = useCallback(async () => {
@@ -178,6 +190,8 @@ export default function DashboardPage() {
     recentStartIndex,
     recentStartIndex + recentPageSize
   );
+
+  const showProfitCard = isAdmin && profit !== null && profit !== undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -261,8 +275,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Row 1: Primary Financial Banner Cards (4 Columns) - Equal Gap */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Row 1: Primary Financial Banner Cards - Equal Gap */}
+      <div
+        className={`grid grid-cols-1 gap-4 ${
+          showProfitCard ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"
+        }`}
+      >
         {/* INCOME */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] p-4 sm:p-5 shadow-xs">
           <div className="flex items-center justify-between mb-2">
@@ -320,17 +338,17 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* PROFIT */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] p-4 sm:p-5 shadow-xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Profit
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
+        {/* PROFIT (Only rendered for Admin / Super Admin) */}
+        {showProfitCard && (
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] p-4 sm:p-5 shadow-xs">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Profit
+              </span>
+              <div className="w-8 h-8 rounded-lg bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4" />
+              </div>
             </div>
-          </div>
-          {isAdmin ? (
             <div
               className={`text-xl sm:text-2xl font-black ${
                 profit < 0
@@ -340,17 +358,12 @@ export default function DashboardPage() {
             >
               {formatBdCurrency(profit)}
             </div>
-          ) : (
-            <div className="text-sm sm:text-base font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1.5 py-1">
-              <Lock className="w-4 h-4 text-slate-400" />
-              <span>Admin Only</span>
+            <div className="flex items-center gap-1.5 mt-2 text-[11px] text-cyan-600 dark:text-cyan-400 font-bold">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>Net Business Profit</span>
             </div>
-          )}
-          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-cyan-600 dark:text-cyan-400 font-bold">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>Net Business Profit</span>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Row 2: Compact Financial Cards - Equal Gap */}
