@@ -6,6 +6,7 @@ import {
   generateChallanNumber,
   lockProductsAscending,
 } from "@/lib/challan-service";
+import { logUserActivity } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -329,6 +330,17 @@ export async function POST(req: NextRequest) {
       });
 
       return newChallan;
+    });
+
+    await logUserActivity({
+      req,
+      userId: user?.id,
+      userName: user?.name || "System User",
+      userEmail: user?.email,
+      userRole: user?.role,
+      action: "CREATE",
+      module: "Challans",
+      description: `Generated delivery challan "${result.challan_no}" for invoice #${body.order_id}.`,
     });
 
     return NextResponse.json({

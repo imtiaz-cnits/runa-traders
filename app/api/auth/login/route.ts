@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyPassword, signToken, TOKEN_MAX_AGE_SECONDS } from "@/lib/auth";
+import { logUserActivity } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,6 +51,18 @@ export async function POST(req: NextRequest) {
     });
 
     const permissions = user.permissions ? JSON.parse(user.permissions) : null;
+
+    // Log User Login Activity
+    await logUserActivity({
+      req,
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "LOGIN",
+      module: "Auth",
+      description: `User "${user.name}" (${user.role}) logged into the system.`,
+    });
 
     const response = NextResponse.json({
       status: "success",

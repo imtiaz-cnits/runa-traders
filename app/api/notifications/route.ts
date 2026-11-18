@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export interface NotificationItem {
   id: string;
-  type: "stock" | "sale" | "due";
+  type: "stock" | "sale" | "due" | "log";
   title: string;
   description: string;
   badge: string;
@@ -16,10 +17,11 @@ export interface NotificationItem {
 
 export async function GET(req: NextRequest) {
   try {
-    const today = new Date();
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const authUser = await getAuthUser(req);
+    const isAdminOrSuper =
+      authUser?.role === "admin" || authUser?.role === "super_admin";
 
-    const [allProducts, recentDueOrders, recentSales] = await Promise.all([
+    const [allProducts, recentDueOrders, recentSales, recentLogs] = await Promise.all([
       // Products with low or zero stock
       prisma.products.findMany({
         take: 100,
@@ -56,6 +58,14 @@ export async function GET(req: NextRequest) {
           },
         },
       }),
+
+      // Recent user activity logs (only visible to admin and super_admin)
+      isAdminOrSuper
+        ? prisma.user_logs.findMany({
+            take: 8,
+            orderBy: { id: "desc" },
+          })
+        : Promise.resolve([]),
     ]);
 
     const notifications: NotificationItem[] = [];
@@ -120,9 +130,27 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Add recent user activity logs (admin / super_admin only)
+    for (const l of recentLogs) {
+      const isLogin = l.action === "LOGIN";
+      const isDelete = l.action === "DELETE";
+      const isAdjust = l.action === "STOCK_ADJUST";
+      notifications.push({
+        id: `log-${l.id}`,
+        type: "log",
+        title: `${l.user_name} [${l.action}]`,
+        description: l.description,
+        badge: l.module || "Activity",
+        badgeColor: isLogin ? "emerald" : isDelete ? "rose" : isAdjust ? "amber" : "blue",
+        link: "/user-logs",
+        timestamp: l.created_at ? l.created_at.toISOString() : new Date().toISOString(),
+      });
+    }
+
     const lowStockCount = notifications.filter((n) => n.type === "stock").length;
     const dueCount = notifications.filter((n) => n.type === "due").length;
     const salesCount = notifications.filter((n) => n.type === "sale").length;
+    const logsCount = notifications.filter((n) => n.type === "log").length;
 
     return NextResponse.json({
       status: "success",
@@ -131,6 +159,7 @@ export async function GET(req: NextRequest) {
         lowStockCount,
         dueCount,
         salesCount,
+        logsCount,
         items: notifications,
       },
     });

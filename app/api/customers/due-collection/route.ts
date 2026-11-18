@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { logUserActivity } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -166,7 +167,22 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      return { newCustomerDue };
+      return {
+        newCustomerDue,
+        customerName: customer.customer_name,
+        customerCode: customer.customer_id,
+      };
+    });
+
+    await logUserActivity({
+      req,
+      userId: user?.id || userId,
+      userName: user?.name || "System User",
+      userEmail: user?.email,
+      userRole: user?.role,
+      action: "DUE_COLLECTION",
+      module: "Customers",
+      description: `Collected customer due: ৳ ${paidNum.toLocaleString("en-BD")}${discNum > 0 ? ` (Discount: ৳ ${discNum.toLocaleString("en-BD")})` : ""} from "${result.customerName}" (${result.customerCode}). Remaining Due: ৳ ${result.newCustomerDue.toLocaleString("en-BD")}. Method: ${payment_method || "Cash"}.`,
     });
 
     return NextResponse.json({

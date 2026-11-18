@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { logUserActivity } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -278,6 +279,17 @@ export async function POST(req: NextRequest) {
       }
 
       return newPurchase;
+    });
+
+    await logUserActivity({
+      req,
+      userId: user?.id || userId,
+      userName: user?.name || "System User",
+      userEmail: user?.email,
+      userRole: user?.role,
+      action: "CREATE",
+      module: "Purchases",
+      description: `Recorded purchase inward "${result.purchase_id}" (Total: ৳ ${Number(result.grand_subtotal || 0).toLocaleString("en-BD")}, Paid: ৳ ${Number(result.paid_amount || 0).toLocaleString("en-BD")}, Due: ৳ ${Number(result.due_amount || 0).toLocaleString("en-BD")}).`,
     });
 
     return NextResponse.json({

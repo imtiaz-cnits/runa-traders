@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { logUserActivity } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -144,6 +145,22 @@ export async function POST(req: NextRequest) {
         date: expDate,
         user_id: BigInt(userId),
       },
+    });
+
+    const expType = await prisma.expense_types.findUnique({
+      where: { id: BigInt(expense_type_id) },
+      select: { type_name: true },
+    });
+
+    await logUserActivity({
+      req,
+      userId: user?.id || userId,
+      userName: user?.name || "System User",
+      userEmail: user?.email,
+      userRole: user?.role,
+      action: "CREATE",
+      module: "Expenses",
+      description: `Recorded expense of ৳ ${Number(newExpense.expense_amount).toLocaleString("en-BD")} for "${expType?.type_name || "General Expense"}" (${expense_details || "No details"}).`,
     });
 
     return NextResponse.json({

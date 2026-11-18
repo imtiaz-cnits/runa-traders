@@ -30,6 +30,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
   const [userDropdown, setUserDropdown] = useState(false);
   const [userName, setUserName] = useState("Admin");
   const [userRole, setUserRole] = useState("admin");
+  const [userImg, setUserImg] = useState<string | null>(null);
 
   useEffect(() => {
     // Load saved dark mode state
@@ -44,19 +45,58 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
     window.addEventListener("theme-change", handleThemeChange);
 
     // Load user info from localStorage if available
-    try {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        const parsed = JSON.parse(storedUser);
-        if (parsed.name) setUserName(parsed.name);
-        if (parsed.role) setUserRole(parsed.role);
+    const loadUserInfo = () => {
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          if (parsed.name) setUserName(parsed.name);
+          if (parsed.role) setUserRole(parsed.role);
+          setUserImg(parsed.img_url || null);
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
-    }
+    };
+
+    const fetchFreshProfile = async () => {
+      try {
+        const res = await fetch("/api/users/profile");
+        const data = await res.json().catch(() => null);
+        if (res.ok && data?.status === "success" && data.data) {
+          if (data.data.name) setUserName(data.data.name);
+          if (data.data.role) setUserRole(data.data.role);
+          if (data.data.img_url) {
+            setUserImg(data.data.img_url);
+          } else {
+            setUserImg(null);
+          }
+          try {
+            const stored = localStorage.getItem("user");
+            const prev = stored ? JSON.parse(stored) : {};
+            localStorage.setItem("user", JSON.stringify({ ...prev, ...data.data }));
+            if (data.data.role) localStorage.setItem("role", data.data.role);
+          } catch {}
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    loadUserInfo();
+    fetchFreshProfile();
+
+    const handleUserUpdate = () => {
+      loadUserInfo();
+      fetchFreshProfile();
+    };
+    window.addEventListener("user-updated", handleUserUpdate);
+    window.addEventListener("storage", handleUserUpdate);
 
     return () => {
       window.removeEventListener("theme-change", handleThemeChange);
+      window.removeEventListener("user-updated", handleUserUpdate);
+      window.removeEventListener("storage", handleUserUpdate);
     };
   }, []);
 
@@ -148,14 +188,25 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
             onClick={() => setUserDropdown(!userDropdown)}
             className="flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] bg-slate-50 dark:bg-slate-800/80 hover:border-rose-600 transition-all cursor-pointer"
           >
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#991b1b] to-[#dc2626] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
-              {userName.charAt(0).toUpperCase()}
+            <div className="w-7 h-7 rounded-lg overflow-hidden bg-gradient-to-br from-[#991b1b] to-[#dc2626] text-white flex items-center justify-center font-bold text-xs shadow-2xs shrink-0 border border-white/20">
+              {userImg ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={userImg}
+                  alt={userName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                userName.charAt(0).toUpperCase()
+              )}
             </div>
             <div className="hidden md:block text-left text-xs">
               <p className="font-bold text-slate-800 dark:text-white leading-none">
                 {userName}
               </p>
-              <p className="text-[10px] text-slate-400 capitalize mt-0.5">{userRole.replace(/_/g, " ")}</p>
+              <p className="text-[10px] text-slate-400 capitalize mt-0.5">
+                {userRole === "super_admin" ? "Super Admin" : userRole}
+              </p>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
@@ -165,9 +216,25 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
               onClick={() => setUserDropdown(false)}
               className="absolute right-0 mt-2 w-48 rounded-xl bg-white dark:bg-slate-900 border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-top-1"
             >
-              <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-                <p className="text-xs font-bold text-slate-800 dark:text-white">{userName}</p>
-                <p className="text-[11px] text-slate-400 capitalize">{userRole.replace(/_/g, " ")}</p>
+              <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg overflow-hidden bg-gradient-to-br from-[#991b1b] to-[#dc2626] text-white flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
+                  {userImg ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={userImg}
+                      alt={userName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    userName.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{userName}</p>
+                  <p className="text-[11px] text-slate-400 capitalize truncate">
+                    {userRole === "super_admin" ? "Super Admin" : userRole}
+                  </p>
+                </div>
               </div>
 
               <Link

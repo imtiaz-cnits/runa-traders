@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { logUserActivity } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -405,7 +406,19 @@ export async function POST(req: NextRequest) {
         dueReduction,
         cancelledCount: itemsToCancel.length,
         remainingCount: remainingDetails.length,
+        orderNo: order.order_no,
       };
+    });
+
+    await logUserActivity({
+      req,
+      userId: user?.id || userId,
+      userName: user?.name || "System User",
+      userEmail: user?.email,
+      userRole: user?.role,
+      action: "UPDATE",
+      module: "POS / Sales",
+      description: `Cancelled ${result.cancelledCount} pending tiles item(s) on invoice "${result.orderNo}" (Cancelled Amount: ৳ ${Number(result.cancelledAmount).toLocaleString("en-BD")}).`,
     });
 
     return NextResponse.json({

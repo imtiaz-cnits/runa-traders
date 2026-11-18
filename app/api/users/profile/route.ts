@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser, hashPassword, verifyPassword } from "@/lib/auth";
+import { logUserActivity } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -53,13 +54,6 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ status: "fail", message: "Unauthorized" }, { status: 401 });
     }
 
-    if (authUser.role === "staff" || authUser.role === "warehouse") {
-      return NextResponse.json(
-        { status: "fail", message: "Staff accounts cannot modify profile information. Only profile photo can be changed." },
-        { status: 403 }
-      );
-    }
-
     const body = await req.json();
     const { name, mobile, img_url, current_password, new_password } = body;
 
@@ -85,8 +79,15 @@ export async function PUT(req: NextRequest) {
       updateData.img_url = img_url;
     }
 
-    // Password change workflow
+    // Password change workflow - Strictly restricted to super_admin
     if (new_password && new_password.trim() !== "") {
+      if (authUser.role !== "super_admin") {
+        return NextResponse.json(
+          { status: "fail", message: "Only Super Admin can change account passwords." },
+          { status: 403 }
+        );
+      }
+
       if (new_password.length < 4) {
         return NextResponse.json(
           { status: "fail", message: "New password must be at least 4 characters" },
@@ -119,6 +120,19 @@ export async function PUT(req: NextRequest) {
         status: true,
         img_url: true,
       },
+    });
+
+    await logUserActivity({
+      req,
+      userId: authUser.id,
+      userName: authUser.name,
+      userEmail: authUser.email,
+      userRole: authUser.role,
+      action: new_password ? "PASSWORD_CHANGE" : "UPDATE",
+      module: "Profile",
+      description: new_password
+        ? `User "${authUser.name}" changed their password.`
+        : `User "${authUser.name}" updated their profile personal information.`,
     });
 
     return NextResponse.json({

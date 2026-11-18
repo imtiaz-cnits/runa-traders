@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser, hashPassword } from "@/lib/auth";
-import {
-  ALL_SYSTEM_ROLES,
-  isAdminOrSuperAdmin,
-  isSuperAdminRole,
-} from "@/lib/permissions";
+import { logUserActivity } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -15,111 +11,36 @@ export async function PUT(
 ) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || !isAdminOrSuperAdmin(authUser.role)) {
-      return NextResponse.json({ status: "fail", message: "Unauthorized" }, { status: 403 });
+    if (!authUser || authUser.role !== "super_admin") {
+      return NextResponse.json({ status: "fail", message: "Unauthorized - Super Admin only" }, { status: 403 });
     }
 
     const { id } = await params;
     const targetUserId = BigInt(id);
 
-    const existingUser = await prisma.users.findUnique({
-      where: { id: targetUserId },
-      select: { id: true, role: true, status: true },
-    });
-
-    if (!existingUser) {
+    const targetUser = await prisma.users.findUnique({ where: { id: targetUserId } });
+    if (!targetUser) {
       return NextResponse.json({ status: "fail", message: "User not found" }, { status: 404 });
-    }
-
-    const callerIsSuperAdmin = isSuperAdminRole(authUser.role);
-    const targetIsProtectedAdmin = isAdminOrSuperAdmin(existingUser.role);
-
-    // Hierarchy check: regular Admin cannot edit Admin or Super Admin accounts
-    if (!callerIsSuperAdmin && targetIsProtectedAdmin) {
-      return NextResponse.json(
-        { status: "fail", message: "Only Super Admin can edit Admin or Super Admin accounts." },
-        { status: 403 }
-      );
     }
 
     const body = await req.json();
     const { name, email, mobile, password, role, status, permissions, img_url } = body;
 
-    let normalizedNewRole: string | undefined;
-    if (role !== undefined && role !== null && String(role).trim() !== "") {
-      normalizedNewRole = String(role).trim().toLowerCase();
-      if (!(ALL_SYSTEM_ROLES as readonly string[]).includes(normalizedNewRole)) {
-        return NextResponse.json(
-          { status: "fail", message: "Invalid role specified" },
-          { status: 400 }
-        );
-      }
-      if (!callerIsSuperAdmin && normalizedNewRole === "super_admin") {
-        return NextResponse.json(
-          { status: "fail", message: "Only Super Admin can assign the Super Admin role." },
-          { status: 403 }
-        );
+    const data: any = {};
+    if (name) data.name = name.trim();
+    if (email !== undefined) data.email = email ? email.trim() : null;
+    if (mobile) data.mobile = mobile.trim();
+    if (password && password.trim() !== "") {
+      data.password = await hashPassword(password);
+    }
+    if (role) {
+      if (targetUser.email === "dev@runatraders.com") {
+        data.role = "super_admin";
+      } else {
+        data.role = role === "super_admin" ? "admin" : role;
       }
     }
-
-    // Prevent downgrading or disabling the last active Super Admin
-    if (isSuperAdminRole(existingUser.role)) {
-      const willDemote = normalizedNewRole !== undefined && normalizedNewRole !== "super_admin";
-      const willDeactivate = status !== undefined && status !== "approved";
-      if (willDemote || willDeactivate) {
-        const otherActiveSuperAdmins = await prisma.users.count({
-          where: {
-            id: { not: targetUserId },
-            role: "super_admin",
-            status: "approved",
-          },
-        });
-        if (otherActiveSuperAdmins === 0) {
-          return NextResponse.json(
-            { status: "fail", message: "Cannot downgrade or deactivate the only active Super Admin account." },
-            { status: 400 }
-          );
-        }
-      }
-    }
-
-    const data: Record<string, unknown> = {};
-    if (name) data.name = String(name).trim();
-    if (email !== undefined) {
-      const trimmedEmail = email ? String(email).trim().toLowerCase() : null;
-      if (trimmedEmail) {
-        const dupEmail = await prisma.users.findFirst({
-          where: { email: trimmedEmail, id: { not: targetUserId } },
-          select: { id: true },
-        });
-        if (dupEmail) {
-          return NextResponse.json(
-            { status: "fail", message: "Email address is already used by another user." },
-            { status: 400 }
-          );
-        }
-      }
-      data.email = trimmedEmail;
-    }
-    if (mobile) {
-      const trimmedMobile = String(mobile).trim();
-      const dupMobile = await prisma.users.findFirst({
-        where: { mobile: trimmedMobile, id: { not: targetUserId } },
-        select: { id: true },
-      });
-      if (dupMobile) {
-        return NextResponse.json(
-          { status: "fail", message: "Mobile number is already used by another user." },
-          { status: 400 }
-        );
-      }
-      data.mobile = trimmedMobile;
-    }
-    if (password && String(password).trim() !== "") {
-      data.password = await hashPassword(String(password));
-    }
-    if (normalizedNewRole) data.role = normalizedNewRole;
-    if (status === "approved" || status === "pending") data.status = status;
+    if (status) data.status = status;
     if (img_url !== undefined) data.img_url = img_url || null;
     if (permissions !== undefined) {
       data.permissions = typeof permissions === "object" ? JSON.stringify(permissions) : permissions;
@@ -128,16 +49,17 @@ export async function PUT(
     const updated = await prisma.users.update({
       where: { id: targetUserId },
       data,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        mobile: true,
-        role: true,
-        status: true,
-        img_url: true,
-        created_at: true,
-      },
+    });
+
+    await logUserActivity({
+      req,
+      userId: authUser.id,
+      userName: authUser.name,
+      userEmail: authUser.email,
+      userRole: authUser.role,
+      action: "UPDATE",
+      module: "Users",
+      description: `Updated system user "${updated.name}" (ID: ${updated.id}, Role: ${updated.role}).`,
     });
 
     return NextResponse.json({
@@ -148,9 +70,8 @@ export async function PUT(
         id: Number(updated.id),
       },
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to update user";
-    return NextResponse.json({ status: "fail", message }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ status: "fail", message: error?.message || "Failed to update user" }, { status: 500 });
   }
 }
 
@@ -160,84 +81,75 @@ export async function DELETE(
 ) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || !isAdminOrSuperAdmin(authUser.role)) {
-      return NextResponse.json({ status: "fail", message: "Unauthorized" }, { status: 403 });
+    if (!authUser || authUser.role !== "super_admin") {
+      return NextResponse.json({ status: "fail", message: "Unauthorized - Super Admin only" }, { status: 403 });
     }
 
     const { id } = await params;
     const targetUserId = BigInt(id);
 
-    // Safeguard: Prevent deleting primary system account (ID 1) or currently logged-in user
-    if (targetUserId === BigInt(1) || targetUserId === BigInt(authUser.id)) {
-      return NextResponse.json(
-        { status: "fail", message: "Primary account or currently logged-in account cannot be deleted." },
-        { status: 400 }
-      );
-    }
-
-    const existingUser = await prisma.users.findUnique({
-      where: { id: targetUserId },
-      select: { id: true, role: true, status: true },
-    });
-
-    if (!existingUser) {
+    const targetUser = await prisma.users.findUnique({ where: { id: targetUserId } });
+    if (!targetUser) {
       return NextResponse.json({ status: "fail", message: "User not found" }, { status: 404 });
     }
 
-    const callerIsSuperAdmin = isSuperAdminRole(authUser.role);
-    const targetIsProtectedAdmin = isAdminOrSuperAdmin(existingUser.role);
-
-    // Hierarchy check: regular Admin cannot delete Admin or Super Admin accounts
-    if (!callerIsSuperAdmin && targetIsProtectedAdmin) {
+    // Safeguard: Prevent deleting primary super admin developer account or deleting oneself
+    if (targetUser.email === "dev@runatraders.com" || targetUserId === BigInt(authUser.id)) {
       return NextResponse.json(
-        { status: "fail", message: "Only Super Admin can delete Admin or Super Admin accounts." },
-        { status: 403 }
-      );
-    }
-
-    // Prevent deleting the last active Super Admin
-    if (isSuperAdminRole(existingUser.role) && existingUser.status === "approved") {
-      const otherActiveSuperAdmins = await prisma.users.count({
-        where: {
-          id: { not: targetUserId },
-          role: "super_admin",
-          status: "approved",
-        },
-      });
-      if (otherActiveSuperAdmins === 0) {
-        return NextResponse.json(
-          { status: "fail", message: "Cannot delete the last active Super Admin account." },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Safeguard: Check if user has associated transactions
-    const [orderCount, purchaseCount] = await Promise.all([
-      prisma.orders.count({ where: { user_id: targetUserId } }),
-      prisma.purchases.count({ where: { user_id: targetUserId } }),
-    ]);
-
-    if (orderCount > 0 || purchaseCount > 0) {
-      return NextResponse.json(
-        {
-          status: "fail",
-          message: `Cannot delete user because they have recorded transactions (${orderCount} orders, ${purchaseCount} purchases). Consider setting status to Pending instead.`,
-        },
+        { status: "fail", message: "Super Admin developer account or currently logged-in account cannot be deleted." },
         { status: 400 }
       );
     }
 
-    await prisma.users.delete({
-      where: { id: targetUserId },
+    const fallbackUserId = BigInt(authUser.id);
+
+    // Reassign foreign key references to active admin so historical records remain safe
+    await prisma.$transaction([
+      prisma.orders.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.order_details.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.order_payment_details.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.purchases.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.purchase_order_details.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.purchase_payment_details.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.purchase_returns.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.challans.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.customers.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.customer_payment_details.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.suppliers.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.supplier_due_collections.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.products.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.product_returns.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.categories.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.sub_categories.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.brands.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.units.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.expenses.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.expenses.updateMany({ where: { staff_id: targetUserId }, data: { staff_id: null } }),
+      prisma.expense_types.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.locations.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.districts.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.thanas.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.upazilas.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.opening_balances.updateMany({ where: { user_id: targetUserId }, data: { user_id: fallbackUserId } }),
+      prisma.users.delete({ where: { id: targetUserId } }),
+    ]);
+
+    await logUserActivity({
+      req,
+      userId: authUser.id,
+      userName: authUser.name,
+      userEmail: authUser.email,
+      userRole: authUser.role,
+      action: "DELETE",
+      module: "Users",
+      description: `Deleted system user "${targetUser.name}" (Email: ${targetUser.email || "N/A"}, ID: ${targetUserId}).`,
     });
 
     return NextResponse.json({
       status: "success",
       message: "User deleted successfully",
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to delete user";
-    return NextResponse.json({ status: "fail", message }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ status: "fail", message: error?.message || "Failed to delete user" }, { status: 500 });
   }
 }

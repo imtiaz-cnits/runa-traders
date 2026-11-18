@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { logUserActivity } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
 // POST: Bulk update product prices by percentage (%) or flat amount (Taka ৳)
 export async function POST(req: NextRequest) {
   try {
-    await getAuthUser(req);
+    const user = await getAuthUser(req);
     const body = await req.json();
 
     const {
@@ -104,6 +105,17 @@ export async function POST(req: NextRequest) {
       : adjVal > 0
       ? `+${adjVal}%`
       : `${adjVal}%`;
+
+    await logUserActivity({
+      req,
+      userId: user?.id,
+      userName: user?.name,
+      userEmail: user?.email,
+      userRole: user?.role,
+      action: "UPDATE",
+      module: "Products",
+      description: `Bulk updated prices for ${productsToUpdate.length} products (${summaryBadge} on ${target_field}).`,
+    });
 
     return NextResponse.json({
       status: "success",

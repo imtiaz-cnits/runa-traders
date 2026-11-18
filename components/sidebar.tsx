@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   User,
   Ban,
+  History,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 
@@ -125,6 +126,7 @@ export const NAV_ITEMS: NavItem[] = [
     children: [
       { label: "User List & Roles", href: "/users", icon: Users },
       { label: "Profile", href: "/profile", icon: User },
+      { label: "User Logs", href: "/user-logs", icon: History },
     ],
   },
 ];
@@ -149,8 +151,8 @@ export function Sidebar({
 
   useEffect(() => {
     try {
-      const r = (localStorage.getItem("role") || "").toLowerCase();
-      if (r) setUserRole(r);
+      const r = (localStorage.getItem("role") || "admin").toLowerCase();
+      setUserRole(r);
       const p = localStorage.getItem("permissions");
       if (p) setUserPerms(JSON.parse(p));
       const uStr = localStorage.getItem("user");
@@ -161,71 +163,63 @@ export function Sidebar({
     } catch {
       // ignore
     }
-
-    // Authoritative sync from session cookie so stale localStorage never misroutes Settings
-    fetch("/api/auth/me")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((res) => {
-        if (res?.status === "success" && res.data) {
-          const meRole = String(res.data.role || "").toLowerCase();
-          setUserRole(meRole);
-          setUserName(String(res.data.name || "").toLowerCase());
-          setUserPerms(res.data.permissions || null);
-          try {
-            localStorage.setItem("role", res.data.role);
-          } catch {}
-        }
-      })
-      .catch(() => {});
   }, []);
-
-  const isSuperAdmin = userRole === "super_admin";
 
   const filteredNavItems = useMemo(() => {
     const isWarehouse = userRole === "warehouse" || userName.includes("warehouse");
     const isStaff = userRole === "staff" || isWarehouse;
-
-    const mapSettingsForRole = (items: NavItem[]): NavItem[] =>
-      items.map((item) => {
-        if (item.id !== "settings") return item;
-        if (isSuperAdmin) {
-          return { ...item, href: "/users" };
-        }
-        // Everyone except Super Admin goes directly to Profile when clicking Settings
-        return {
-          id: item.id,
-          label: item.label,
-          icon: item.icon,
-          href: "/profile",
-        };
-      });
+    const isSuperAdmin = userRole === "super_admin";
 
     if (isWarehouse) {
-      return mapSettingsForRole(
-        NAV_ITEMS.map((item) => {
-          if (item.id === "inventory") {
-            return {
-              ...item,
-              children: (item.children || []).filter((c) => c.href === "/inventory"),
-            };
-          }
-          if (item.id === "settings") {
-            return item;
-          }
-          return null;
-        }).filter(Boolean) as NavItem[]
-      );
+      return NAV_ITEMS.map((item) => {
+        if (item.id === "inventory") {
+          return {
+            ...item,
+            children: (item.children || []).filter((c) => c.href === "/inventory"),
+          };
+        }
+        if (item.id === "settings") {
+          return {
+            ...item,
+            href: "/profile",
+            children: (item.children || []).filter((c) => c.href === "/profile"),
+          };
+        }
+        return null;
+      }).filter(Boolean) as NavItem[];
     }
 
-    if (userRole === "admin" || isSuperAdmin) {
-      return mapSettingsForRole(NAV_ITEMS);
+    if (userRole === "super_admin") {
+      return NAV_ITEMS;
+    }
+
+    if (userRole === "admin") {
+      // Admin gets everything EXCEPT User List & Roles under settings (sees Profile & User Logs)
+      return NAV_ITEMS.map((item) => {
+        if (item.id === "settings") {
+          return {
+            ...item,
+            children: (item.children || []).filter((c) => c.href !== "/users"),
+          };
+        }
+        return item;
+      });
     }
 
     if (!userPerms && !isStaff) {
-      return mapSettingsForRole(NAV_ITEMS);
+      return NAV_ITEMS.map((item) => {
+        if (item.id === "settings") {
+          return {
+            ...item,
+            href: "/profile",
+            children: (item.children || []).filter((c) => c.href === "/profile"),
+          };
+        }
+        return item;
+      });
     }
 
-    const roleFiltered = NAV_ITEMS.map((item) => {
+    return NAV_ITEMS.map((item) => {
       let parentAllowed = true;
       if (item.id === "dashboard") parentAllowed = userPerms ? userPerms.dashboard !== false : true;
       else if (item.id === "pos") parentAllowed = userPerms ? (userPerms.pos !== false || userPerms.sales !== false) : true;
@@ -236,7 +230,11 @@ export function Sidebar({
       else if (item.id === "expenses") parentAllowed = userPerms ? userPerms.expenses !== false : true;
       else if (item.id === "reports") parentAllowed = userPerms ? userPerms.reports !== false : true;
       else if (item.id === "settings") {
-        return item;
+        return {
+          ...item,
+          href: "/profile",
+          children: (item.children || []).filter((c) => c.href === "/profile"),
+        };
       }
 
       if (!parentAllowed) return null;
@@ -244,6 +242,7 @@ export function Sidebar({
       if (item.children) {
         const allowedChildren = item.children.filter((c) => {
           if (c.href === "/users") return isSuperAdmin;
+          if (c.href === "/user-logs") return isSuperAdmin || userRole === "admin";
           if (c.href === "/profile") return true;
           if (!userPerms) return true;
           if (c.href === "/pos") return userPerms.pos !== false;
@@ -275,9 +274,7 @@ export function Sidebar({
 
       return item;
     }).filter(Boolean) as NavItem[];
-
-    return mapSettingsForRole(roleFiltered);
-  }, [userRole, userPerms, userName, isSuperAdmin]);
+  }, [userRole, userPerms, userName]);
 
   // Find active parent ID dynamically from current pathname
   const activeParentId = useMemo(() => {
@@ -395,9 +392,10 @@ export function Sidebar({
   const activeFlyoutItem = filteredNavItems.find((n) => n.id === activeFlyoutMenuId);
 
   // Main scrollable items (Dashboard through Reports)
+  const isSuperAdminUser = userRole === "super_admin";
   const scrollableItems = filteredNavItems.filter((item) => item.id !== "settings");
   const settingsItem = filteredNavItems.find((item) => item.id === "settings") || NAV_ITEMS.find((item) => item.id === "settings")!;
-  const settingsHref = isSuperAdmin ? "/users" : "/profile";
+  const settingsHref = isSuperAdminUser ? (settingsItem.href || "/users") : "/profile";
 
   return (
     <>

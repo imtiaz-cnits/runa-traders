@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { logUserActivity } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -173,6 +174,17 @@ export async function POST(req: NextRequest) {
         status: status || "active",
         user_id: BigInt(userId),
       },
+    });
+
+    await logUserActivity({
+      req,
+      userId: user?.id || userId,
+      userName: user?.name || "System User",
+      userEmail: user?.email,
+      userRole: user?.role,
+      action: "CREATE",
+      module: "Products",
+      description: `Created product "${newProduct.product_name}" (Codes: ${finalCodes.join(", ")}, Price: ৳ ${Number(newProduct.sell_price || 0).toLocaleString("en-BD")}, Initial Qty: ${newProduct.quantity}).`,
     });
 
     return NextResponse.json({

@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser, hashPassword } from "@/lib/auth";
-import {
-  ALL_SYSTEM_ROLES,
-  getRolePresetPermissions,
-  isAdminOrSuperAdmin,
-  isSuperAdminRole,
-} from "@/lib/permissions";
+import { logUserActivity } from "@/lib/logger";
 
-// GET: All Users (Ordered descending by ID as per PROJECT_RULES)
+// GET: All Users (Ordered descending by ID as per PROJECT_RULES - Strictly Super Admin Only)
 export async function GET(req: NextRequest) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || !isAdminOrSuperAdmin(authUser.role)) {
-      return NextResponse.json({ status: "fail", message: "Unauthorized" }, { status: 403 });
+    if (!authUser || authUser.role !== "super_admin") {
+      return NextResponse.json({ status: "fail", message: "Unauthorized - Super Admin only" }, { status: 403 });
     }
 
     const users = await prisma.users.findMany({
@@ -41,21 +36,20 @@ export async function GET(req: NextRequest) {
       status: "success",
       data: serializedUsers,
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to load users";
+  } catch (error: any) {
     return NextResponse.json(
-      { status: "fail", message },
+      { status: "fail", message: error?.message || "Failed to load users" },
       { status: 500 }
     );
   }
 }
 
-// POST: Create User by Admin / Super Admin
+// POST: Create User (Strictly Super Admin Only)
 export async function POST(req: NextRequest) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || !isAdminOrSuperAdmin(authUser.role)) {
-      return NextResponse.json({ status: "fail", message: "Unauthorized" }, { status: 403 });
+    if (!authUser || authUser.role !== "super_admin") {
+      return NextResponse.json({ status: "fail", message: "Unauthorized - Super Admin only" }, { status: 403 });
     }
 
     const body = await req.json();
@@ -68,43 +62,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const normalizedRole = String(role).trim().toLowerCase();
-    if (!(ALL_SYSTEM_ROLES as readonly string[]).includes(normalizedRole)) {
-      return NextResponse.json(
-        { status: "fail", message: "Invalid role specified" },
-        { status: 400 }
-      );
-    }
-
-    // Strict hierarchy guard: only Super Admin can assign the super_admin role
-    if (normalizedRole === "super_admin" && !isSuperAdminRole(authUser.role)) {
-      return NextResponse.json(
-        { status: "fail", message: "Only Super Admin can assign the Super Admin role." },
-        { status: 403 }
-      );
-    }
-
-    const trimmedMobile = String(mobile).trim();
-    const trimmedEmail = typeof email === "string" && email.trim() ? email.trim().toLowerCase() : null;
-
-    // Check duplicates
-    const existingMobile = await prisma.users.findFirst({
-      where: { mobile: trimmedMobile },
-      select: { id: true },
-    });
-    if (existingMobile) {
-      return NextResponse.json(
-        { status: "fail", message: "Mobile number already in use" },
-        { status: 400 }
-      );
-    }
-
-    if (trimmedEmail) {
-      const existingEmail = await prisma.users.findFirst({
-        where: { email: trimmedEmail },
-        select: { id: true },
-      });
-      if (existingEmail) {
+    // Check duplicate
+    if (email) {
+      const existing = await prisma.users.findFirst({ where: { email } });
+      if (existing) {
         return NextResponse.json(
           { status: "fail", message: "Email already in use" },
           { status: 400 }
@@ -113,20 +74,30 @@ export async function POST(req: NextRequest) {
     }
 
     const hashedPassword = await hashPassword(password);
-    const resolvedPermissions = permissions || getRolePresetPermissions(normalizedRole);
 
     const newUser = await prisma.users.create({
       data: {
-        name: String(name).trim(),
-        email: trimmedEmail,
-        mobile: trimmedMobile,
+        name,
+        email: email || null,
+        mobile,
         password: hashedPassword,
-        role: normalizedRole,
-        status: status === "pending" ? "pending" : "approved",
+        role: role === "super_admin" ? "admin" : role,
+        status: status || "approved",
         img_url: img_url || null,
         otp: "000000",
-        permissions: JSON.stringify(resolvedPermissions),
+        permissions: permissions ? JSON.stringify(permissions) : null,
       },
+    });
+
+    await logUserActivity({
+      req,
+      userId: authUser.id,
+      userName: authUser.name,
+      userEmail: authUser.email,
+      userRole: authUser.role,
+      action: "CREATE",
+      module: "Users",
+      description: `Created new system user "${newUser.name}" (Role: ${newUser.role}, Mobile: ${newUser.mobile}).`,
     });
 
     return NextResponse.json({
@@ -139,10 +110,9 @@ export async function POST(req: NextRequest) {
         role: newUser.role,
       },
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to create user";
+  } catch (error: any) {
     return NextResponse.json(
-      { status: "fail", message },
+      { status: "fail", message: error?.message || "Failed to create user" },
       { status: 500 }
     );
   }

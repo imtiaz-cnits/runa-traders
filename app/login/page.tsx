@@ -17,8 +17,8 @@ import {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@gmail.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -75,11 +75,6 @@ export default function LoginPage() {
     }
   }
 
-  function fillDemo() {
-    setEmail("admin@gmail.com");
-    setPassword("admin123");
-    setError("");
-  }
 
   return (
     <div className="min-h-screen flex w-full bg-slate-50 dark:bg-[#0b0f19]">
@@ -199,7 +194,8 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@gmail.com"
+                  placeholder="Enter email or mobile number"
+                  autoComplete="username"
                   className="w-full h-[42px] pl-10 pr-3.5 rounded-xl bg-white dark:bg-slate-800/90 text-sm text-slate-800 dark:text-white border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-600/20 transition-all"
                 />
               </div>
@@ -221,6 +217,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   className="w-full h-[42px] pl-10 pr-10 rounded-xl bg-white dark:bg-slate-800/90 text-sm text-slate-800 dark:text-white border-[1.5px] border-[#cbd5e1] dark:border-[#334155] focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-600/20 transition-all"
                 />
                 <button
@@ -252,26 +249,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Quick Demo Credentials helper */}
-          <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800">
-            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wide">
-                  Quick Demo Access
-                </p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                  admin@gmail.com / admin123
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={fillDemo}
-                className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
-              >
-                Auto Fill
-              </button>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>

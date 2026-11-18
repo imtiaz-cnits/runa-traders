@@ -37,18 +37,30 @@ export async function POST(req: NextRequest) {
 
     let ext = path.extname(file.name).toLowerCase();
     if (!ext || ext === ".") ext = ".jpg";
-    const filename = `avatar-${authUser.id}-${Date.now()}${ext}`;
+    const userIdParam = formData.get("userId") as string | null;
+    let targetUserId = BigInt(authUser.id);
+    if (authUser.role === "super_admin" && userIdParam && userIdParam !== "null" && userIdParam !== "undefined") {
+      targetUserId = BigInt(userIdParam);
+    }
+
+    const filename = `avatar-${targetUserId}-${Date.now()}${ext}`;
     const filePath = path.join(uploadDir, filename);
 
     await fs.writeFile(filePath, buffer);
 
     const imgUrl = `/uploads/avatars/${filename}`;
 
-    // Update user record in DB
-    await prisma.users.update({
-      where: { id: BigInt(authUser.id) },
-      data: { img_url: imgUrl },
-    });
+    // Update user record in DB if target exists
+    if (targetUserId) {
+      try {
+        await prisma.users.update({
+          where: { id: targetUserId },
+          data: { img_url: imgUrl },
+        });
+      } catch {
+        // May not exist yet if creating a brand new user
+      }
+    }
 
     return NextResponse.json({
       status: "success",

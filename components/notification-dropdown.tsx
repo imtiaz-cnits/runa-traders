@@ -13,11 +13,12 @@ import {
   RefreshCw,
   X,
   CheckCheck,
+  History,
 } from "lucide-react";
 
 interface NotificationItem {
   id: string;
-  type: "stock" | "sale" | "due";
+  type: "stock" | "sale" | "due" | "log";
   title: string;
   description: string;
   badge: string;
@@ -31,17 +32,20 @@ interface NotificationData {
   lowStockCount: number;
   dueCount: number;
   salesCount: number;
+  logsCount?: number;
   items: NotificationItem[];
 }
 
 export function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "stock" | "due" | "sale">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "stock" | "due" | "sale" | "log">("all");
+  const [userRole, setUserRole] = useState<string>("staff");
   const [data, setData] = useState<NotificationData>({
     totalCount: 0,
     lowStockCount: 0,
     dueCount: 0,
     salesCount: 0,
+    logsCount: 0,
     items: [],
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -65,6 +69,10 @@ export function NotificationDropdown() {
   };
 
   useEffect(() => {
+    try {
+      const r = (localStorage.getItem("role") || "staff").toLowerCase();
+      setUserRole(r);
+    } catch {}
     fetchNotifications();
 
     // Auto-refresh every 60 seconds
@@ -126,6 +134,8 @@ export function NotificationDropdown() {
         return <DollarSign className="w-4 h-4 text-rose-500 shrink-0" />;
       case "sale":
         return <ShoppingBag className="w-4 h-4 text-emerald-500 shrink-0" />;
+      case "log":
+        return <History className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />;
       default:
         return <Clock className="w-4 h-4 text-slate-500 shrink-0" />;
     }
@@ -171,7 +181,7 @@ export function NotificationDropdown() {
 
       {/* Notification Modal / Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-[340px] sm:w-[390px] rounded-2xl bg-white dark:bg-slate-900 border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 flex flex-col">
+        <div className="absolute right-0 mt-2 w-[340px] sm:w-[390px] max-h-[calc(100vh-100px)] rounded-2xl bg-white dark:bg-slate-900 border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 flex flex-col">
           {/* Header */}
           <div className="px-4 py-3 bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-2">
@@ -244,18 +254,30 @@ export function NotificationDropdown() {
             >
               Sales ({data.salesCount})
             </button>
+            {(userRole === "admin" || userRole === "super_admin") && (
+              <button
+                onClick={() => setActiveTab("log")}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                  activeTab === "log"
+                    ? "bg-sky-600 text-white shadow-xs"
+                    : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
+                }`}
+              >
+                Logs ({data.logsCount || 0})
+              </button>
+            )}
           </div>
 
           {/* List of Notification Items */}
-          <div className="max-h-[340px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80">
+          <div className="max-h-[220px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80">
             {isLoading && data.items.length === 0 ? (
               <div className="py-8 text-center text-xs text-slate-400">
                 <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-emerald-600" />
                 <span>Loading store alerts...</span>
               </div>
             ) : filteredItems.length === 0 ? (
-              <div className="py-10 text-center px-4">
-                <CheckCheck className="w-8 h-8 mx-auto text-emerald-500/80 mb-2" />
+              <div className="py-8 text-center px-4">
+                <CheckCheck className="w-7 h-7 mx-auto text-emerald-500/80 mb-1.5" />
                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300">All clear! No alerts</p>
                 <p className="text-[11px] text-slate-400 mt-0.5">Everything is running smoothly.</p>
               </div>
@@ -265,7 +287,7 @@ export function NotificationDropdown() {
                   key={item.id}
                   href={item.link}
                   onClick={() => setIsOpen(false)}
-                  className="p-3 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group block"
+                  className="p-2.5 sm:p-3 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group block"
                 >
                   <div className="mt-0.5 p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:scale-105 transition-transform">
                     {getIcon(item.type, item.badgeColor)}
@@ -285,7 +307,7 @@ export function NotificationDropdown() {
                       {item.description}
                     </p>
 
-                    <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400">
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
                       <span className="flex items-center gap-1">
                         <Clock className="w-2.5 h-2.5" />
                         {formatTime(item.timestamp)}
@@ -300,22 +322,57 @@ export function NotificationDropdown() {
             )}
           </div>
 
-          {/* Quick Footer Links */}
-          <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center text-[11px] font-bold">
-            <Link
-              href="/inventory"
-              onClick={() => setIsOpen(false)}
-              className="py-1.5 px-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-rose-700 border border-slate-200 dark:border-slate-700 transition-colors shadow-2xs"
-            >
-              Inventory Stock
-            </Link>
-            <Link
-              href="/invoices"
-              onClick={() => setIsOpen(false)}
-              className="py-1.5 px-2 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white transition-colors shadow-2xs"
-            >
-              All Invoices
-            </Link>
+          {/* Quick Footer Links: User Logs on Left of Inventory Stock */}
+          <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-center text-[11px] font-bold">
+            {userRole === "admin" || userRole === "super_admin" ? (
+              <div className="grid grid-cols-3 gap-1.5">
+                {/* 1. User Logs Button (Red background, History icon, Mobile icon-only) */}
+                <Link
+                  href="/user-logs"
+                  onClick={() => setIsOpen(false)}
+                  className="py-1.5 px-1 sm:px-2 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white flex items-center justify-center gap-1 font-bold shadow-2xs transition-colors truncate"
+                  title="User Activity Logs"
+                >
+                  <History className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline truncate">User Logs</span>
+                </Link>
+
+                {/* 2. Inventory Stock (Middle) */}
+                <Link
+                  href="/inventory"
+                  onClick={() => setIsOpen(false)}
+                  className="py-1.5 px-1 sm:px-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-rose-700 border border-slate-200 dark:border-slate-700 transition-colors shadow-2xs truncate"
+                >
+                  Inventory Stock
+                </Link>
+
+                {/* 3. All Invoices (Right) */}
+                <Link
+                  href="/invoices"
+                  onClick={() => setIsOpen(false)}
+                  className="py-1.5 px-1 sm:px-2 rounded-xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white transition-colors shadow-2xs truncate"
+                >
+                  All Invoices
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href="/inventory"
+                  onClick={() => setIsOpen(false)}
+                  className="py-1.5 px-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-rose-700 border border-slate-200 dark:border-slate-700 transition-colors shadow-2xs"
+                >
+                  Inventory Stock
+                </Link>
+                <Link
+                  href="/invoices"
+                  onClick={() => setIsOpen(false)}
+                  className="py-1.5 px-2 rounded-xl bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#7f1d1d] hover:to-[#b91c1c] text-white transition-colors shadow-2xs"
+                >
+                  All Invoices
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}

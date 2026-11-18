@@ -71,6 +71,25 @@ export default function ProfilePage() {
         if (data.data.img_url) {
           setAvatarPreview(data.data.img_url);
         }
+        try {
+          const uStr = localStorage.getItem("user");
+          if (uStr) {
+            const u = JSON.parse(uStr);
+            let changed = false;
+            if (data.data.name && u.name !== data.data.name) {
+              u.name = data.data.name;
+              changed = true;
+            }
+            if (data.data.img_url && u.img_url !== data.data.img_url) {
+              u.img_url = data.data.img_url;
+              changed = true;
+            }
+            if (changed) {
+              localStorage.setItem("user", JSON.stringify(u));
+              window.dispatchEvent(new Event("user-updated"));
+            }
+          }
+        } catch {}
       } else {
         setErrorMsg(data?.message || "Failed to load user profile");
       }
@@ -126,6 +145,7 @@ export default function ProfilePage() {
             u.img_url = data.img_url;
             localStorage.setItem("user", JSON.stringify(u));
           }
+          window.dispatchEvent(new Event("user-updated"));
         } catch {
           // ignore
         }
@@ -154,17 +174,17 @@ export default function ProfilePage() {
     e.preventDefault();
     setErrorMsg(null);
 
-    if (isStaff) {
-      setErrorMsg("Staff accounts cannot edit profile details. You can only change your profile photo.");
-      return;
-    }
-
     if (!fullName.trim() || !mobileNumber.trim()) {
       setErrorMsg("Full Name and Phone Number are required");
       return;
     }
 
-    if (newPassword) {
+    if (newPassword && !isSuperAdmin) {
+      setErrorMsg("Password change is restricted to Super Admin.");
+      return;
+    }
+
+    if (isSuperAdmin && newPassword) {
       if (newPassword.length < 4) {
         setErrorMsg("New password must be at least 4 characters long");
         return;
@@ -184,7 +204,7 @@ export default function ProfilePage() {
           name: fullName.trim(),
           mobile: mobileNumber.trim(),
           img_url: avatarPreview,
-          new_password: newPassword,
+          ...(isSuperAdmin && newPassword ? { new_password: newPassword } : {}),
         }),
       });
 
@@ -195,6 +215,17 @@ export default function ProfilePage() {
         setProfile(data.data);
         setNewPassword("");
         setConfirmPassword("");
+        try {
+          const uStr = localStorage.getItem("user");
+          if (uStr) {
+            const u = JSON.parse(uStr);
+            u.name = data.data.name;
+            u.mobile = data.data.mobile;
+            if (data.data.img_url) u.img_url = data.data.img_url;
+            localStorage.setItem("user", JSON.stringify(u));
+          }
+          window.dispatchEvent(new Event("user-updated"));
+        } catch {}
       } else {
         setErrorMsg(data?.message || "Failed to update profile");
       }
@@ -214,6 +245,11 @@ export default function ProfilePage() {
     );
   }
 
+  const isSuperAdmin =
+    profile?.role?.toLowerCase() === "super_admin" ||
+    (typeof window !== "undefined" &&
+      (localStorage.getItem("role") || "").toLowerCase() === "super_admin");
+
   const isStaff =
     profile?.role?.toLowerCase() === "staff" ||
     profile?.role?.toLowerCase() === "warehouse" ||
@@ -225,15 +261,15 @@ export default function ProfilePage() {
       ? "Super Administrator"
       : profile?.role === "admin"
         ? "Store Administrator"
-      : profile?.role === "manager"
-        ? "Store Manager"
-        : profile?.role === "staff" || profile?.role === "warehouse"
-          ? "Staff User"
-          : profile?.role === "cashier"
-            ? "Cashier / POS Operator"
-            : profile?.role === "accountant"
-              ? "Accountant"
-              : "Store User";
+        : profile?.role === "manager"
+          ? "Store Manager"
+          : profile?.role === "staff" || profile?.role === "warehouse"
+            ? "Staff User"
+            : profile?.role === "cashier"
+              ? "Cashier / POS Operator"
+              : profile?.role === "accountant"
+                ? "Accountant"
+                : "Store User";
 
   return (
     <div className="space-y-4 font-sans pb-8">
@@ -295,7 +331,7 @@ export default function ProfilePage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-r from-[#991b1b] to-[#dc2626] flex items-center justify-center text-white">
+                  <div className="w-full h-fullbg-gradient-to-r from-[#991b1b] to-[#dc2626] flex items-center justify-center text-white">
                     <span className="text-4xl font-black uppercase">
                       {profile?.name?.charAt(0) || "A"}
                     </span>
@@ -403,15 +439,10 @@ export default function ProfilePage() {
                     <input
                       type="text"
                       required
-                      disabled={isStaff}
-                      readOnly={isStaff}
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Enter full name"
-                      className={`w-full h-[42px] pl-10 pr-3.5 text-xs rounded-xl font-bold border transition-colors ${isStaff
-                        ? "bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-500 cursor-not-allowed"
-                        : "bg-slate-50 dark:bg-[#1e293b] border-[#cbd5e1] dark:border-[#334155] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                        }`}
+                      className="w-full h-[42px] pl-10 pr-3.5 text-xs rounded-xl font-bold border transition-colors bg-slate-50 dark:bg-[#1e293b] border-[#cbd5e1] dark:border-[#334155] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
                     />
                   </div>
                 </div>
@@ -425,15 +456,10 @@ export default function ProfilePage() {
                     <input
                       type="text"
                       required
-                      disabled={isStaff}
-                      readOnly={isStaff}
                       value={mobileNumber}
                       onChange={(e) => setMobileNumber(e.target.value)}
                       placeholder="017XXXXXXXX"
-                      className={`w-full h-[42px] pl-10 pr-3.5 text-xs rounded-xl font-mono font-bold border transition-colors ${isStaff
-                        ? "bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-500 cursor-not-allowed"
-                        : "bg-slate-50 dark:bg-[#1e293b] border-[#cbd5e1] dark:border-[#334155] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                        }`}
+                      className="w-full h-[42px] pl-10 pr-3.5 text-xs rounded-xl font-mono font-bold border transition-colors bg-slate-50 dark:bg-[#1e293b] border-[#cbd5e1] dark:border-[#334155] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
                     />
                   </div>
                 </div>
@@ -453,11 +479,7 @@ export default function ProfilePage() {
                   </div>
                   <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
                     <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>
-                      {isStaff
-                        ? "Name, mobile number, and email address can only be changed by system administrators."
-                        : "Email address is used for login identification and cannot be changed."}
-                    </span>
+                    <span>Email address is used for login identification and cannot be changed.</span>
                   </p>
                 </div>
               </div>
@@ -485,15 +507,15 @@ export default function ProfilePage() {
                       type={showNew ? "text" : "password"}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder={isStaff ? "Password change restricted for staff" : "Enter new password"}
-                      disabled={isStaff}
-                      readOnly={isStaff}
-                      className={`w-full h-[42px] pl-10 pr-10 text-xs rounded-xl font-medium border transition-colors ${isStaff
+                      placeholder={isSuperAdmin ? "Enter new password" : "Password change restricted to Super Admin"}
+                      disabled={!isSuperAdmin}
+                      readOnly={!isSuperAdmin}
+                      className={`w-full h-[42px] pl-10 pr-10 text-xs rounded-xl font-medium border transition-colors ${!isSuperAdmin
                         ? "bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed"
                         : "bg-slate-50 dark:bg-[#1e293b] border-[#cbd5e1] dark:border-[#334155] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
                         }`}
                     />
-                    {!isStaff && (
+                    {isSuperAdmin && (
                       <button
                         type="button"
                         onClick={() => setShowNew(!showNew)}
@@ -515,15 +537,15 @@ export default function ProfilePage() {
                       type={showConfirm ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder={isStaff ? "Password change restricted for staff" : "Confirm new password"}
-                      disabled={isStaff}
-                      readOnly={isStaff}
-                      className={`w-full h-[42px] pl-10 pr-10 text-xs rounded-xl font-medium border transition-colors ${isStaff
+                      placeholder={isSuperAdmin ? "Confirm new password" : "Password change restricted to Super Admin"}
+                      disabled={!isSuperAdmin}
+                      readOnly={!isSuperAdmin}
+                      className={`w-full h-[42px] pl-10 pr-10 text-xs rounded-xl font-medium border transition-colors ${!isSuperAdmin
                         ? "bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed"
                         : "bg-slate-50 dark:bg-[#1e293b] border-[#cbd5e1] dark:border-[#334155] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600"
                         }`}
                     />
-                    {!isStaff && (
+                    {isSuperAdmin && (
                       <button
                         type="button"
                         onClick={() => setShowConfirm(!showConfirm)}
@@ -535,11 +557,11 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {isStaff && (
+                {!isSuperAdmin && (
                   <div className="sm:col-span-2">
                     <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
                       <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span>Password management for staff accounts is maintained by administrators.</span>
+                      <span>Account passwords can only be changed by Super Admin.</span>
                     </p>
                   </div>
                 )}
@@ -547,38 +569,29 @@ export default function ProfilePage() {
             </div>
 
             {/* 3. Action Buttons matching MARSS Screenshot */}
-            {!isStaff ? (
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  disabled={saving}
-                  className="h-[42px] px-6 rounded-xl bg-[#dc2626] hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset</span>
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="h-[42px] px-6 rounded-xl bg-[#15803d] hover:bg-[#166534] text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-                >
-                  {saving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
-                  <span>Save Profile Changes</span>
-                </button>
-              </div>
-            ) : (
-              <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/50 text-xs font-semibold flex items-center gap-2">
-                <Info className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                <span>
-                  Staff accounts can only update their profile photo using the camera icon on the avatar. Profile information and password credentials can only be edited by administrators.
-                </span>
-              </div>
-            )}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={saving}
+                className="h-[42px] px-6 rounded-xl bg-[#dc2626] hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="h-[42px] px-6 rounded-xl bg-[#15803d] hover:bg-[#166534] text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+              >
+                {saving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                <span>Save Profile Changes</span>
+              </button>
+            </div>
           </form>
         </div>
       </div>

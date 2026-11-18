@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { getTilePcsPerBox } from "@/lib/tiles-calculator";
+import { logUserActivity } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -383,6 +384,17 @@ export async function POST(req: NextRequest) {
         return { totalReturnAmount };
       });
 
+      await logUserActivity({
+        req,
+        userId: user?.id || userId,
+        userName: user?.name || "System User",
+        userEmail: user?.email,
+        userRole: user?.role,
+        action: "CREATE",
+        module: "Purchases",
+        description: `Processed purchase return for "${purchase.purchase_id}" (Return Value: ৳ ${Number(result.totalReturnAmount).toLocaleString("en-BD")}).`,
+      });
+
       return NextResponse.json({
         status: "success",
         message: "Purchase return processed and stock deducted successfully!",
@@ -573,6 +585,17 @@ export async function POST(req: NextRequest) {
         }
 
         return { totalReturnAmount, totalDueToReduce };
+      });
+
+      await logUserActivity({
+        req,
+        userId: user?.id || userId,
+        userName: user?.name || "System User",
+        userEmail: user?.email,
+        userRole: user?.role,
+        action: "CREATE",
+        module: "POS / Sales",
+        description: `Processed sales return for invoice "${order.order_no}" (Return Value: ৳ ${Number(result.totalReturnAmount).toLocaleString("en-BD")}, Restored to stock).`,
       });
 
       return NextResponse.json({

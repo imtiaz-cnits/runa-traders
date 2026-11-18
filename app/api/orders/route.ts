@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { logUserActivity } from "@/lib/logger";
 import {
   getBangladeshDate,
   getProductCategoryMap,
@@ -211,6 +212,17 @@ export async function POST(req: NextRequest) {
         has_tiles: hasTiles,
         challan_status: initialChallanStatus,
       };
+    });
+
+    await logUserActivity({
+      req,
+      userId: user?.id || result.user_id,
+      userName: user?.name || "System User",
+      userEmail: user?.email,
+      userRole: user?.role,
+      action: "CREATE",
+      module: "POS / Sales",
+      description: `Created sale invoice "${result.order_no}" (Total: ৳ ${Number(result.sub_total || 0).toLocaleString("en-BD")}, Paid: ৳ ${Number(result.paid_amount || 0).toLocaleString("en-BD")}, Due: ৳ ${Number(result.due_amount || 0).toLocaleString("en-BD")}).`,
     });
 
     return NextResponse.json({

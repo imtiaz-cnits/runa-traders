@@ -25,16 +25,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { Pagination, DeleteConfirmModal } from "@/components/ui";
-import {
-  PERMISSION_MODULES,
-  ModuleDef,
-  getAllPermissionsObject,
-  ROLE_PRESETS,
-  ALL_SYSTEM_ROLES,
-  isSuperAdminRole,
-  isAdminOrSuperAdmin,
-  formatRoleLabel,
-} from "@/lib/permissions";
 
 interface UserItem {
   id: number;
@@ -48,12 +38,141 @@ interface UserItem {
   permissions?: Record<string, boolean> | null;
 }
 
+interface SubmenuDef {
+  key: string;
+  label: string;
+  desc: string;
+}
+
+interface ModuleDef {
+  key: string;
+  label: string;
+  desc: string;
+  submenus?: SubmenuDef[];
+}
+
+const PERMISSION_MODULES: ModuleDef[] = [
+  {
+    key: "dashboard",
+    label: "Dashboard (ড্যাশবোর্ড)",
+    desc: "Main dashboard overview & business metrics (মূল সার্বিক ড্যাশবোর্ড ওভারভিউ ও ব্যবসায়িক তথ্য)",
+  },
+  {
+    key: "sales",
+    label: "Sales Portal (বিক্রয় পোর্টাল)",
+    desc: "Product selection, cash sales & billing (পণ্য নির্বাচন, নগদ বিক্রয় ও দ্রুত ক্যাশ বিলিং)",
+    submenus: [
+      { key: "pos", label: "POS Terminal (পজ টার্মিনাল)", desc: "Counter billing & instant invoice (কাউন্টার বিলিং ও দ্রুত বিক্রয় রশিদ তৈরি)" },
+      { key: "invoices", label: "Invoice List (ইনভয়েস তালিকা)", desc: "Completed sales invoices & print (বিক্রিত চালানের পূর্ণাঙ্গ তালিকা ও প্রিন্ট)" },
+      { key: "challans", label: "Delivery Challans (চালান তালিকা)", desc: "Delivery challan dispatch & print (ডেলিভারি চালান তৈরি ও প্রিন্ট)" },
+      { key: "returns", label: "Sales Return (সেলস রিটার্ন)", desc: "Customer returned items adjustment (গ্রাহকের ফেরত আইটেম সমন্বয়)" },
+    ],
+  },
+  {
+    key: "products",
+    label: "Stock & Products (স্টক ও প্রডাক্ট)",
+    desc: "Tiles catalog, categories, brands & stock adjustments (টাইলস ক্যাটালগ, ক্যাটাগরি, ব্র্যান্ড ও স্টক সমন্বয়)",
+    submenus: [
+      { key: "inventory", label: "Stock Overview (স্টক ওভারভিউ)", desc: "Warehouse & showroom stock balance (গুদাম ও শো-রুমের বর্তমান স্টক ব্যালেন্স)" },
+      { key: "product_list", label: "Product List (পণ্য তালিকা)", desc: "All tiles & sanitary catalog info (সকল টাইলস ও স্যানিটারি সামগ্রীর তথ্য)" },
+      { key: "categories_brands", label: "Categories & Brands (ক্যাটাগরি ও ব্র্যান্ড)", desc: "Product classification & branding (পণ্য শ্রেণীবিন্যাস ও ব্র্যান্ডিং)" },
+      { key: "barcode_print", label: "Barcode Print (বারকোড প্রিন্ট)", desc: "Product & cartoon barcode label generator (পণ্য ও কার্টুন বারকোড লেবেল তৈরি)" },
+    ],
+  },
+  {
+    key: "purchases",
+    label: "Purchases & Suppliers (ক্রয় ও সরবরাহকারী)",
+    desc: "Goods inward, purchase orders & vendor bills (মাল ক্রয়, ইনওয়ার্ড ও মহাজন বিলিং)",
+    submenus: [
+      { key: "purchase_list", label: "Purchase List (ক্রয় তালিকা)", desc: "Inward purchases from suppliers (সরবরাহকারীর নিকট থেকে নতুন মাল ক্রয়)" },
+      { key: "suppliers", label: "Suppliers (সরবরাহকারী তালিকা)", desc: "Vendor & manufacturer profiles (মহাজন ও ডিলারদের পরিচিতি)" },
+      { key: "supplier_dues", label: "Supplier Due Pay (মহাজন বাকি পরিশোধ)", desc: "Supplier debt payments & ledger (সরবরাহকারীর দেনা পরিশোধ ও খাতা)" },
+      { key: "purchase_returns", label: "Purchase Returns (ক্রয় রিটার্ন)", desc: "Damaged/excess goods return to vendor (ত্রুটিপূর্ণ মাল মহাজনকে ফেরত)" },
+    ],
+  },
+  {
+    key: "customers",
+    label: "Customers & Dues (গ্রাহক ও বাকি খাতা)",
+    desc: "Customer database & accounts ledger (কাস্টমার ডাটাবেস ও লেজার সমন্বয়)",
+    submenus: [
+      { key: "customer_list", label: "Customer List (গ্রাহক তালিকা)", desc: "Retail & wholesale customer directory (খুচরা ও পাইকারী গ্রাহকদের ডাটাবেস)" },
+      { key: "customer_dues", label: "Customer Due (বাকি আদায় ও জমা)", desc: "Customer due collection & ledger (কাস্টমারের বকেয়া আদায় ও হিসাব খাতা)" },
+    ],
+  },
+  {
+    key: "expenses",
+    label: "Accounts & Expenses (হিসাব ও খরচ)",
+    desc: "Daily operational costs & staff payroll (দোকানের দৈনিক খরচ ও স্টাফ বেতন)",
+    submenus: [
+      { key: "daily_expenses", label: "Daily Expenses (দৈনিক খরচ)", desc: "Daily petty cash & overhead vouchers (দোকানের প্রাত্যহিক বিভিন্ন খরচের ভাউচার)" },
+      { key: "expense_types", label: "Expense Categories (খরচের খাত)", desc: "Office rent, utilities, entertainment categories (অফিস, ভাড়া, আপ্যায়ন ইত্যাদি খাত)" },
+      { key: "staff_payroll", label: "Staff & Payroll (স্টাফ ও বেতন)", desc: "Employee attendance & monthly salary ledger (কর্মচারী হাজিরা ও মাসিক বেতন খাতা)" },
+    ],
+  },
+  {
+    key: "reports",
+    label: "Reports & Analytics (রিপোর্ট ও বিবরণী)",
+    desc: "Financial analytics, ledger & stock reports (ব্যবসার সামগ্রিক হিসাব ও স্টক রিপোর্ট)",
+    submenus: [
+      { key: "report_sales", label: "Sales Report (সেলস রিপোর্ট)", desc: "Sales & collection statements (বিক্রয় ও আদায়কৃত টাকার স্টেটমেন্ট)" },
+      { key: "report_ledger", label: "Daily Ledger (দৈনিক লেজার)", desc: "Daily debit-credit cashbook ledger (প্রতিদিনের ডেবিট-ক্রেডিট হিসাব খাতা)" },
+      { key: "report_income_expense", label: "Income & Expense (আয়-ব্যয় বিবরণী)", desc: "Profit & loss financial statements (ব্যবসার লাভ-লোকসান ও আর্থিক চিত্র)" },
+      { key: "report_stock_out", label: "Stock-Out Report (স্টক-আউট রিপোর্ট)", desc: "Low stock & out of stock alerts (ঘাটতি ও কম স্টক পণ্য সতর্কতা)" },
+    ],
+  },
+  {
+    key: "users",
+    label: "User Roles & Permissions (ব্যবহারকারী ও রোল)",
+    desc: "System users & access control settings (সিস্টেম ব্যবহারকারী তৈরি ও পারমিশন নিয়ন্ত্রণ)",
+  },
+];
+
+// Helper to get all permission keys
+const ALL_PERMISSION_KEYS: string[] = [];
+PERMISSION_MODULES.forEach((m) => {
+  ALL_PERMISSION_KEYS.push(m.key);
+  if (m.submenus) {
+    m.submenus.forEach((s) => ALL_PERMISSION_KEYS.push(s.key));
+  }
+});
+
+const getAllPermissionsObject = (val: boolean): Record<string, boolean> => {
+  const obj: Record<string, boolean> = {};
+  ALL_PERMISSION_KEYS.forEach((k) => {
+    obj[k] = val;
+  });
+  return obj;
+};
+
+const ROLE_PRESETS: Record<string, Record<string, boolean>> = {
+  admin: getAllPermissionsObject(true),
+  manager: {
+    ...getAllPermissionsObject(true),
+    users: false,
+  },
+  staff: {
+    ...getAllPermissionsObject(false),
+    dashboard: true,
+    sales: true,
+    pos: true,
+    invoices: true,
+    challans: true,
+    returns: true,
+    products: true,
+    inventory: true,
+    product_list: true,
+    categories_brands: true,
+    barcode_print: true,
+    customers: true,
+    customer_list: true,
+    customer_dues: true,
+  },
+};
+
 export default function UsersPage() {
   const { toast } = useToast();
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUserRole, setCurrentUserRole] = useState<string>("admin");
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -62,6 +181,9 @@ export default function UsersPage() {
   const [submitting, setSubmitting] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   // Delete Confirm Modal State
   const [userToDelete, setUserToDelete] = useState<UserItem | null>(null);
@@ -97,50 +219,28 @@ export default function UsersPage() {
   useEffect(() => {
     try {
       const r = (localStorage.getItem("role") || "").toLowerCase();
-      if (r && !isAdminOrSuperAdmin(r)) {
+      if (r !== "super_admin") {
         window.location.replace("/profile");
         return;
       }
-      if (r) setCurrentUserRole(r);
+      setIsSuperAdmin(true);
       const uStr = localStorage.getItem("user");
       if (uStr) {
         const u = JSON.parse(uStr);
-        if (u?.id) setCurrentUserId(Number(u.id));
+        if (u.id) setCurrentUserId(Number(u.id));
+        if (u.email) setCurrentUserEmail(u.email);
       }
     } catch {}
-
-    // Refresh authoritative caller role/id from session
-    fetch("/api/auth/me")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((res) => {
-        if (res?.status === "success" && res.data) {
-          const meRole = String(res.data.role || "").toLowerCase();
-          try {
-            localStorage.setItem("role", res.data.role);
-          } catch {}
-          if (!isAdminOrSuperAdmin(meRole)) {
-            window.location.replace("/profile");
-            return;
-          }
-          setCurrentUserRole(meRole);
-          setCurrentUserId(Number(res.data.id));
-          loadUsers();
-        }
-      })
-      .catch(() => {});
+    loadUsers();
   }, []);
 
-  const isCallerSuperAdmin = isSuperAdminRole(currentUserRole);
-
-  const canEditUserRow = (user: UserItem) => {
-    return isCallerSuperAdmin || !isAdminOrSuperAdmin(user.role);
-  };
-
-  const canDeleteUserRow = (user: UserItem) => {
-    if (user.id === 1 || (currentUserId !== null && user.id === currentUserId)) {
-      return false;
-    }
-    return isCallerSuperAdmin || !isAdminOrSuperAdmin(user.role);
+  const isUserProtected = (user: UserItem) => {
+    // Primary super admin developer account cannot be deleted
+    if (user.id === 4 || user.email === "dev@runatraders.com") return true;
+    // Current user cannot delete themselves while logged in
+    if (currentUserId && user.id === currentUserId) return true;
+    if (currentUserEmail && user.email === currentUserEmail) return true;
+    return false;
   };
 
   const resetForm = () => {
@@ -164,26 +264,24 @@ export default function UsersPage() {
   };
 
   const handleOpenEdit = (user: UserItem) => {
-    if (!canEditUserRow(user)) {
-      toast.error("Only Super Admin can edit Admin or Super Admin accounts!");
-      return;
-    }
     setSelectedUser(user);
     setError("");
-    const roleLower = user.role.toLowerCase();
-    const roleKey = (ALL_SYSTEM_ROLES as readonly string[]).includes(roleLower)
-      ? roleLower
+    const isSuper = user.role.toLowerCase() === "super_admin";
+    const roleKey = isSuper
+      ? "admin"
+      : ["admin", "manager", "staff"].includes(user.role.toLowerCase())
+      ? user.role.toLowerCase()
       : "staff";
     setFormData({
       name: user.name,
       email: user.email || "",
       mobile: user.mobile,
       password: "",
-      role: roleKey,
+      role: isSuper ? "super_admin" : roleKey,
       status: user.status,
       img_url: user.img_url || "",
       permissions: user.permissions
-        ? { ...ROLE_PRESETS[roleKey], ...user.permissions }
+        ? { ...(ROLE_PRESETS[roleKey] || ROLE_PRESETS.admin), ...user.permissions }
         : { ...(ROLE_PRESETS[roleKey] || ROLE_PRESETS.staff) },
     });
     setModalOpen(true);
@@ -250,6 +348,9 @@ export default function UsersPage() {
       setUploadingAvatar(true);
       const fd = new FormData();
       fd.append("avatar", file);
+      if (selectedUser?.id) {
+        fd.append("userId", String(selectedUser.id));
+      }
       const res = await fetch("/api/users/profile/avatar", {
         method: "POST",
         body: fd,
@@ -257,6 +358,17 @@ export default function UsersPage() {
       const data = await res.json().catch(() => null);
       if (res.ok && data?.img_url) {
         setFormData((prev) => ({ ...prev, img_url: data.img_url }));
+        if (selectedUser && selectedUser.id === currentUserId) {
+          try {
+            const uStr = localStorage.getItem("user");
+            if (uStr) {
+              const u = JSON.parse(uStr);
+              u.img_url = data.img_url;
+              localStorage.setItem("user", JSON.stringify(u));
+            }
+            window.dispatchEvent(new Event("user-updated"));
+          } catch {}
+        }
         toast.success("User avatar photo uploaded!");
       } else {
         toast.error(data?.message || "Failed to upload avatar");
@@ -269,12 +381,12 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = (user: UserItem) => {
-    if (user.id === 1 || (currentUserId !== null && user.id === currentUserId)) {
-      toast.error("Primary account or currently logged-in account cannot be deleted!");
+    if (user.id === 4 || user.email === "dev@runatraders.com") {
+      toast.error("Super Admin developer account cannot be deleted!");
       return;
     }
-    if (!isCallerSuperAdmin && isAdminOrSuperAdmin(user.role)) {
-      toast.error("Only Super Admin can delete Admin or Super Admin accounts!");
+    if ((currentUserId && user.id === currentUserId) || (currentUserEmail && user.email === currentUserEmail)) {
+      toast.error("You cannot delete your own logged-in account!");
       return;
     }
     setDeleteError(null);
@@ -327,6 +439,18 @@ export default function UsersPage() {
 
       setModalOpen(false);
       toast.success(selectedUser ? "User updated successfully!" : "User created successfully!");
+      if (selectedUser && selectedUser.id === currentUserId) {
+        try {
+          const uStr = localStorage.getItem("user");
+          if (uStr) {
+            const u = JSON.parse(uStr);
+            u.name = formData.name;
+            if (formData.img_url) u.img_url = formData.img_url;
+            localStorage.setItem("user", JSON.stringify(u));
+          }
+          window.dispatchEvent(new Event("user-updated"));
+        } catch {}
+      }
       resetForm();
       setCurrentPage(1);
       loadUsers();
@@ -339,9 +463,9 @@ export default function UsersPage() {
 
   // Dynamic KPI Stats calculated from actual DB records
   const totalUsers = users.length;
-  const superAdminCount = users.filter((u) => isSuperAdminRole(u.role)).length;
-  const adminOnlyCount = users.filter((u) => u.role.toLowerCase() === "admin").length;
-  const adminCount = superAdminCount + adminOnlyCount;
+  const adminCount = users.filter(
+    (u) => u.role.toLowerCase() === "admin" || u.role.toLowerCase() === "super_admin"
+  ).length;
   const managerCount = users.filter(
     (u) => u.role.toLowerCase() === "manager"
   ).length;
@@ -358,8 +482,7 @@ export default function UsersPage() {
       u.name.toLowerCase().includes(q) ||
       (u.email && u.email.toLowerCase().includes(q)) ||
       u.mobile.toLowerCase().includes(q) ||
-      u.role.toLowerCase().includes(q) ||
-      formatRoleLabel(u.role).toLowerCase().includes(q)
+      u.role.toLowerCase().includes(q)
     );
   });
 
@@ -369,7 +492,7 @@ export default function UsersPage() {
   const getRoleBadge = (role: string) => {
     switch (role.toLowerCase()) {
       case "super_admin":
-        return "bg-gradient-to-r from-amber-500 to-rose-600 text-white border-amber-400/50 shadow-2xs";
+        return "bg-gradient-to-r from-amber-500 to-rose-500 text-white border-transparent shadow-2xs";
       case "admin":
         return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900";
       case "manager":
@@ -474,6 +597,14 @@ export default function UsersPage() {
     );
   };
 
+  if (!isSuperAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 font-sans">
       {/* 1. Page Header matching MARSS CORPORATION Layout */}
@@ -492,14 +623,16 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* Action Button */}
-        <button
-          onClick={handleOpenAdd}
-          className="h-[38px] px-4 rounded-xl bg-[#15803d] hover:bg-[#166534] text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New User</span>
-        </button>
+        {/* Action Button: Strictly Super Admin Only */}
+        {isSuperAdmin && (
+          <button
+            onClick={handleOpenAdd}
+            className="h-[38px] px-4 rounded-xl bg-[#15803d] hover:bg-[#166534] text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer self-start sm:self-auto"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New User</span>
+          </button>
+        )}
       </div>
 
       {/* 2. Metrics Summary Cards matching MARSS CORPORATION Screenshot 1 */}
@@ -523,20 +656,15 @@ export default function UsersPage() {
         <div className="p-4 rounded-2xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-900/40 shadow-xs hover:-translate-y-0.5 transition-transform">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-sky-800 dark:text-sky-400">
-              SUPER ADMIN / ADMIN
+              ADMIN / SUPER ADMIN
             </span>
             <div className="w-9 h-9 rounded-xl bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-300 flex items-center justify-center">
               <Crown className="w-4 h-4" />
             </div>
           </div>
-          <div className="flex items-baseline justify-between gap-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-sky-700 dark:text-sky-300 m-0">
-              {adminCount}
-            </h2>
-            <span className="text-[10px] font-semibold text-sky-700/80 dark:text-sky-400">
-              {superAdminCount} Super &bull; {adminOnlyCount} Admin
-            </span>
-          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-sky-700 dark:text-sky-300 m-0">
+            {adminCount}
+          </h2>
         </div>
 
         {/* Manager */}
@@ -666,20 +794,20 @@ export default function UsersPage() {
                           user.role
                         )}`}
                       >
-                        {isSuperAdminRole(user.role) ? (
+                        {user.role.toLowerCase() === "super_admin" ? (
                           <>
-                            <Crown className="w-3.5 h-3.5 text-amber-100" />
+                            <Crown className="w-3.5 h-3.5 text-white" />
                             <span>Super Admin</span>
                           </>
                         ) : user.role.toLowerCase() === "admin" ? (
                           <>
-                            <Shield className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                            <Shield className="w-3.5 h-3.5 text-rose-600" />
                             <span>Admin</span>
                           </>
                         ) : (
                           <>
                             <User className="w-3.5 h-3.5 text-slate-500" />
-                            <span>{formatRoleLabel(user.role)}</span>
+                            <span className="capitalize">{user.role}</span>
                           </>
                         )}
                       </span>
@@ -699,45 +827,34 @@ export default function UsersPage() {
                     </td>
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
-                        {canEditUserRow(user) ? (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEdit(user)}
-                            className="w-7 h-7 rounded-lg border-[1.5px] border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition-colors cursor-pointer"
-                            title="Edit User & Permissions"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                        ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(user)}
+                          className="w-7 h-7 rounded-lg border-[1.5px] border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Edit User & Permissions"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        {isUserProtected(user) ? (
                           <button
                             type="button"
                             disabled
                             className="w-7 h-7 rounded-lg border-[1.5px] border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-300 dark:text-slate-600 flex items-center justify-center cursor-not-allowed"
-                            title="Only Super Admin can edit Admin or Super Admin accounts"
-                          >
-                            <Lock className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-
-                        {canDeleteUserRow(user) ? (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteUser(user)}
-                            className="w-7 h-7 rounded-lg border-[1.5px] border-rose-200 dark:border-rose-900/60 bg-rose-50/60 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
-                            title="Delete User"
+                            title={
+                              user.id === 4 || user.email === "dev@runatraders.com"
+                                ? "Super Admin cannot be deleted"
+                                : "Currently logged-in account cannot be deleted"
+                            }
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         ) : (
                           <button
                             type="button"
-                            disabled
-                            className="w-7 h-7 rounded-lg border-[1.5px] border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-300 dark:text-slate-600 flex items-center justify-center cursor-not-allowed"
-                            title={
-                              user.id === 1 || user.id === currentUserId
-                                ? "Protected account cannot be deleted"
-                                : "Only Super Admin can delete Admin or Super Admin accounts"
-                            }
+                            onClick={() => handleDeleteUser(user)}
+                            className="w-7 h-7 rounded-lg border-[1.5px] border-rose-200 dark:border-rose-900/60 bg-rose-50/60 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
+                            title="Delete User"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -777,12 +894,15 @@ export default function UsersPage() {
                   </div>
                 </div>
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getRoleBadge(
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getRoleBadge(
                     user.role
                   )}`}
                 >
-                  {isSuperAdminRole(user.role) && <Crown className="w-3 h-3 text-amber-100" />}
-                  <span>{formatRoleLabel(user.role)}</span>
+                  {user.role.toLowerCase() === "super_admin"
+                    ? "Super Admin"
+                    : user.role.toLowerCase() === "admin"
+                    ? "Admin"
+                    : user.role}
                 </span>
               </div>
 
@@ -792,24 +912,18 @@ export default function UsersPage() {
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-1">
-                {canEditUserRow(user) ? (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEdit(user)}
-                    className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold cursor-pointer"
-                  >
-                    Edit
-                  </button>
-                ) : (
-                  <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 text-[11px] font-semibold">
-                    Super Admin Protected
-                  </span>
-                )}
-                {canDeleteUserRow(user) && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenEdit(user)}
+                  className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold"
+                >
+                  Edit
+                </button>
+                {!isUserProtected(user) && (
                   <button
                     type="button"
                     onClick={() => handleDeleteUser(user)}
-                    className="px-3 py-1 rounded-lg bg-rose-50 text-rose-700 text-xs font-bold cursor-pointer"
+                    className="px-3 py-1 rounded-lg bg-rose-50 text-rose-700 text-xs font-bold"
                   >
                     Delete
                   </button>
@@ -844,10 +958,10 @@ export default function UsersPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-slate-200 dark:border-slate-800">
             <span className="font-bold text-rose-700 dark:text-rose-400 block mb-1">
-              👑 Super Admin & Admin
+              👑 Admin / Super Admin
             </span>
             <p className="text-[11px] text-slate-500 m-0 leading-relaxed">
-              Super Admin manages Admin/Super Admin roles & hierarchy; Admin oversees store modules.
+              Full access: POS, Inventory, Purchases, Customers, Expenses, Reports & Users.
             </p>
           </div>
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#1e293b] border border-slate-200 dark:border-slate-800">
@@ -974,7 +1088,7 @@ export default function UsersPage() {
                   />
                 </div>
 
-                {/* Left: System Role */}
+                {/* Left: System Role (Strictly 3 options: Admin, Manager, Staff) */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                     System Role (পদবী / রোল) <span className="text-red-500">*</span>
@@ -982,12 +1096,13 @@ export default function UsersPage() {
                   <select
                     value={formData.role}
                     onChange={(e) => handleRoleChange(e.target.value)}
-                    className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    disabled={selectedUser?.email === "dev@runatraders.com"}
+                    className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-75 disabled:cursor-not-allowed"
                   >
-                    {isCallerSuperAdmin && (
+                    {formData.role === "super_admin" && (
                       <option value="super_admin">👑 Super Admin (সুপার অ্যাডমিন)</option>
                     )}
-                    <option value="admin">🛡️ Admin (অ্যাডমিন)</option>
+                    <option value="admin">👑 Admin (অ্যাডমিন)</option>
                     <option value="manager">🧑‍💼 Manager (ম্যানেজার)</option>
                     <option value="staff">👤 Staff (স্টাফ)</option>
                   </select>

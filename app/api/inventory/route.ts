@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { logUserActivity } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -221,6 +222,17 @@ export async function POST(req: NextRequest) {
       data: {
         quantity: String(new_quantity),
       },
+    });
+
+    await logUserActivity({
+      req,
+      userId: user?.id,
+      userName: user?.name || "System User",
+      userEmail: user?.email,
+      userRole: user?.role,
+      action: "STOCK_ADJUST",
+      module: "Inventory",
+      description: `Stock adjusted for "${updated.product_name}" to ${new_quantity} units (Reason: ${reason || "Physical Adjustment"}).`,
     });
 
     return NextResponse.json({
