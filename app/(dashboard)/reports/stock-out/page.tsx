@@ -131,7 +131,7 @@ export default function StockOutReportPage() {
         <div className="text-right text-[10px] text-black leading-tight shrink-0 max-w-[220px]">
           <div><strong>Office:</strong> Success Super Market,</div>
           <div>Sadar Police Fari, Ataikula Road, Pabna.</div>
-          <div><strong>Mobile:</strong> 01975-703216, 01715-842083</div>
+          <div><strong>Mobile:</strong> 01711-968720</div>
           <div><strong>E-mail:</strong> runatraders2018@gmail.com</div>
         </div>
       </div>
@@ -245,13 +245,12 @@ export default function StockOutReportPage() {
                     #{idx + 1}
                   </span>
                   <span
-                    className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
-                      fm.current_stock <= 0
+                    className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${fm.current_stock <= 0
                         ? "bg-rose-100 text-rose-700"
                         : fm.current_stock <= 5
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-emerald-100 text-emerald-700"
-                    }`}
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-emerald-100 text-emerald-700"
+                      }`}
                   >
                     Stock: {fm.current_stock}
                   </span>
@@ -277,11 +276,10 @@ export default function StockOutReportPage() {
               setActiveTab("critical");
               setCurrentPage(1);
             }}
-            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-              activeTab === "critical"
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activeTab === "critical"
                 ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                 : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
-            }`}
+              }`}
           >
             All Critical ({criticalCount})
           </button>
@@ -290,11 +288,10 @@ export default function StockOutReportPage() {
               setActiveTab("out_of_stock");
               setCurrentPage(1);
             }}
-            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-              activeTab === "out_of_stock"
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activeTab === "out_of_stock"
                 ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                 : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
-            }`}
+              }`}
           >
             Out of Stock ({outOfStockCount})
           </button>
@@ -303,11 +300,10 @@ export default function StockOutReportPage() {
               setActiveTab("low_stock");
               setCurrentPage(1);
             }}
-            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-              activeTab === "low_stock"
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activeTab === "low_stock"
                 ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                 : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
-            }`}
+              }`}
           >
             Low Stock ({lowStockCount})
           </button>
@@ -316,11 +312,10 @@ export default function StockOutReportPage() {
               setActiveTab("all");
               setCurrentPage(1);
             }}
-            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-              activeTab === "all"
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activeTab === "all"
                 ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                 : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
-            }`}
+              }`}
           >
             All Catalog ({allCatalogCount})
           </button>
@@ -415,8 +410,8 @@ export default function StockOutReportPage() {
                           p.stock <= 0
                             ? "text-rose-600"
                             : p.stock <= 5
-                            ? "text-amber-600"
-                            : "text-emerald-600"
+                              ? "text-amber-600"
+                              : "text-emerald-600"
                         }
                       >
                         {p.stock} {p.unit}
@@ -424,19 +419,18 @@ export default function StockOutReportPage() {
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                          p.status === "out_of_stock"
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${p.status === "out_of_stock"
                             ? "bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800"
                             : p.status === "low_stock"
-                            ? "bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
-                            : "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
-                        }`}
+                              ? "bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                              : "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                          }`}
                       >
                         {p.status === "out_of_stock"
                           ? "Out of Stock"
                           : p.status === "low_stock"
-                          ? "Low Stock"
-                          : "Healthy"}
+                            ? "Low Stock"
+                            : "Healthy"}
                       </span>
                     </td>
                   </tr>
@@ -479,13 +473,12 @@ export default function StockOutReportPage() {
                 </p>
               </div>
               <span
-                className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
-                  p.status === "out_of_stock"
+                className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${p.status === "out_of_stock"
                     ? "bg-rose-100 text-rose-700"
                     : p.status === "low_stock"
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-emerald-100 text-emerald-700"
-                }`}
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-emerald-100 text-emerald-700"
+                  }`}
               >
                 {p.status.replace("_", " ")}
               </span>
@@ -499,8 +492,8 @@ export default function StockOutReportPage() {
                     p.stock <= 0
                       ? "text-rose-600 font-black"
                       : p.stock <= 5
-                      ? "text-amber-600 font-black"
-                      : "text-emerald-600 font-black"
+                        ? "text-amber-600 font-black"
+                        : "text-emerald-600 font-black"
                   }
                 >
                   {p.stock} {p.unit}

@@ -217,7 +217,7 @@ export default function PurchaseBillPage({
             <div className="text-center sm:text-right print:text-right text-[11px] text-slate-800 leading-tight max-w-[240px]">
               <div><strong>Office:</strong> Success Super Market,</div>
               <div>Sadar Police Fari, Ataikula Road, Pabna.</div>
-              <div><strong>Mobile:</strong> 01975-703216, 01715-842083</div>
+              <div><strong>Mobile:</strong> 01711-968720</div>
               <div><strong>E-mail:</strong> runatraders2018@gmail.com</div>
             </div>
           </div>

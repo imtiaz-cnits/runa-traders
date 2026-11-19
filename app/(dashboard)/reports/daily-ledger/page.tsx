@@ -165,7 +165,7 @@ export default function DailyLedgerPage() {
         <div className="text-right text-[10px] text-black leading-tight shrink-0 max-w-[220px]">
           <div><strong>Office:</strong> Success Super Market,</div>
           <div>Sadar Police Fari, Ataikula Road, Pabna.</div>
-          <div><strong>Mobile:</strong> 01975-703216, 01715-842083</div>
+          <div><strong>Mobile:</strong> 01711-968720</div>
           <div><strong>E-mail:</strong> runatraders2018@gmail.com</div>
         </div>
       </div>
@@ -294,41 +294,37 @@ export default function DailyLedgerPage() {
           <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-thin pb-1 sm:pb-0 w-full sm:w-auto shrink-0">
             <button
               onClick={() => setPreset("today")}
-              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-                activePreset === "today"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "today"
                   ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                   : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-              }`}
+                }`}
             >
               Today
             </button>
             <button
               onClick={() => setPreset("yesterday")}
-              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-                activePreset === "yesterday"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "yesterday"
                   ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                   : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-              }`}
+                }`}
             >
               Yesterday
             </button>
             <button
               onClick={() => setPreset("7days")}
-              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-                activePreset === "7days"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "7days"
                   ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                   : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-              }`}
+                }`}
             >
               7 Days
             </button>
             <button
               onClick={() => setPreset("month")}
-              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-                activePreset === "month"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "month"
                   ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                   : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-              }`}
+                }`}
             >
               This Month
             </button>
@@ -440,11 +436,10 @@ export default function DailyLedgerPage() {
             <div className="flex items-start justify-between">
               <div>
                 <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                    tx.type === "inflow"
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === "inflow"
                       ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
                       : "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
-                  }`}
+                    }`}
                 >
                   {tx.category}
                 </span>
@@ -453,9 +448,8 @@ export default function DailyLedgerPage() {
                 </p>
               </div>
               <span
-                className={`text-xs font-black ${
-                  tx.type === "inflow" ? "text-emerald-600" : "text-rose-600"
-                }`}
+                className={`text-xs font-black ${tx.type === "inflow" ? "text-emerald-600" : "text-rose-600"
+                  }`}
               >
                 {tx.type === "inflow"
                   ? `+${formatBdCurrency(tx.inflow)}`

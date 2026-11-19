@@ -1032,10 +1032,10 @@ function PurchaseReturnsManagementContent() {
                               <tr
                                 key={item.detail_id}
                                 className={`transition-colors ${!isEligible
-                                    ? "opacity-50 bg-slate-50 dark:bg-slate-900/40 cursor-not-allowed"
-                                    : isSelected
-                                      ? "bg-rose-50/60 dark:bg-rose-950/30"
-                                      : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                  ? "opacity-50 bg-slate-50 dark:bg-slate-900/40 cursor-not-allowed"
+                                  : isSelected
+                                    ? "bg-rose-50/60 dark:bg-rose-950/30"
+                                    : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                   }`}
                               >
                                 <td className="p-2.5 text-center">
@@ -1133,10 +1133,10 @@ function PurchaseReturnsManagementContent() {
                           <div
                             key={`mob-pr-${item.detail_id}`}
                             className={`p-2.5 rounded-xl border transition-all space-y-1.5 ${!isEligible
-                                ? "opacity-50 bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800"
-                                : isSelected
-                                  ? "bg-rose-50/60 dark:bg-rose-950/30 border-rose-300 dark:border-rose-900/60 shadow-2xs"
-                                  : "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 shadow-2xs"
+                              ? "opacity-50 bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800"
+                              : isSelected
+                                ? "bg-rose-50/60 dark:bg-rose-950/30 border-rose-300 dark:border-rose-900/60 shadow-2xs"
+                                : "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 shadow-2xs"
                               }`}
                           >
                             {/* Row 1: Checkbox + Name + Badges */}
@@ -1671,7 +1671,7 @@ function PurchaseReturnsManagementContent() {
                   <div className="text-center sm:text-right print:text-right text-[11px] text-black leading-tight max-w-[240px]">
                     <div><strong>Office:</strong> Success Super Market,</div>
                     <div>Sadar Police Fari, Ataikula Road, Pabna.</div>
-                    <div><strong>Mobile:</strong> 01975-703216, 01715-842083</div>
+                    <div><strong>Mobile:</strong> 01711-968720</div>
                     <div><strong>E-mail:</strong> runatraders2018@gmail.com</div>
                   </div>
                 </div>
