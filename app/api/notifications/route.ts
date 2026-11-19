@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import {
+  TOP_SUPER_ADMIN_EMAIL,
+  buildHiddenTopAdminLogConditions,
+  isAdminOrSuperAdmin,
+  isTopSuperAdmin,
+} from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +24,24 @@ export interface NotificationItem {
 export async function GET(req: NextRequest) {
   try {
     const authUser = await getAuthUser(req);
+    const callerIsTopAdmin = isTopSuperAdmin(authUser);
     const isAdminOrSuper =
-      authUser?.role === "admin" || authUser?.role === "super_admin";
+      callerIsTopAdmin || isAdminOrSuperAdmin(authUser?.role);
+
+    let recentLogsWhere: any = undefined;
+    if (isAdminOrSuper && !callerIsTopAdmin) {
+      const hiddenTopAdmins = await prisma.users.findMany({
+        where: {
+          OR: [
+            { email: TOP_SUPER_ADMIN_EMAIL },
+            { role: "super_admin" },
+          ],
+        },
+        select: { id: true },
+      });
+      const hiddenIds = hiddenTopAdmins.map((u) => u.id);
+      recentLogsWhere = { AND: buildHiddenTopAdminLogConditions(hiddenIds) };
+    }
 
     const [allProducts, recentDueOrders, recentSales, recentLogs] = await Promise.all([
       // Products with low or zero stock
@@ -59,9 +81,10 @@ export async function GET(req: NextRequest) {
         },
       }),
 
-      // Recent user activity logs (only visible to admin and super_admin)
+      // Recent user activity logs (only visible to admin and super_admin; top-level super admin hidden from others)
       isAdminOrSuper
         ? prisma.user_logs.findMany({
+            ...(recentLogsWhere ? { where: recentLogsWhere } : {}),
             take: 8,
             orderBy: { id: "desc" },
           })

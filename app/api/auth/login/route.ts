@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyPassword, signToken, TOKEN_MAX_AGE_SECONDS } from "@/lib/auth";
 import { logUserActivity } from "@/lib/logger";
+import { getAllPermissionsObject, isTopSuperAdminEmail } from "@/lib/permissions";
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,7 +29,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (user.status !== "approved") {
+    const isTopAdmin = isTopSuperAdminEmail(user.email);
+
+    if (!isTopAdmin && user.status !== "approved") {
       return NextResponse.json(
         { status: "fail", message: "Your account is pending or disabled" },
         { status: 403 }
@@ -43,14 +46,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const effectiveRole = isTopAdmin ? "super_admin" : user.role;
+
     const token = signToken({
       userId: Number(user.id),
       email: user.email,
       name: user.name,
-      role: user.role,
+      role: effectiveRole,
     });
 
-    const permissions = user.permissions ? JSON.parse(user.permissions) : null;
+    const permissions = isTopAdmin
+      ? getAllPermissionsObject(true)
+      : user.permissions
+        ? JSON.parse(user.permissions)
+        : null;
 
     // Log User Login Activity
     await logUserActivity({
@@ -58,23 +67,23 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       userName: user.name,
       userEmail: user.email,
-      userRole: user.role,
+      userRole: effectiveRole,
       action: "LOGIN",
       module: "Auth",
-      description: `User "${user.name}" (${user.role}) logged into the system.`,
+      description: `User "${user.name}" (${effectiveRole}) logged into the system.`,
     });
 
     const response = NextResponse.json({
       status: "success",
       message: "Login Successful",
       token,
-      role: user.role,
+      role: effectiveRole,
       user: {
         id: Number(user.id),
         name: user.name,
         email: user.email,
         mobile: user.mobile,
-        role: user.role,
+        role: effectiveRole,
         img_url: user.img_url,
       },
       permissions,

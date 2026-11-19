@@ -145,8 +145,73 @@ export function getRolePresetPermissions(role: string): Record<string, boolean> 
   return { ...(ROLE_PRESETS[normalized] || ROLE_PRESETS.staff) };
 }
 
+export const TOP_SUPER_ADMIN_EMAIL = "dev@runatraders.com";
+
+export const STAFF_EXCLUDED_EMAILS = [
+  TOP_SUPER_ADMIN_EMAIL,
+  "admin2@runatraders.com",
+  "warehouse@runatraders.com",
+] as const;
+
+export function normalizeEmail(email?: string | null): string {
+  return (email || "").trim().toLowerCase();
+}
+
+export function isTopSuperAdminEmail(email?: string | null): boolean {
+  return normalizeEmail(email) === TOP_SUPER_ADMIN_EMAIL;
+}
+
+export function isTopSuperAdmin(
+  user?: { email?: string | null; role?: string | null } | null
+): boolean {
+  return isTopSuperAdminEmail(user?.email);
+}
+
 export function isSuperAdminRole(role?: string | null): boolean {
   return (role || "").toLowerCase() === "super_admin";
+}
+
+export function isStaffExcludedUser(
+  user?: { email?: string | null; role?: string | null } | null
+): boolean {
+  if (!user) return false;
+  const email = normalizeEmail(user.email);
+  if (email && (STAFF_EXCLUDED_EMAILS as readonly string[]).includes(email)) {
+    return true;
+  }
+  return isSuperAdminRole(user.role);
+}
+
+/**
+ * Prisma AND conditions to completely hide top-level super admin activity logs
+ * from non-top-level users while preserving normal logs that have NULL email/user_id.
+ */
+export function buildHiddenTopAdminLogConditions(hiddenUserIds: bigint[] = []) {
+  const conditions: Record<string, unknown>[] = [
+    {
+      OR: [
+        { user_email: null },
+        { NOT: { user_email: TOP_SUPER_ADMIN_EMAIL } },
+      ],
+    },
+    {
+      NOT: { user_role: "super_admin" },
+    },
+    {
+      NOT: { description: { contains: TOP_SUPER_ADMIN_EMAIL } },
+    },
+  ];
+
+  if (hiddenUserIds.length > 0) {
+    conditions.push({
+      OR: [
+        { user_id: null },
+        { user_id: { notIn: hiddenUserIds } },
+      ],
+    });
+  }
+
+  return conditions;
 }
 
 export function isAdminOrSuperAdmin(role?: string | null): boolean {

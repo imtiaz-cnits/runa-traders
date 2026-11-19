@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { Pagination, DeleteConfirmModal } from "@/components/ui";
+import { isTopSuperAdmin, isTopSuperAdminEmail } from "@/lib/permissions";
 
 interface UserItem {
   id: number;
@@ -219,14 +220,14 @@ export default function UsersPage() {
   useEffect(() => {
     try {
       const r = (localStorage.getItem("role") || "").toLowerCase();
-      if (r !== "super_admin") {
+      const uStr = localStorage.getItem("user");
+      const u = uStr ? JSON.parse(uStr) : null;
+      if (r !== "super_admin" && !isTopSuperAdminEmail(u?.email)) {
         window.location.replace("/profile");
         return;
       }
       setIsSuperAdmin(true);
-      const uStr = localStorage.getItem("user");
-      if (uStr) {
-        const u = JSON.parse(uStr);
+      if (u) {
         if (u.id) setCurrentUserId(Number(u.id));
         if (u.email) setCurrentUserEmail(u.email);
       }
@@ -236,7 +237,7 @@ export default function UsersPage() {
 
   const isUserProtected = (user: UserItem) => {
     // Primary super admin developer account cannot be deleted
-    if (user.id === 4 || user.email === "dev@runatraders.com") return true;
+    if (isTopSuperAdmin(user)) return true;
     // Current user cannot delete themselves while logged in
     if (currentUserId && user.id === currentUserId) return true;
     if (currentUserEmail && user.email === currentUserEmail) return true;
@@ -381,7 +382,7 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = (user: UserItem) => {
-    if (user.id === 4 || user.email === "dev@runatraders.com") {
+    if (isTopSuperAdmin(user)) {
       toast.error("Super Admin developer account cannot be deleted!");
       return;
     }
@@ -842,7 +843,7 @@ export default function UsersPage() {
                             disabled
                             className="w-7 h-7 rounded-lg border-[1.5px] border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-300 dark:text-slate-600 flex items-center justify-center cursor-not-allowed"
                             title={
-                              user.id === 4 || user.email === "dev@runatraders.com"
+                              isTopSuperAdmin(user)
                                 ? "Super Admin cannot be deleted"
                                 : "Currently logged-in account cannot be deleted"
                             }
@@ -1063,8 +1064,9 @@ export default function UsersPage() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    disabled={isTopSuperAdmin(selectedUser)}
                     placeholder="admin@gmail.com"
-                    className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-75 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -1096,7 +1098,7 @@ export default function UsersPage() {
                   <select
                     value={formData.role}
                     onChange={(e) => handleRoleChange(e.target.value)}
-                    disabled={selectedUser?.email === "dev@runatraders.com"}
+                    disabled={isTopSuperAdmin(selectedUser)}
                     className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-75 disabled:cursor-not-allowed"
                   >
                     {formData.role === "super_admin" && (
@@ -1116,7 +1118,8 @@ export default function UsersPage() {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    disabled={isTopSuperAdmin(selectedUser)}
+                    className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-75 disabled:cursor-not-allowed"
                   >
                     <option value="approved">Approved / Active (সক্রিয়)</option>
                     <option value="pending">Pending Approval (পেন্ডিং)</option>

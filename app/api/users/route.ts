@@ -2,14 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser, hashPassword } from "@/lib/auth";
 import { logUserActivity } from "@/lib/logger";
+import {
+  getAllPermissionsObject,
+  isSuperAdminRole,
+  isTopSuperAdmin,
+  isTopSuperAdminEmail,
+} from "@/lib/permissions";
 
 // GET: All Users (Ordered descending by ID as per PROJECT_RULES - Strictly Super Admin Only)
 export async function GET(req: NextRequest) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || authUser.role !== "super_admin") {
+    if (!authUser || (!isSuperAdminRole(authUser.role) && !isTopSuperAdmin(authUser))) {
       return NextResponse.json({ status: "fail", message: "Unauthorized - Super Admin only" }, { status: 403 });
     }
+
+    const callerIsTopAdmin = isTopSuperAdmin(authUser);
 
     const users = await prisma.users.findMany({
       orderBy: { id: "desc" },
@@ -26,11 +34,24 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const serializedUsers = users.map((u) => ({
-      ...u,
-      id: Number(u.id),
-      permissions: u.permissions ? JSON.parse(u.permissions) : null,
-    }));
+    const visibleUsers = callerIsTopAdmin
+      ? users
+      : users.filter((u) => !isTopSuperAdmin(u) && !isSuperAdminRole(u.role));
+
+    const serializedUsers = visibleUsers.map((u) => {
+      const targetIsTopAdmin = isTopSuperAdmin(u);
+      return {
+        ...u,
+        id: Number(u.id),
+        role: targetIsTopAdmin ? "super_admin" : u.role,
+        status: targetIsTopAdmin ? "approved" : u.status,
+        permissions: targetIsTopAdmin
+          ? getAllPermissionsObject(true)
+          : u.permissions
+            ? JSON.parse(u.permissions)
+            : null,
+      };
+    });
 
     return NextResponse.json({
       status: "success",
@@ -48,7 +69,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || authUser.role !== "super_admin") {
+    if (!authUser || (!isSuperAdminRole(authUser.role) && !isTopSuperAdmin(authUser))) {
       return NextResponse.json({ status: "fail", message: "Unauthorized - Super Admin only" }, { status: 403 });
     }
 
@@ -62,9 +83,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check duplicate
-    if (email) {
-      const existing = await prisma.users.findFirst({ where: { email } });
+    const trimmedEmail = email ? String(email).trim() : null;
+    const trimmedMobile = String(mobile).trim();
+
+    if (trimmedEmail && isTopSuperAdminEmail(trimmedEmail)) {
+      return NextResponse.json(
+        { status: "fail", message: "This email address is reserved for the top-level Super Admin." },
+        { status: 403 }
+      );
+    }
+
+    // Check duplicate mobile / email
+    const existingMobile = await prisma.users.findFirst({ where: { mobile: trimmedMobile } });
+    if (existingMobile) {
+      return NextResponse.json(
+        { status: "fail", message: "Mobile number already in use" },
+        { status: 400 }
+      );
+    }
+
+    if (trimmedEmail) {
+      const existing = await prisma.users.findFirst({ where: { email: trimmedEmail } });
       if (existing) {
         return NextResponse.json(
           { status: "fail", message: "Email already in use" },
@@ -77,11 +116,11 @@ export async function POST(req: NextRequest) {
 
     const newUser = await prisma.users.create({
       data: {
-        name,
-        email: email || null,
-        mobile,
+        name: String(name).trim(),
+        email: trimmedEmail,
+        mobile: trimmedMobile,
         password: hashedPassword,
-        role: role === "super_admin" ? "admin" : role,
+        role: isSuperAdminRole(role) ? "admin" : role,
         status: status || "approved",
         img_url: img_url || null,
         otp: "000000",

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser, hashPassword, verifyPassword } from "@/lib/auth";
 import { logUserActivity } from "@/lib/logger";
+import { isSuperAdminRole, isTopSuperAdmin, isTopSuperAdminEmail } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +32,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ status: "fail", message: "User not found" }, { status: 404 });
     }
 
+    const isTopAdmin = isTopSuperAdminEmail(user.email);
+
     return NextResponse.json({
       status: "success",
       data: {
         ...user,
         id: Number(user.id),
+        role: isTopAdmin ? "super_admin" : user.role,
+        status: isTopAdmin ? "approved" : user.status,
       },
     });
   } catch (error: any) {
@@ -81,7 +86,7 @@ export async function PUT(req: NextRequest) {
 
     // Password change workflow - Strictly restricted to super_admin
     if (new_password && new_password.trim() !== "") {
-      if (authUser.role !== "super_admin") {
+      if (!isTopSuperAdmin(authUser) && !isSuperAdminRole(authUser.role)) {
         return NextResponse.json(
           { status: "fail", message: "Only Super Admin can change account passwords." },
           { status: 403 }

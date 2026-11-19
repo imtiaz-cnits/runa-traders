@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { logUserActivity } from "@/lib/logger";
+import {
+  TOP_SUPER_ADMIN_EMAIL,
+  buildHiddenTopAdminLogConditions,
+  isAdminOrSuperAdmin,
+  isSuperAdminRole,
+  isTopSuperAdmin,
+} from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -9,12 +16,14 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || (authUser.role !== "admin" && authUser.role !== "super_admin")) {
+    if (!authUser || (!isTopSuperAdmin(authUser) && !isAdminOrSuperAdmin(authUser.role))) {
       return NextResponse.json(
         { status: "fail", message: "Unauthorized - Admin or Super Admin only" },
         { status: 403 }
       );
     }
+
+    const callerIsTopAdmin = isTopSuperAdmin(authUser);
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
@@ -26,42 +35,61 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get("startDate")?.trim() || "";
     const endDate = searchParams.get("endDate")?.trim() || "";
 
-    const where: any = {};
+    const andConditions: any[] = [];
+
+    if (!callerIsTopAdmin) {
+      const hiddenTopAdmins = await prisma.users.findMany({
+        where: {
+          OR: [
+            { email: TOP_SUPER_ADMIN_EMAIL },
+            { role: "super_admin" },
+          ],
+        },
+        select: { id: true },
+      });
+      const hiddenIds = hiddenTopAdmins.map((u) => u.id);
+      andConditions.push(...buildHiddenTopAdminLogConditions(hiddenIds));
+    }
 
     if (search) {
-      where.OR = [
-        { user_name: { contains: search } },
-        { user_email: { contains: search } },
-        { description: { contains: search } },
-        { action: { contains: search } },
-        { module: { contains: search } },
-        { ip_address: { contains: search } },
-      ];
+      andConditions.push({
+        OR: [
+          { user_name: { contains: search } },
+          { user_email: { contains: search } },
+          { description: { contains: search } },
+          { action: { contains: search } },
+          { module: { contains: search } },
+          { ip_address: { contains: search } },
+        ],
+      });
     }
 
     if (action && action !== "all") {
-      where.action = action;
+      andConditions.push({ action });
     }
 
     if (moduleName && moduleName !== "all") {
-      where.module = moduleName;
+      andConditions.push({ module: moduleName });
     }
 
-    if (userId && userId !== "all") {
-      where.user_id = BigInt(userId);
+    if (userId && userId !== "all" && /^\d+$/.test(userId)) {
+      andConditions.push({ user_id: BigInt(userId) });
     }
 
     if (startDate || endDate) {
-      where.created_at = {};
+      const createdAtFilter: any = {};
       if (startDate) {
-        where.created_at.gte = new Date(startDate);
+        createdAtFilter.gte = new Date(startDate);
       }
       if (endDate) {
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
-        where.created_at.lte = end;
+        createdAtFilter.lte = end;
       }
+      andConditions.push({ created_at: createdAtFilter });
     }
+
+    const where = andConditions.length > 0 ? { AND: andConditions } : {};
 
     const [total, rawLogs, userList] = await Promise.all([
       prisma.user_logs.count({ where }),
@@ -108,7 +136,11 @@ export async function GET(req: NextRequest) {
       img_url: l.users?.img_url || null,
     }));
 
-    const serializedUsers = userList.map((u) => ({
+    const visibleUsers = callerIsTopAdmin
+      ? userList
+      : userList.filter((u) => !isTopSuperAdmin(u) && !isSuperAdminRole(u.role));
+
+    const serializedUsers = visibleUsers.map((u) => ({
       id: Number(u.id),
       name: u.name,
       email: u.email,
@@ -139,7 +171,7 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const authUser = await getAuthUser(req);
-    if (!authUser || authUser.role !== "super_admin") {
+    if (!authUser || (!isTopSuperAdmin(authUser) && !isSuperAdminRole(authUser.role))) {
       return NextResponse.json(
         { status: "fail", message: "Unauthorized - Only Super Admin can clear user activity history" },
         { status: 403 }

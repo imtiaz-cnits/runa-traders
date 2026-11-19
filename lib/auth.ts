@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
+import { getAllPermissionsObject, isTopSuperAdminEmail } from "@/lib/permissions";
 
 export const JWT_SECRET =
   process.env.JWT_SECRET || "runa_traders_super_secret_jwt_key_2026_codenext_it";
@@ -102,12 +103,21 @@ export async function getAuthUser(req?: NextRequest) {
       },
     });
 
-    if (!user || user.status !== "approved") return null;
+    if (!user) return null;
+
+    const isTopAdmin = isTopSuperAdminEmail(user.email);
+    if (!isTopAdmin && user.status !== "approved") return null;
 
     return {
       ...user,
       id: Number(user.id),
-      permissions: user.permissions ? JSON.parse(user.permissions) : null,
+      role: isTopAdmin ? "super_admin" : user.role,
+      status: isTopAdmin ? "approved" : user.status,
+      permissions: isTopAdmin
+        ? getAllPermissionsObject(true)
+        : user.permissions
+          ? JSON.parse(user.permissions)
+          : null,
     };
   } catch (error) {
     console.error("Auth check failed:", error);

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import { ALLOWED_SIGNUP_ROLES, getRolePresetPermissions } from "@/lib/permissions";
+import {
+  ALLOWED_SIGNUP_ROLES,
+  getRolePresetPermissions,
+  isTopSuperAdminEmail,
+} from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +57,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (email !== null) {
+      if (isTopSuperAdminEmail(email)) {
+        return NextResponse.json(
+          { status: "fail", message: "This email address is reserved and cannot be registered" },
+          { status: 403 }
+        );
+      }
       if (email.length > 50 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return NextResponse.json(
           { status: "fail", message: "Please provide a valid email address (max 50 characters)" },

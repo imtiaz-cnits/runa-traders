@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { isSuperAdminRole, isTopSuperAdmin } from "@/lib/permissions";
 import fs from "fs/promises";
 import path from "path";
 
@@ -39,8 +40,24 @@ export async function POST(req: NextRequest) {
     if (!ext || ext === ".") ext = ".jpg";
     const userIdParam = formData.get("userId") as string | null;
     let targetUserId = BigInt(authUser.id);
-    if (authUser.role === "super_admin" && userIdParam && userIdParam !== "null" && userIdParam !== "undefined") {
-      targetUserId = BigInt(userIdParam);
+    if (
+      (isTopSuperAdmin(authUser) || isSuperAdminRole(authUser.role)) &&
+      userIdParam &&
+      userIdParam !== "null" &&
+      userIdParam !== "undefined" &&
+      /^\d+$/.test(userIdParam)
+    ) {
+      const requestedTargetId = BigInt(userIdParam);
+      if (requestedTargetId !== BigInt(authUser.id)) {
+        const targetUser = await prisma.users.findUnique({
+          where: { id: requestedTargetId },
+          select: { id: true, email: true, role: true },
+        });
+        if (targetUser && isTopSuperAdmin(targetUser) && !isTopSuperAdmin(authUser)) {
+          return NextResponse.json({ status: "fail", message: "User not found" }, { status: 404 });
+        }
+      }
+      targetUserId = requestedTargetId;
     }
 
     const filename = `avatar-${targetUserId}-${Date.now()}${ext}`;

@@ -20,6 +20,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
+import { isSuperAdminRole, isTopSuperAdmin } from "@/lib/permissions";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
@@ -185,9 +186,12 @@ export default function StaffPage() {
     }
   };
 
+  const isProtectedStaff = (item: StaffMember) =>
+    item.id === 1 || isTopSuperAdmin(item) || isSuperAdminRole(item.role);
+
   const handleDeleteStaff = (item: StaffMember) => {
-    if (item.id === 1 || item.id === 7) {
-      toast.error("Super Admin account cannot be deleted!");
+    if (isProtectedStaff(item)) {
+      toast.error("Primary Admin / Super Admin account cannot be deleted!");
       return;
     }
     setDeleteError(null);
@@ -481,8 +485,8 @@ export default function StaffPage() {
                         <button
                           type="button"
                           onClick={() => handleDeleteStaff(item)}
-                          disabled={item.id === 1 || item.id === 7}
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${item.id === 1 || item.id === 7
+                          disabled={isProtectedStaff(item)}
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isProtectedStaff(item)
                             ? "bg-slate-100 text-slate-300 cursor-not-allowed"
                             : "bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 cursor-pointer"
                             }`}
@@ -558,8 +562,8 @@ export default function StaffPage() {
               <button
                 type="button"
                 onClick={() => handleDeleteStaff(item)}
-                disabled={item.id === 1 || item.id === 7}
-                className={`h-[30px] w-full px-2 rounded-lg text-xs font-bold ${item.id === 1 || item.id === 7
+                disabled={isProtectedStaff(item)}
+                className={`h-[30px] w-full px-2 rounded-lg text-xs font-bold ${isProtectedStaff(item)
                   ? "bg-slate-100 text-slate-300 cursor-not-allowed"
                   : "bg-rose-50 text-rose-600"
                   }`}
