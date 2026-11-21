@@ -25,7 +25,7 @@ import { formatBdCurrency } from "@/lib/utils";
 import { formatBoxAndPcs, formatTileOrItemQty, formatOrderQty } from "@/lib/tiles-calculator";
 import { ThermalReceiptModal } from "@/components/pos/thermal-receipt";
 import { ChallanModal } from "@/components/challan/challan-modal";
-import { CustomSelect, Pagination } from "@/components/ui";
+import { CustomSelect, Pagination, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 import { InvoiceActionMenu } from "@/components/invoices/invoice-action-menu";
 import { CancelTilesModal } from "@/components/invoices/cancel-tiles-modal";
 
@@ -222,6 +222,10 @@ export default function InvoicesPage() {
 
   return (
     <div className="space-y-4">
+      {loading ? (
+        <ListPageSkeleton actionButtons={2} filterCount={3} tableCols={9} tableRows={8} />
+      ) : (
+        <>
       {/* 1. Header & Summary Statistics (Strict Marss Corp Rule) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
@@ -321,12 +325,7 @@ export default function InvoicesPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-rose-600" />
-                    <span>Loading invoices...</span>
-                  </td>
-                </tr>
+                <TableSkeleton rows={8} cols={9} />
               ) : filteredInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-10 text-center text-slate-400 font-bold">
@@ -438,7 +437,14 @@ export default function InvoicesPage() {
 
       {/* 4. Mobile Card View */}
       <div className="block md:hidden space-y-2.5">
-        {displayedInvoices.map((inv) => (
+        {loading ? (
+          <CardSkeleton count={5} />
+        ) : displayedInvoices.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 font-bold bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
+            No invoices matching the search criteria.
+          </div>
+        ) : (
+          displayedInvoices.map((inv) => (
           <div
             key={inv.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -559,7 +565,7 @@ export default function InvoicesPage() {
               </Link>
             </div>
           </div>
-        ))}
+        )))}
 
         {/* Pagination Controls Mobile */}
         <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
@@ -579,16 +585,16 @@ export default function InvoicesPage() {
 
       {/* 5. VIEW INVOICE DETAILS MODAL */}
       {isDetailModalOpen && selectedInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl bg-white dark:bg-[#0f172a] rounded-[16px] shadow-2xl overflow-hidden border border-[#cbd5e1] dark:border-[#334155] max-h-[90vh] flex flex-col">
-            <div className="modal-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-5 py-3.5 flex items-center justify-between text-white shrink-0">
-              <div className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-white" />
-                <h3 className="text-sm font-bold tracking-wide uppercase m-0 text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-white dark:bg-[#0f172a] rounded-[16px] shadow-2xl overflow-hidden border border-[#cbd5e1] dark:border-[#334155] max-h-[95vh] sm:max-h-[90vh] flex flex-col">
+            <div className="modal-header-brand bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] px-3.5 py-2.5 sm:px-5 sm:py-3.5 flex items-center justify-between text-white shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <Receipt className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0" />
+                <h3 className="text-xs sm:text-sm font-bold tracking-wide uppercase m-0 text-white truncate">
                   Invoice Details: {selectedInvoice.order_no}
                 </h3>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 {Boolean(selectedInvoice.has_tiles || selectedInvoice.has_pending_tiles || selectedInvoice.has_challan || (selectedInvoice.challan_status && selectedInvoice.challan_status !== "NOT_REQUIRED")) && (
                   <button
                     type="button"
@@ -596,32 +602,32 @@ export default function InvoicesPage() {
                       setChallanOrderId(selectedInvoice.id);
                       setIsChallanModalOpen(true);
                     }}
-                    className="h-[30px] p-3 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                    className="h-7 sm:h-[30px] px-2 sm:px-3 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-colors"
                     title="Manage Delivery Challan"
                   >
-                    <Truck className="w-3.5 h-3.5" />
+                    <Truck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     <span>Challan</span>
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={() => triggerThermalReceipt(selectedInvoice)}
-                  className="h-[30px] p-3 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                  className="h-7 sm:h-[30px] px-2.5 sm:px-3 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-[11px] sm:text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
                 >
-                  <Printer className="w-3.5 h-3.5" />
+                  <Printer className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span>Print</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsDetailModalOpen(false)}
-                  className="w-[28px] h-[28px] rounded-full bg-[#dc2626] hover:bg-red-700 text-white flex items-center justify-center cursor-pointer transition-colors shadow-xs"
+                  className="w-6 h-6 sm:w-[28px] sm:h-[28px] rounded-full bg-[#dc2626] hover:bg-red-700 text-white flex items-center justify-center cursor-pointer transition-colors shadow-xs"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3 sm:space-y-4">
               {/* Customer & Invoice Meta */}
               <div className="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-[#1e293b] p-3 rounded-xl border border-[#cbd5e1] dark:border-[#334155] text-xs">
                 <div>
@@ -894,6 +900,8 @@ export default function InvoicesPage() {
           loadInvoices();
         }}
       />
+        </>
+      )}
     </div>
   );
 }

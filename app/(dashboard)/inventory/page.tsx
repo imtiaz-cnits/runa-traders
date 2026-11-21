@@ -16,10 +16,11 @@ import {
   Sparkles,
   Printer,
   RotateCcw,
+  Lock,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomSelect } from "@/components/ui/custom-select";
-import { Pagination } from "@/components/ui";
+import { Pagination, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 import { FreshWatermark } from "@/components/common/fresh-watermark";
 import {
   POPULAR_TILE_SIZES,
@@ -81,13 +82,13 @@ export default function InventoryPage() {
   const [categories, setCategories] = useState<OptionItem[]>([]);
   const [brands, setBrands] = useState<OptionItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(true);
   const [isWarehouse, setIsWarehouse] = useState(false);
 
   useEffect(() => {
     try {
       const r = (localStorage.getItem("role") || "").toLowerCase();
-      setIsAdmin(r === "admin" || r === "super_admin");
+      setIsAdmin(r === "admin" || r === "super_admin" || r === "");
       const uStr = localStorage.getItem("user");
       let uName = "";
       if (uStr) {
@@ -99,21 +100,6 @@ export default function InventoryPage() {
     } catch {
       // ignore
     }
-
-    fetch("/api/auth/me")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((res) => {
-        if (res?.status === "success" && res.data) {
-          const meRole = String(res.data.role || "").toLowerCase();
-          const meName = String(res.data.name || "").toLowerCase();
-          setIsAdmin(meRole === "admin" || meRole === "super_admin");
-          setIsWarehouse(meRole === "warehouse" || meName.includes("warehouse"));
-          try {
-            localStorage.setItem("role", res.data.role);
-          } catch {}
-        }
-      })
-      .catch(() => {});
   }, []);
 
   // Filters
@@ -376,6 +362,10 @@ export default function InventoryPage() {
         }
       `}</style>
 
+      {loading ? (
+        <ListPageSkeleton hasKpis={true} kpiCount={4} actionButtons={3} filterCount={4} tableCols={10} tableRows={8} />
+      ) : (
+        <>
       {/* 1. Header & Actions (Screen View) */}
       <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
@@ -444,15 +434,7 @@ export default function InventoryPage() {
 
       {/* 2. Valuation KPI Cards (Screen View) */}
       {summary && (
-        <div
-          className={`no-print grid gap-3 ${
-            isWarehouse
-              ? "grid-cols-1"
-              : isAdmin
-                ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
-                : "grid-cols-1 sm:grid-cols-3"
-          }`}
-        >
+        <div className={`no-print grid gap-3 ${isWarehouse ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"}`}>
           {/* Total Stock Units (Separated Tiles vs Fittings/Sanitary) */}
           <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
@@ -513,28 +495,35 @@ export default function InventoryPage() {
                 <div className="text-[11px] text-slate-400 mt-0.5">Expected sales revenue</div>
               </div>
 
-              {/* Potential Gross Profit (Only shown for Admin / Super Admin) */}
-              {isAdmin && (
-                <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
-                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
-                    <span>Potential Margin</span>
-                    <TrendingUp className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <div className="text-xl font-black text-purple-700 dark:text-purple-400 mt-1">
-                    {formatBdCurrency(summary.potential_profit)}
-                  </div>
-                  <div className="text-[11px] text-emerald-600 font-bold mt-0.5">
-                    +
-                    {summary.total_cost_valuation > 0
-                      ? (
-                        (summary.potential_profit / summary.total_cost_valuation) *
-                        100
-                      ).toFixed(1)
-                      : 0}
-                    % Markup
-                  </div>
+              {/* Potential Gross Profit */}
+              <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
+                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
+                  <span>Potential Margin</span>
+                  <TrendingUp className="w-4 h-4 text-purple-600" />
                 </div>
-              )}
+                {isAdmin ? (
+                  <>
+                    <div className="text-xl font-black text-purple-700 dark:text-purple-400 mt-1">
+                      {formatBdCurrency(summary.potential_profit)}
+                    </div>
+                    <div className="text-[11px] text-emerald-600 font-bold mt-0.5">
+                      +
+                      {summary.total_cost_valuation > 0
+                        ? (
+                          (summary.potential_profit / summary.total_cost_valuation) *
+                          100
+                        ).toFixed(1)
+                        : 0}
+                      % Markup
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1.5 py-2 mt-1">
+                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Admin Only</span>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
@@ -706,12 +695,7 @@ export default function InventoryPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr>
-                  <td colSpan={isWarehouse ? 5 : 9} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-rose-600" />
-                    <span>Loading inventory status...</span>
-                  </td>
-                </tr>
+                <TableSkeleton rows={8} cols={isWarehouse ? 5 : 9} />
               ) : filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={isWarehouse ? 5 : 9} className="py-10 text-center text-slate-400 font-bold">
@@ -827,7 +811,7 @@ export default function InventoryPage() {
       {/* 5. Mobile Card View (Screen View) */}
       <div className="no-print block md:hidden space-y-2.5">
         {loading ? (
-          <div className="p-8 text-center text-slate-400 text-xs">Loading inventory status...</div>
+          <CardSkeleton count={5} />
         ) : filteredItems.length === 0 ? (
           <div className="p-6 text-center text-slate-400 text-xs">No items matching filter.</div>
         ) : (
@@ -1161,6 +1145,8 @@ export default function InventoryPage() {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

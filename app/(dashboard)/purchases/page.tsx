@@ -24,7 +24,7 @@ import { formatBoxAndPcs, formatTileOrItemQty } from "@/lib/tiles-calculator";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
-import { Pagination, DeleteConfirmModal } from "@/components/ui";
+import { Pagination, DeleteConfirmModal, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 
 interface PurchaseItem {
   product_id: number;
@@ -318,6 +318,10 @@ export default function PurchasesPage() {
 
   return (
     <div className="space-y-4">
+      {loading ? (
+        <ListPageSkeleton actionButtons={2} filterCount={2} tableCols={9} tableRows={8} />
+      ) : (
+        <>
       {/* 1. Header & Summary Cards */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
@@ -408,12 +412,7 @@ export default function PurchasesPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                    <span>Loading purchases...</span>
-                  </td>
-                </tr>
+                <TableSkeleton rows={8} cols={9} />
               ) : filteredPurchases.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-10 text-center text-slate-400 font-bold">
@@ -524,7 +523,14 @@ export default function PurchasesPage() {
 
       {/* 4. Mobile Card View */}
       <div className="block md:hidden space-y-2.5">
-        {displayedPurchases.map((p) => (
+        {loading ? (
+          <CardSkeleton count={5} />
+        ) : displayedPurchases.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 font-bold bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
+            No purchases recorded yet. Click &quot;+ New Purchase&quot; to inward stock.
+          </div>
+        ) : (
+          displayedPurchases.map((p) => (
           <div
             key={p.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -587,7 +593,7 @@ export default function PurchasesPage() {
               </button>
             </div>
           </div>
-        ))}
+        )))}
 
         {/* Pagination Controls Mobile */}
         <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
@@ -1041,6 +1047,8 @@ export default function PurchasesPage() {
         loading={isDeleting}
         error={deleteError}
       />
+        </>
+      )}
     </div>
   );
 }

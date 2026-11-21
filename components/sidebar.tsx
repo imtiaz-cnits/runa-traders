@@ -194,12 +194,12 @@ export function Sidebar({
     }
 
     if (userRole === "admin") {
-      // Admin gets everything EXCEPT User List & Roles under settings (sees Profile & User Logs)
+      // Admin sees Profile only under settings (User List & Roles and User Logs are super_admin only)
       return NAV_ITEMS.map((item) => {
         if (item.id === "settings") {
           return {
             ...item,
-            children: (item.children || []).filter((c) => c.href !== "/users"),
+            children: (item.children || []).filter((c) => c.href === "/profile"),
           };
         }
         return item;
@@ -242,7 +242,7 @@ export function Sidebar({
       if (item.children) {
         const allowedChildren = item.children.filter((c) => {
           if (c.href === "/users") return isSuperAdmin;
-          if (c.href === "/user-logs") return isSuperAdmin || userRole === "admin";
+          if (c.href === "/user-logs") return isSuperAdmin;
           if (c.href === "/profile") return true;
           if (!userPerms) return true;
           if (c.href === "/pos") return userPerms.pos !== false;

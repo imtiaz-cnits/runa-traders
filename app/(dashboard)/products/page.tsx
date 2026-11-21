@@ -29,7 +29,7 @@ import {
   autoCalculateSqftPerBox,
   formatBoxAndPcs,
 } from "@/lib/tiles-calculator";
-import { CustomSelect, Pagination, DeleteConfirmModal } from "@/components/ui";
+import { CustomSelect, Pagination, DeleteConfirmModal, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { FreshWatermark } from "@/components/common/fresh-watermark";
 
@@ -608,6 +608,10 @@ export default function ProductsPage() {
         }
       `}</style>
 
+      {loading ? (
+        <ListPageSkeleton actionButtons={3} filterCount={5} tableCols={10} tableRows={8} />
+      ) : (
+        <>
       {/* Top Header & Export Controls (Rule 5.1 & 5.2) */}
       <div className="no-print flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-3">
@@ -845,12 +849,7 @@ export default function ProductsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-700 dark:text-slate-200">
               {loading ? (
-                <tr>
-                  <td colSpan={10} className="p-8 text-center text-slate-400 font-medium">
-                    <Loader2 className="w-5 h-5 animate-spin inline mr-2 text-rose-600" />
-                    Loading products...
-                  </td>
-                </tr>
+                <TableSkeleton rows={8} cols={10} />
               ) : displayedProducts.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="p-8 text-center text-slate-400 font-medium">
@@ -980,7 +979,7 @@ export default function ProductsPage() {
         {/* Mobile View Card List (< 768px, Rule 5.5) */}
         <div className="block md:hidden p-3 space-y-3">
           {loading ? (
-            <div className="p-8 text-center text-slate-400 text-xs">Loading products...</div>
+            <CardSkeleton count={5} />
           ) : displayedProducts.length === 0 ? (
             <div className="p-6 text-center text-slate-400 text-xs">No products found.</div>
           ) : (
@@ -2132,6 +2131,8 @@ export default function ProductsPage() {
           </tbody>
         </table>
       </div>
+        </>
+      )}
     </div>
   );
 }

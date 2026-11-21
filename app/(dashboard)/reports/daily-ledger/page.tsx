@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
-import { Pagination } from "@/components/ui";
+import { Pagination, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 import { FreshWatermark } from "@/components/common/fresh-watermark";
 
 interface LedgerItem {
@@ -170,6 +170,10 @@ export default function DailyLedgerPage() {
         </div>
       </div>
 
+      {loading ? (
+        <ListPageSkeleton hasKpis={true} kpiCount={4} actionButtons={1} filterCount={1} tableCols={8} tableRows={8} />
+      ) : (
+        <>
       {/* 1. Header & Quick Print (Hidden in Print) */}
       <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
@@ -294,37 +298,41 @@ export default function DailyLedgerPage() {
           <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-thin pb-1 sm:pb-0 w-full sm:w-auto shrink-0">
             <button
               onClick={() => setPreset("today")}
-              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "today"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "today"
                   ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                   : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                }`}
+              }`}
             >
               Today
             </button>
             <button
               onClick={() => setPreset("yesterday")}
-              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "yesterday"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "yesterday"
                   ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                   : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                }`}
+              }`}
             >
               Yesterday
             </button>
             <button
               onClick={() => setPreset("7days")}
-              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "7days"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "7days"
                   ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                   : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                }`}
+              }`}
             >
               7 Days
             </button>
             <button
               onClick={() => setPreset("month")}
-              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "month"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "month"
                   ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                   : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                }`}
+              }`}
             >
               This Month
             </button>
@@ -359,12 +367,7 @@ export default function DailyLedgerPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                    <span>Loading daily ledger transactions...</span>
-                  </td>
-                </tr>
+                <TableSkeleton rows={8} cols={8} />
               ) : filteredLedger.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-10 text-center text-slate-400 font-bold">
@@ -428,7 +431,14 @@ export default function DailyLedgerPage() {
 
       {/* 5. Mobile Cards View (Strictly Hidden in Print) */}
       <div className="block md:hidden print:hidden space-y-2.5">
-        {displayedLedger.map((tx) => (
+        {loading ? (
+          <CardSkeleton count={5} />
+        ) : displayedLedger.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 font-bold bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
+            No cashbook transactions found for the selected date range.
+          </div>
+        ) : (
+          displayedLedger.map((tx) => (
           <div
             key={tx.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -436,10 +446,11 @@ export default function DailyLedgerPage() {
             <div className="flex items-start justify-between">
               <div>
                 <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === "inflow"
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    tx.type === "inflow"
                       ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
                       : "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
-                    }`}
+                  }`}
                 >
                   {tx.category}
                 </span>
@@ -448,8 +459,9 @@ export default function DailyLedgerPage() {
                 </p>
               </div>
               <span
-                className={`text-xs font-black ${tx.type === "inflow" ? "text-emerald-600" : "text-rose-600"
-                  }`}
+                className={`text-xs font-black ${
+                  tx.type === "inflow" ? "text-emerald-600" : "text-rose-600"
+                }`}
               >
                 {tx.type === "inflow"
                   ? `+${formatBdCurrency(tx.inflow)}`
@@ -464,7 +476,7 @@ export default function DailyLedgerPage() {
               </span>
             </div>
           </div>
-        ))}
+        )))}
 
         {/* Mobile Pagination */}
         <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
@@ -488,6 +500,8 @@ export default function DailyLedgerPage() {
         <div className="w-36 text-center border-t border-black pt-1">Authorized Signature</div>
       </div>
       <div className="print-page-number" />
+        </>
+      )}
 
       {/* Print Media Styling */}
       <style jsx global>{`

@@ -5,6 +5,7 @@ import JsBarcode from "jsbarcode";
 import { formatBdCurrency } from "@/lib/utils";
 import { Barcode, Printer, Search, RefreshCw } from "lucide-react";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { Skeleton, ListPageSkeleton } from "@/components/ui";
 
 interface ProductOption {
   id: number;
@@ -82,6 +83,10 @@ export default function BarcodePrintPage() {
 
   return (
     <div className="space-y-4">
+      {loading ? (
+        <ListPageSkeleton actionButtons={1} filterCount={2} tableCols={4} tableRows={4} />
+      ) : (
+        <>
       {/* Top Header - No print */}
       <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -167,40 +172,54 @@ export default function BarcodePrintPage() {
         </div>
 
         {/* Labels Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 print:grid print:grid-cols-4 print:gap-2">
-          {Array.from({ length: quantity }).map((_, i) => (
-            <div
-              key={i}
-              className="border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-white text-black text-center flex flex-col items-center justify-between shadow-2xs print:border-black print:shadow-none"
-            >
-              {/* Store Name Header */}
-              <p className="text-[10px] font-black tracking-wider text-slate-900 uppercase leading-none">
-                RUNA TRADERS
-              </p>
-
-              {/* Product Name */}
-              <p className="text-[11px] font-bold text-slate-800 truncate max-w-full my-0.5">
-                {selectedProduct?.product_name || "Product Item"}
-              </p>
-              {selectedProduct?.tile_size && (
-                <p className="text-[9px] font-black text-rose-700 leading-none">
-                  Size: {selectedProduct.tile_size} {selectedProduct.grade ? `(${selectedProduct.grade})` : ""}
-                </p>
-              )}
-
-              {/* Barcode SVG */}
-              <div className="my-0.5 flex justify-center">
-                <svg className="barcode-svg max-w-full" />
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 space-y-2.5">
+                <Skeleton className="h-3 w-20 mx-auto" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-3 w-16 mx-auto" />
               </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 print:grid print:grid-cols-4 print:gap-2">
+            {Array.from({ length: quantity }).map((_, i) => (
+              <div
+                key={i}
+                className="border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-white text-black text-center flex flex-col items-center justify-between shadow-2xs print:border-black print:shadow-none"
+              >
+                {/* Store Name Header */}
+                <p className="text-[10px] font-black tracking-wider text-slate-900 uppercase leading-none">
+                  RUNA TRADERS
+                </p>
 
-              {/* Price */}
-              <p className="text-xs font-black text-emerald-800 leading-none">
-                Price: {formatBdCurrency(selectedProduct?.sell_price || 0)}
-              </p>
-            </div>
-          ))}
-        </div>
+                {/* Product Name */}
+                <p className="text-[11px] font-bold text-slate-800 truncate max-w-full my-0.5">
+                  {selectedProduct?.product_name || "Product Item"}
+                </p>
+                {selectedProduct?.tile_size && (
+                  <p className="text-[9px] font-black text-rose-700 leading-none">
+                    Size: {selectedProduct.tile_size} {selectedProduct.grade ? `(${selectedProduct.grade})` : ""}
+                  </p>
+                )}
+
+                {/* Barcode SVG */}
+                <div className="my-0.5 flex justify-center">
+                  <svg className="barcode-svg max-w-full" />
+                </div>
+
+                {/* Price */}
+                <p className="text-xs font-black text-emerald-800 leading-none">
+                  Price: {formatBdCurrency(selectedProduct?.sell_price || 0)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+        </>
+      )}
 
       {/* Print Specific CSS */}
       <style jsx global>{`

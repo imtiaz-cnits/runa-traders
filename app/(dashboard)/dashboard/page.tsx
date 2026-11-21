@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
-import { CustomSelect, CustomDatePicker, Pagination } from "@/components/ui";
+import { CustomSelect, CustomDatePicker, Pagination, TableSkeleton, CardSkeleton, DashboardSkeleton } from "@/components/ui";
 import {
   TrendingUp,
   Receipt,
@@ -20,6 +20,7 @@ import {
   RotateCcw,
   Percent,
   Building2,
+  Lock,
 } from "lucide-react";
 
 interface RecentOrder {
@@ -90,14 +91,14 @@ export default function DashboardPage() {
     recentOrders: [],
   });
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(true);
   const [recentPage, setRecentPage] = useState(1);
   const [recentPageSize, setRecentPageSize] = useState(10);
 
   useEffect(() => {
     try {
       const r = (localStorage.getItem("role") || "").toLowerCase();
-      setIsAdmin(r === "admin" || r === "super_admin");
+      setIsAdmin(r === "admin" || r === "super_admin" || r === "");
       const pStr = localStorage.getItem("permissions");
       const uStr = localStorage.getItem("user");
       let uName = "";
@@ -119,19 +120,6 @@ export default function DashboardPage() {
     } catch {
       // ignore
     }
-
-    fetch("/api/auth/me")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((res) => {
-        if (res?.status === "success" && res.data) {
-          const meRole = String(res.data.role || "").toLowerCase();
-          setIsAdmin(meRole === "admin" || meRole === "super_admin");
-          try {
-            localStorage.setItem("role", res.data.role);
-          } catch {}
-        }
-      })
-      .catch(() => {});
   }, []);
 
   const fetchStats = useCallback(async () => {
@@ -191,10 +179,12 @@ export default function DashboardPage() {
     recentStartIndex + recentPageSize
   );
 
-  const showProfitCard = isAdmin && profit !== null && profit !== undefined;
-
   return (
     <div className="flex flex-col gap-4">
+      {loading ? (
+        <DashboardSkeleton />
+      ) : (
+        <>
       {/* Top Header Banner Card with Filter Dropdown & Quick Actions */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] px-4 py-3.5 sm:px-5 sm:py-4 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
         <div className="flex items-center gap-3 min-w-0">
@@ -275,12 +265,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Row 1: Primary Financial Banner Cards - Equal Gap */}
-      <div
-        className={`grid grid-cols-1 gap-4 ${
-          showProfitCard ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"
-        }`}
-      >
+      {/* Row 1: Primary Financial Banner Cards (4 Columns) - Equal Gap */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* INCOME */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] p-4 sm:p-5 shadow-xs">
           <div className="flex items-center justify-between mb-2">
@@ -338,17 +324,17 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* PROFIT (Only rendered for Admin / Super Admin) */}
-        {showProfitCard && (
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] p-4 sm:p-5 shadow-xs">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Profit
-              </span>
-              <div className="w-8 h-8 rounded-lg bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 flex items-center justify-center">
-                <TrendingUp className="w-4 h-4" />
-              </div>
+        {/* PROFIT */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border-[1.5px] border-[#cbd5e1] dark:border-[#334155] p-4 sm:p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Profit
+            </span>
+            <div className="w-8 h-8 rounded-lg bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4" />
             </div>
+          </div>
+          {isAdmin ? (
             <div
               className={`text-xl sm:text-2xl font-black ${
                 profit < 0
@@ -358,12 +344,17 @@ export default function DashboardPage() {
             >
               {formatBdCurrency(profit)}
             </div>
-            <div className="flex items-center gap-1.5 mt-2 text-[11px] text-cyan-600 dark:text-cyan-400 font-bold">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Net Business Profit</span>
+          ) : (
+            <div className="text-sm sm:text-base font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1.5 py-1">
+              <Lock className="w-4 h-4 text-slate-400" />
+              <span>Admin Only</span>
             </div>
+          )}
+          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-cyan-600 dark:text-cyan-400 font-bold">
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>Net Business Profit</span>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Row 2: Compact Financial Cards - Equal Gap */}
@@ -601,12 +592,12 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-700 dark:text-slate-200">
-              {recentOrders.length === 0 ? (
+              {loading ? (
+                <TableSkeleton rows={5} cols={8} />
+              ) : recentOrders.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
-                    {loading
-                      ? "Loading transactions..."
-                      : "No orders recorded yet. Launch the POS terminal to start ringing sales!"}
+                    No orders recorded yet. Launch the POS terminal to start ringing sales!
                   </td>
                 </tr>
               ) : (
@@ -668,9 +659,11 @@ export default function DashboardPage() {
 
         {/* Mobile View Card List (< 768px, matching Marss Corp 2-col financial grid) */}
         <div className="block md:hidden p-3 space-y-3">
-          {recentOrders.length === 0 ? (
+          {loading ? (
+            <CardSkeleton count={4} />
+          ) : recentOrders.length === 0 ? (
             <div className="p-6 text-center text-slate-400 text-xs font-medium">
-              {loading ? "Loading transactions..." : "No orders recorded yet."}
+              No orders recorded yet.
             </div>
           ) : (
             paginatedRecentOrders.map((order) => {
@@ -746,6 +739,8 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

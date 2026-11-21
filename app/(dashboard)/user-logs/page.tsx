@@ -24,7 +24,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
-import { Pagination, DeleteConfirmModal, CustomSelect } from "@/components/ui";
+import { Pagination, DeleteConfirmModal, CustomSelect, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 
 interface LogItem {
   id: number;
@@ -84,7 +84,7 @@ export default function UserLogsPage() {
       const isSuper = r === "super_admin";
       setIsSuperAdmin(isSuper);
 
-      if (r !== "admin" && r !== "super_admin") {
+      if (r !== "super_admin") {
         setIsAuthorized(false);
         router.replace("/profile");
         return;
@@ -280,6 +280,10 @@ export default function UserLogsPage() {
 
   return (
     <div className="space-y-4 font-sans pb-10">
+      {loading ? (
+        <ListPageSkeleton hasKpis={true} kpiCount={4} actionButtons={2} filterCount={3} tableCols={6} tableRows={8} />
+      ) : (
+        <>
       {/* 1. Header with Title & Top Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -471,12 +475,7 @@ export default function UserLogsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
               {loading && logs.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                    <span>Loading activity logs...</span>
-                  </td>
-                </tr>
+                <TableSkeleton rows={6} cols={7} />
               ) : logs.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
@@ -584,9 +583,8 @@ export default function UserLogsPage() {
         {/* Mobile Responsive Cards (No IP) */}
         <div className="block md:hidden divide-y divide-slate-100 dark:divide-slate-800">
           {loading && logs.length === 0 ? (
-            <div className="py-12 text-center text-xs text-slate-400">
-              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-              <span>Loading logs...</span>
+            <div className="p-3">
+              <CardSkeleton count={4} />
             </div>
           ) : logs.length === 0 ? (
             <div className="py-10 text-center px-4">
@@ -678,6 +676,8 @@ export default function UserLogsPage() {
           setClearError(null);
         }}
       />
+        </>
+      )}
     </div>
   );
 }

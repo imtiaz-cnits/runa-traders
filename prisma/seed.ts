@@ -18,7 +18,7 @@ async function main() {
       data: {
         name: "Admin",
         email: "admin@gmail.com",
-        mobile: "01975-703216",
+        mobile: "01711-968720",
         password: hashedPassword,
         role: "admin",
         status: "approved",

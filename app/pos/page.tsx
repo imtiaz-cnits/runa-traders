@@ -48,6 +48,7 @@ import { PosDatePicker } from "@/components/pos/date-picker";
 import { getInitialTheme, applyTheme } from "@/lib/theme";
 import { useToast } from "@/components/ui/toast";
 import { formatBoxAndPcs } from "@/lib/tiles-calculator";
+import { Skeleton, PosPageSkeleton } from "@/components/ui";
 
 interface Product {
   id: number;
@@ -133,6 +134,7 @@ export default function PosPage() {
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -221,6 +223,7 @@ export default function PosPage() {
   // 1. Initial Data Fetching
   const loadData = useCallback(async () => {
     try {
+      setLoadingProducts(true);
       const [prodRes, catRes, brandRes, unitRes, custRes] = await Promise.all([
         fetch("/api/products"),
         fetch("/api/categories"),
@@ -250,6 +253,8 @@ export default function PosPage() {
       }
     } catch (err) {
       console.error("Failed to load POS data:", err);
+    } finally {
+      setLoadingProducts(false);
     }
   }, [selectedCustomer, setCustomer]);
 
@@ -675,6 +680,10 @@ export default function PosPage() {
 
   return (
     <div className="fixed inset-0 h-screen w-full max-h-screen max-w-full overflow-hidden flex flex-col bg-slate-100 dark:bg-[#0b0f19] text-slate-800 dark:text-slate-100 select-none">
+      {loadingProducts ? (
+        <PosPageSkeleton />
+      ) : (
+        <>
       {/* TOP COMPACT NAVIGATION BAR (Marss Corp Rule: Compact, Emerald Theme) */}
 
       <header className="h-[52px] bg-white dark:bg-[#0f172a] border-b border-[#cbd5e1] dark:border-[#334155] px-3 flex items-center justify-between shrink-0 z-20">
@@ -937,7 +946,25 @@ export default function PosPage() {
 
           {/* Product Grid Area (Scrollable independently, fewer cards per row for wider comfortable cards) */}
           <div className="flex-1 min-h-0 overflow-y-auto p-3">
-            {displayProducts.length === 0 ? (
+            {loadingProducts ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3.5">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1e293b] min-h-[148px] flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <Skeleton className="h-5 w-20" />
+                      <Skeleton className="h-4 w-12 rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : displayProducts.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-slate-400 py-10">
                 <ShoppingBag className="w-12 h-12 stroke-[1.5] mb-2 opacity-40" />
                 <p className="text-sm font-bold">No Products Found</p>
@@ -1939,6 +1966,8 @@ export default function PosPage() {
           }
         }}
       />
+        </>
+      )}
     </div>
   );
 }

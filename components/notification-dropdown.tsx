@@ -181,7 +181,7 @@ export function NotificationDropdown() {
 
       {/* Notification Modal / Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-[340px] sm:w-[390px] max-h-[calc(100vh-100px)] rounded-2xl bg-white dark:bg-slate-900 border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 flex flex-col">
+        <div className="absolute right-0 mt-2 w-[360px] sm:w-[440px] max-h-[calc(100vh-100px)] rounded-2xl bg-white dark:bg-slate-900 border-[1.5px] border-[#cbd5e1] dark:border-[#334155] shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 flex flex-col">
           {/* Header */}
           <div className="px-4 py-3 bg-gradient-to-r from-[#881337] via-[#991b1b] to-[#b91c1c] text-white flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-2">
@@ -212,58 +212,63 @@ export function NotificationDropdown() {
             </div>
           </div>
 
-          {/* Filter Tabs */}
-          <div className="px-3 pt-2.5 pb-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto text-[11px]">
+          {/* Filter Tabs: Tab count right beside text, no line break */}
+          <div className="px-2.5 pt-2 pb-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto text-[11px] no-scrollbar">
             <button
               onClick={() => setActiveTab("all")}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 inline-flex items-center gap-1 ${
                 activeTab === "all"
                   ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                   : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
               }`}
             >
-              All ({data.totalCount})
+              <span>All</span>
+              <span className="font-mono">({data.totalCount})</span>
             </button>
             <button
               onClick={() => setActiveTab("stock")}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 inline-flex items-center gap-1 ${
                 activeTab === "stock"
                   ? "bg-amber-600 text-white shadow-xs"
                   : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
               }`}
             >
-              Stock ({data.lowStockCount})
+              <span>Stock</span>
+              <span className="font-mono">({data.lowStockCount})</span>
             </button>
             <button
               onClick={() => setActiveTab("due")}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 inline-flex items-center gap-1 ${
                 activeTab === "due"
                   ? "bg-rose-600 text-white shadow-xs"
                   : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
               }`}
             >
-              Dues ({data.dueCount})
+              <span>Dues</span>
+              <span className="font-mono">({data.dueCount})</span>
             </button>
             <button
               onClick={() => setActiveTab("sale")}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 inline-flex items-center gap-1 ${
                 activeTab === "sale"
                   ? "bg-emerald-600 text-white shadow-xs"
                   : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
               }`}
             >
-              Sales ({data.salesCount})
+              <span>Sales</span>
+              <span className="font-mono">({data.salesCount})</span>
             </button>
             {(userRole === "admin" || userRole === "super_admin") && (
               <button
                 onClick={() => setActiveTab("log")}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 inline-flex items-center gap-1 ${
                   activeTab === "log"
                     ? "bg-sky-600 text-white shadow-xs"
                     : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
                 }`}
               >
-                Logs ({data.logsCount || 0})
+                <span>Logs</span>
+                <span className="font-mono">({data.logsCount || 0})</span>
               </button>
             )}
           </div>
@@ -324,7 +329,7 @@ export function NotificationDropdown() {
 
           {/* Quick Footer Links: User Logs on Left of Inventory Stock */}
           <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-center text-[11px] font-bold">
-            {userRole === "admin" || userRole === "super_admin" ? (
+            {userRole === "super_admin" ? (
               <div className="grid grid-cols-3 gap-1.5">
                 {/* 1. User Logs Button (Red background, History icon, Mobile icon-only) */}
                 <Link

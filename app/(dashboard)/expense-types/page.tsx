@@ -19,7 +19,7 @@ import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
-import { Pagination, DeleteConfirmModal } from "@/components/ui";
+import { Pagination, DeleteConfirmModal, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 
 interface ExpenseType {
   id: number;
@@ -179,6 +179,10 @@ export default function ExpenseTypesPage() {
 
   return (
     <div className="space-y-4">
+      {loading ? (
+        <ListPageSkeleton hasKpis={true} kpiCount={3} actionButtons={1} filterCount={1} tableCols={6} tableRows={6} />
+      ) : (
+        <>
       {/* 1. Header & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
@@ -291,12 +295,7 @@ export default function ExpenseTypesPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr>
-                  <td colSpan={6} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                    <span>Loading expense categories...</span>
-                  </td>
-                </tr>
+                <TableSkeleton rows={6} cols={6} />
               ) : types.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-10 text-center text-slate-400 font-bold">
@@ -392,7 +391,14 @@ export default function ExpenseTypesPage() {
 
       {/* 5. Mobile Cards View */}
       <div className="block md:hidden space-y-2.5">
-        {displayedTypes.map((item) => (
+        {loading ? (
+          <CardSkeleton count={4} />
+        ) : displayedTypes.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 font-bold bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
+            No expense categories found.
+          </div>
+        ) : (
+          displayedTypes.map((item) => (
           <div
             key={item.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -444,7 +450,7 @@ export default function ExpenseTypesPage() {
               </div>
             </div>
           </div>
-        ))}
+        )))}
 
         {/* Mobile Pagination */}
         <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
@@ -561,6 +567,8 @@ export default function ExpenseTypesPage() {
         loading={isDeleting}
         error={deleteError}
       />
+        </>
+      )}
     </div>
   );
 }

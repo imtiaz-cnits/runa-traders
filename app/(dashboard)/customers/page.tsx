@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
-import { Pagination, DeleteConfirmModal } from "@/components/ui";
+import { Pagination, DeleteConfirmModal, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 
 interface Customer {
   id: number;
@@ -167,6 +167,10 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-4">
+      {loading ? (
+        <ListPageSkeleton actionButtons={2} filterCount={1} tableCols={6} tableRows={8} />
+      ) : (
+        <>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
@@ -251,12 +255,7 @@ export default function CustomersPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr>
-                  <td colSpan={6} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                    <span>Loading customers...</span>
-                  </td>
-                </tr>
+                <TableSkeleton rows={6} cols={6} />
               ) : customers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-10 text-center text-slate-400 font-bold">
@@ -341,10 +340,7 @@ export default function CustomersPage() {
       {/* Mobile Card / Box List (Strict Rule: block md:hidden) */}
       <div className="block md:hidden space-y-2.5">
         {loading ? (
-          <div className="py-10 text-center text-slate-400">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-            <span>Loading customers...</span>
-          </div>
+          <CardSkeleton count={4} />
         ) : customers.length === 0 ? (
           <div className="p-6 text-center text-slate-400 font-bold bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
             No customers found. Click "+ Add Customer" to create one.
@@ -574,6 +570,8 @@ export default function CustomersPage() {
         warningMessage="Are you sure you want to delete this customer? This action cannot be undone."
         isLoading={deleting}
       />
+        </>
+      )}
     </div>
   );
 }

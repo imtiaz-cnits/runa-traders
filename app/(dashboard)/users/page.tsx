@@ -24,8 +24,7 @@ import {
   Camera,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
-import { Pagination, DeleteConfirmModal } from "@/components/ui";
-import { isTopSuperAdmin, isTopSuperAdminEmail } from "@/lib/permissions";
+import { Pagination, DeleteConfirmModal, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 
 interface UserItem {
   id: number;
@@ -220,14 +219,14 @@ export default function UsersPage() {
   useEffect(() => {
     try {
       const r = (localStorage.getItem("role") || "").toLowerCase();
-      const uStr = localStorage.getItem("user");
-      const u = uStr ? JSON.parse(uStr) : null;
-      if (r !== "super_admin" && !isTopSuperAdminEmail(u?.email)) {
+      if (r !== "super_admin") {
         window.location.replace("/profile");
         return;
       }
       setIsSuperAdmin(true);
-      if (u) {
+      const uStr = localStorage.getItem("user");
+      if (uStr) {
+        const u = JSON.parse(uStr);
         if (u.id) setCurrentUserId(Number(u.id));
         if (u.email) setCurrentUserEmail(u.email);
       }
@@ -237,7 +236,7 @@ export default function UsersPage() {
 
   const isUserProtected = (user: UserItem) => {
     // Primary super admin developer account cannot be deleted
-    if (isTopSuperAdmin(user)) return true;
+    if (user.id === 4 || user.email === "dev@runatraders.com") return true;
     // Current user cannot delete themselves while logged in
     if (currentUserId && user.id === currentUserId) return true;
     if (currentUserEmail && user.email === currentUserEmail) return true;
@@ -382,7 +381,7 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = (user: UserItem) => {
-    if (isTopSuperAdmin(user)) {
+    if (user.id === 4 || user.email === "dev@runatraders.com") {
       toast.error("Super Admin developer account cannot be deleted!");
       return;
     }
@@ -608,6 +607,10 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-4 font-sans">
+      {loading ? (
+        <ListPageSkeleton hasKpis={true} kpiCount={4} actionButtons={1} filterCount={1} tableCols={7} tableRows={6} />
+      ) : (
+        <>
       {/* 1. Page Header matching MARSS CORPORATION Layout */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -741,12 +744,7 @@ export default function UsersPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
               {loading ? (
-                <tr>
-                  <td colSpan={7} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                    <span>Loading user list...</span>
-                  </td>
-                </tr>
+                <TableSkeleton rows={6} cols={7} />
               ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400 font-bold">
@@ -843,7 +841,7 @@ export default function UsersPage() {
                             disabled
                             className="w-7 h-7 rounded-lg border-[1.5px] border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-300 dark:text-slate-600 flex items-center justify-center cursor-not-allowed"
                             title={
-                              isTopSuperAdmin(user)
+                              user.id === 4 || user.email === "dev@runatraders.com"
                                 ? "Super Admin cannot be deleted"
                                 : "Currently logged-in account cannot be deleted"
                             }
@@ -871,7 +869,16 @@ export default function UsersPage() {
 
         {/* Mobile View */}
         <div className="block md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-          {displayedUsers.map((user) => (
+          {loading ? (
+            <div className="p-3">
+              <CardSkeleton count={4} />
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 font-bold">
+              No system users found.
+            </div>
+          ) : (
+            displayedUsers.map((user) => (
             <div key={user.id} className="p-3.5 space-y-2.5">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2.5">
@@ -931,7 +938,7 @@ export default function UsersPage() {
                 )}
               </div>
             </div>
-          ))}
+          )))}
         </div>
 
         {/* Pagination */}
@@ -1064,9 +1071,8 @@ export default function UsersPage() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    disabled={isTopSuperAdmin(selectedUser)}
                     placeholder="admin@gmail.com"
-                    className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   />
                 </div>
 
@@ -1098,7 +1104,7 @@ export default function UsersPage() {
                   <select
                     value={formData.role}
                     onChange={(e) => handleRoleChange(e.target.value)}
-                    disabled={isTopSuperAdmin(selectedUser)}
+                    disabled={selectedUser?.email === "dev@runatraders.com"}
                     className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-75 disabled:cursor-not-allowed"
                   >
                     {formData.role === "super_admin" && (
@@ -1118,8 +1124,7 @@ export default function UsersPage() {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    disabled={isTopSuperAdmin(selectedUser)}
-                    className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full h-[42px] px-3 text-xs bg-slate-50 dark:bg-[#1e293b] border border-[#cbd5e1] dark:border-[#334155] rounded-xl text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   >
                     <option value="approved">Approved / Active (সক্রিয়)</option>
                     <option value="pending">Pending Approval (পেন্ডিং)</option>
@@ -1326,6 +1331,8 @@ export default function UsersPage() {
           setDeleteError(null);
         }}
       />
+        </>
+      )}
     </div>
   );
 }

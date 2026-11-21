@@ -21,7 +21,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
-import { CustomSelect, Pagination, DeleteConfirmModal } from "@/components/ui";
+import { CustomSelect, Pagination, DeleteConfirmModal, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
 interface Supplier {
@@ -249,6 +249,10 @@ export default function SuppliersPage() {
 
   return (
     <div className="space-y-4">
+      {loading ? (
+        <ListPageSkeleton actionButtons={2} filterCount={1} tableCols={8} tableRows={8} />
+      ) : (
+        <>
       {/* 1. Header & Top Actions (Strict Marss Corp Layout) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
@@ -336,12 +340,7 @@ export default function SuppliersPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                    <span>Loading suppliers...</span>
-                  </td>
-                </tr>
+                <TableSkeleton rows={6} cols={8} />
               ) : suppliers.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-10 text-center text-slate-400 font-bold">
@@ -450,10 +449,7 @@ export default function SuppliersPage() {
       {/* 4. Mobile View: Responsive Card List (Strict Rule: block md:hidden) */}
       <div className="block md:hidden space-y-2.5">
         {loading ? (
-          <div className="py-10 text-center text-slate-400">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-            <span>Loading suppliers...</span>
-          </div>
+          <CardSkeleton count={4} />
         ) : suppliers.length === 0 ? (
           <div className="p-6 text-center text-slate-400 font-bold bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
             No suppliers found.
@@ -819,6 +815,8 @@ export default function SuppliersPage() {
         warningMessage="Are you sure you want to delete this supplier? This action cannot be undone."
         isLoading={deleting}
       />
+        </>
+      )}
     </div>
   );
 }

@@ -23,7 +23,7 @@ import {
 import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
-import { Pagination, DeleteConfirmModal, CustomSelect, useToast } from "@/components/ui";
+import { Pagination, DeleteConfirmModal, CustomSelect, useToast, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 
 interface Expense {
   id: number;
@@ -323,6 +323,10 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-4">
+      {loading ? (
+        <ListPageSkeleton hasKpis={true} kpiCount={4} actionButtons={3} filterCount={3} tableCols={8} tableRows={8} />
+      ) : (
+        <>
       {/* 1. Header & Quick Actions */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
@@ -535,12 +539,7 @@ export default function ExpensesPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr>
-                  <td colSpan={7} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                    <span>Loading expense records...</span>
-                  </td>
-                </tr>
+                <TableSkeleton rows={6} cols={7} />
               ) : expenses.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-10 text-center text-slate-400 font-bold">
@@ -631,48 +630,55 @@ export default function ExpensesPage() {
 
       {/* 5. Mobile Card View */}
       <div className="block md:hidden space-y-2.5">
-        {displayedExpenses.map((exp) => (
-          <div
-            key={exp.id}
-            className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                  {exp.type_name}
-                </span>
-                <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 mt-1">
-                  {exp.expense_details || "General Overhead"}
-                </p>
-              </div>
-              <span className="text-xs font-black text-rose-600">
-                {formatBdCurrency(exp.expense_amount)}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
-              <span>Date: {exp.date}</span>
-              {exp.staff_name && <span>Staff: {exp.staff_name}</span>}
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => handleOpenEdit(exp)}
-                className="h-[30px] px-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs"
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(exp)}
-                className="h-[30px] px-2.5 rounded-lg bg-rose-50 text-rose-600 text-xs font-bold"
-              >
-                Delete
-              </button>
-            </div>
+        {loading ? (
+          <CardSkeleton count={4} />
+        ) : displayedExpenses.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 font-bold bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
+            No expense records found. Click &quot;+ Add Expense&quot; to record one.
           </div>
-        ))}
+        ) : (
+          displayedExpenses.map((exp) => (
+            <div
+              key={exp.id}
+              className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    {exp.type_name}
+                  </span>
+                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 mt-1">
+                    {exp.expense_details || "General Overhead"}
+                  </p>
+                </div>
+                <span className="text-xs font-black text-rose-600">
+                  {formatBdCurrency(exp.expense_amount)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+                <span>Date: {exp.date}</span>
+                {exp.staff_name && <span>Staff: {exp.staff_name}</span>}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleOpenEdit(exp)}
+                  className="h-[30px] px-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(exp)}
+                  className="h-[30px] px-2.5 rounded-lg bg-rose-50 text-rose-600 text-xs font-bold"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          )))}
 
         {/* Mobile Pagination */}
         <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
@@ -1016,6 +1022,8 @@ export default function ExpensesPage() {
         loading={isDeleting}
         error={deleteError}
       />
+        </>
+      )}
     </div>
   );
 }

@@ -57,17 +57,17 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
     totalBoxes > 0 && totalPcs > 0
       ? `${totalBoxes} Boxes ${totalPcs} Pcs`
       : totalBoxes > 0
-        ? `${totalBoxes} Boxes`
-        : totalPcs > 0
-          ? `${totalPcs} Pcs`
-          : "0 Box";
+      ? `${totalBoxes} Boxes`
+      : totalPcs > 0
+      ? `${totalPcs} Pcs`
+      : "0 Box";
 
   const formattedDate = challan.challan_date
     ? new Date(challan.challan_date).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
     : "";
 
   return (
@@ -75,40 +75,40 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
       {/* Container: Wider modal (max-w-xl) with single unified container */}
       <div className="bg-white text-slate-900 rounded-2xl shadow-2xl max-w-xl w-full max-h-[95vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-slate-300 print:border-none print:shadow-none print:max-w-none print:m-0 print:p-0">
         {/* Modal Top Actions (Hidden on Print) */}
-        <div className="print:hidden h-13 px-4 sm:px-5 bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white flex items-center justify-between shrink-0 shadow-sm">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
-              <Truck className="w-4 h-4 text-white" />
+        <div className="print:hidden h-10 sm:h-13 px-2.5 sm:px-5 bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white flex items-center justify-between shrink-0 shadow-sm">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+              <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-bold text-xs tracking-wide leading-tight truncate">
+              <h3 className="font-bold text-[10.5px] sm:text-xs tracking-wide leading-tight truncate">
                 Delivery Challan &bull; {challan.challan_no}
               </h3>
-              <p className="text-[10px] text-rose-100/80 leading-none mt-0.5 truncate">
+              <p className="text-[8.5px] sm:text-[10px] text-rose-100/80 leading-none mt-0.5 truncate">
                 Ref Inv: {challan.order_no}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <button
               onClick={handlePrint}
-              className="h-8 px-3.5 rounded-lg bg-white text-rose-900 hover:bg-rose-50 font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer whitespace-nowrap shrink-0"
+              className="h-7 sm:h-8 px-2.5 sm:px-3.5 rounded-lg bg-white text-rose-900 hover:bg-rose-50 font-bold text-[10px] sm:text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer whitespace-nowrap shrink-0"
               title="Print Challan Slip"
             >
-              <Printer className="w-3.5 h-3.5 shrink-0" />
+              <Printer className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
               <span className="whitespace-nowrap">Print Slip</span>
             </button>
             <button
               onClick={onClose}
-              className="w-7 h-7 rounded-lg bg-red-700 hover:bg-red-800 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-red-700 hover:bg-red-800 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         </div>
 
         {/* Printable Document Area */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 font-sans text-xs print:p-0 print:overflow-visible print:m-0 flex flex-col">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-5 font-sans text-xs print:p-0 print:overflow-visible print:m-0 flex flex-col">
           <style jsx global>{`
             @media print {
               @page {
@@ -208,18 +208,15 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
             <div className="space-y-2.5 relative z-10 print:space-y-1.5">
               {/* Header matching Image 1: M/S Runa Traders, Fresh Ceramics Dealer, Pabna */}
               <div className="text-center border-b-2 border-red-700 pb-2 print:pb-1">
-                <div className="flex justify-center items-center text-[9px] print:text-[7.5px] text-slate-600 mb-0.5">
+                <div className="text-center text-[9.5px] sm:text-[10px] print:text-[8px] text-slate-700 mb-0.5">
                   <span className="font-semibold text-rose-900">প্রোঃ মোঃ আরাফাত হোসেন &bull; 01711-968720</span>
                 </div>
-                <div className="flex items-center justify-center gap-2">
-
-                  <div>
-                    <h1 className="text-base sm:text-lg print:text-[13px] font-black text-rose-900 tracking-wider uppercase leading-none">
-                      মেসার্স রুনা ট্রেডার্স (RUNA TRADERS)
-                    </h1>
-                    <div className="text-[10.5px] sm:text-[11px] print:text-[9px] font-bold text-emerald-800 leading-tight mt-0.5">
-                      ডিলার : ফ্রেশ সিরামিকস
-                    </div>
+                <div>
+                  <h1 className="text-base sm:text-lg print:text-[13px] font-black text-rose-900 tracking-wider uppercase leading-none">
+                    মেসার্স রুনা ট্রেডার্স (RUNA TRADERS)
+                  </h1>
+                  <div className="text-[10.5px] sm:text-[11px] print:text-[9px] font-bold text-emerald-800 leading-tight mt-0.5">
+                    ডিলার : ফ্রেশ সিরামিকস
                   </div>
                 </div>
                 <p className="text-[9.5px] text-slate-600 font-medium mt-1 leading-tight">
@@ -234,38 +231,38 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
               </div>
 
               {/* Challan & Customer Info */}
-              <div className="bg-slate-50 print:bg-transparent p-2 sm:p-2.5 rounded-xl border border-slate-200 text-[11px]">
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                  <div className="flex justify-between font-bold">
-                    <span className="text-slate-500">ক্রমিক নং:</span>
-                    <span className="font-mono text-rose-900">{challan.challan_no}</span>
+              <div className="bg-slate-50 print:bg-transparent p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl border border-slate-200 text-[9.5px] sm:text-[11px]">
+                <div className="grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-0.5 sm:gap-y-1">
+                  <div className="flex items-center justify-between font-bold gap-1">
+                    <span className="text-slate-500 whitespace-nowrap shrink-0">ক্রমিক নং:</span>
+                    <span className="font-mono text-rose-900 truncate">{challan.challan_no}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">তারিখ:</span>
-                    <span className="font-medium">{formattedDate}</span>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-slate-500 whitespace-nowrap shrink-0">তারিখ:</span>
+                    <span className="font-medium whitespace-nowrap">{formattedDate}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">মেমো নং:</span>
-                    <span className="font-mono font-medium">{challan.order_no}</span>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-slate-500 whitespace-nowrap shrink-0">মেমো নং:</span>
+                    <span className="font-mono font-medium truncate">{challan.order_no}</span>
                   </div>
-                  <div className="flex justify-between items-start gap-1">
-                    <span className="text-slate-500 whitespace-nowrap">গ্রাহকের নাম:</span>
-                    <span className="font-bold text-slate-900 text-right break-words">{challan.customer_name}</span>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-slate-500 whitespace-nowrap shrink-0">গ্রাহকের নাম:</span>
+                    <span className="font-bold text-slate-900 text-right truncate">{challan.customer_name}</span>
                   </div>
-                  <div className="flex justify-between items-start col-span-2 gap-2">
-                    <div className="flex items-start gap-1 text-slate-600 flex-1">
-                      <span className="text-slate-500 font-medium whitespace-nowrap">ঠিকানা:</span>
-                      <span className="break-words">{challan.delivery_address || challan.customer_address || "শো-রুম ডেলিভারি"}</span>
+                  <div className="flex items-center justify-between col-span-2 gap-2">
+                    <div className="flex items-center gap-1 text-slate-600 min-w-0 flex-1">
+                      <span className="text-slate-500 font-medium whitespace-nowrap shrink-0">ঠিকানা:</span>
+                      <span className="truncate">{challan.delivery_address || challan.customer_address || "শো-রুম ডেলিভারি"}</span>
                     </div>
                     {challan.customer_mobile && (
                       <div className="flex items-center gap-1 font-mono text-slate-800 whitespace-nowrap shrink-0">
-                        <span className="text-slate-500">মোবাইল:</span>
+                        <span className="text-slate-500 shrink-0">মোবাইল:</span>
                         <span>{challan.customer_mobile}</span>
                       </div>
                     )}
                   </div>
                   {(challan.vehicle_no || challan.driver_name) && (
-                    <div className="col-span-2 pt-0.5 border-t border-slate-200 text-[10px] text-slate-700">
+                    <div className="col-span-2 pt-0.5 border-t border-slate-200 text-[9px] sm:text-[10px] text-slate-700 truncate">
                       <span className="font-medium text-slate-500">যানবাহন:</span> {challan.vehicle_no || "N/A"} {challan.driver_name ? `(${challan.driver_name})` : ""}
                     </div>
                   )}
@@ -273,15 +270,15 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
               </div>
 
               {/* Tiles Line Items Table */}
-              <div className="overflow-hidden rounded-xl border border-slate-200 print:bg-transparent">
-                <table className="w-full text-left border-collapse text-[11px] print:bg-transparent">
+              <div className="overflow-hidden rounded-lg sm:rounded-xl border border-slate-200 print:bg-transparent">
+                <table className="w-full text-left border-collapse text-[9.5px] sm:text-[11px] print:bg-transparent">
                   <thead>
-                    <tr className="bg-[#991b1b] print:bg-transparent print:text-black text-white font-bold text-[10px]">
-                      <th className="py-1 px-2 w-7 text-center">#</th>
-                      <th className="py-1 px-2">বিবরণ</th>
-                      <th className="py-1 px-1.5 text-center">সাইজ</th>
-                      <th className="py-1 px-2 text-right">পরিমাণ</th>
-                      <th className="py-1 px-1.5 text-center">একক</th>
+                    <tr className="bg-[#991b1b] print:bg-transparent print:text-black text-white font-bold text-[9px] sm:text-[10px]">
+                      <th className="py-0.5 sm:py-1 px-1.5 sm:px-2 w-6 sm:w-7 text-center">#</th>
+                      <th className="py-0.5 sm:py-1 px-1.5 sm:px-2">বিবরণ</th>
+                      <th className="py-0.5 sm:py-1 px-1 sm:px-1.5 text-center">সাইজ</th>
+                      <th className="py-0.5 sm:py-1 px-1.5 sm:px-2 text-right">পরিমাণ</th>
+                      <th className="py-0.5 sm:py-1 px-1 sm:px-1.5 text-center">একক</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 text-slate-800 print:bg-transparent">
@@ -301,25 +298,25 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
                         ? fullBoxes > 0 && pcs > 0
                           ? "Box, Pcs"
                           : fullBoxes > 0
-                            ? "Box"
-                            : "Pcs"
+                          ? "Box"
+                          : "Pcs"
                         : item.unit || "Pcs";
                       return (
                         <tr key={item.id || idx} className="hover:bg-slate-50/50 print:bg-transparent">
-                          <td className="py-1 px-2 text-center text-slate-500 font-mono text-[10px]">
+                          <td className="py-0.5 sm:py-1 px-1.5 sm:px-2 text-center text-slate-500 font-mono text-[9px] sm:text-[10px]">
                             {idx + 1}
                           </td>
-                          <td className="py-1 px-2 font-semibold text-slate-900 leading-tight">
+                          <td className="py-0.5 sm:py-1 px-1.5 sm:px-2 font-semibold text-slate-900 leading-tight">
                             {item.product_name}
                             {item.grade ? ` (${item.grade})` : ""}
                           </td>
-                          <td className="py-1 px-1.5 text-center text-slate-600 text-[10px]">
+                          <td className="py-0.5 sm:py-1 px-1 sm:px-1.5 text-center text-slate-600 text-[9px] sm:text-[10px]">
                             {item.tile_size || "-"}
                           </td>
-                          <td className="py-1 px-2 text-right font-bold font-mono text-slate-900 whitespace-nowrap">
+                          <td className="py-0.5 sm:py-1 px-1.5 sm:px-2 text-right font-bold font-mono text-slate-900 whitespace-nowrap">
                             {displayQty}
                           </td>
-                          <td className="py-1 px-1.5 text-center text-slate-600 text-[10px] whitespace-nowrap">
+                          <td className="py-0.5 sm:py-1 px-1 sm:px-1.5 text-center text-slate-600 text-[9px] sm:text-[10px] whitespace-nowrap">
                             {displayUnit}
                           </td>
                         </tr>
@@ -327,11 +324,11 @@ export function ChallanPrintReceipt({ challan, onClose }: ChallanPrintProps) {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-slate-100 print:bg-transparent border-t-2 border-slate-300 font-bold text-slate-900 text-[11px]">
-                      <td colSpan={3} className="py-1 px-2 text-right uppercase text-[10px]">
+                    <tr className="bg-slate-100 print:bg-transparent border-t-2 border-slate-300 font-bold text-slate-900 text-[9.5px] sm:text-[11px]">
+                      <td colSpan={3} className="py-0.5 sm:py-1 px-1.5 sm:px-2 text-right uppercase text-[9px] sm:text-[10px]">
                         মোট চালান:
                       </td>
-                      <td colSpan={2} className="py-1 px-2 text-right font-mono font-black text-rose-900 whitespace-nowrap">
+                      <td colSpan={2} className="py-0.5 sm:py-1 px-1.5 sm:px-2 text-right font-mono font-black text-rose-900 whitespace-nowrap">
                         {formattedTotalDispatch}
                       </td>
                     </tr>

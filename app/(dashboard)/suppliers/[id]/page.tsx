@@ -22,6 +22,7 @@ import {
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { useToast } from "@/components/ui/toast";
+import { Skeleton } from "@/components/ui";
 
 interface PurchaseItem {
   id: number;
@@ -179,9 +180,32 @@ export default function SupplierProfilePage({
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 space-y-3">
-        <Loader2 className="w-8 h-8 animate-spin text-rose-600" />
-        <p className="text-xs text-slate-500 font-medium">Loading supplier profile...</p>
+      <div className="space-y-5 p-4 sm:p-6 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-9 w-32 rounded-xl" />
+          <Skeleton className="h-9 w-28 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 space-y-3">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 space-y-3">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-8 w-36" />
+          </div>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 space-y-3">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-8 w-36" />
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 space-y-3">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-10 w-full rounded-xl" />
+          <Skeleton className="h-10 w-full rounded-xl" />
+          <Skeleton className="h-10 w-full rounded-xl" />
+        </div>
       </div>
     );
   }

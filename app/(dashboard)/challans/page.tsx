@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { ChallanPrintReceipt, ChallanPrintData } from "@/components/challan/challan-print-receipt";
 import { CustomDatePicker } from "@/components/ui/date-picker";
-import { CustomSelect } from "@/components/ui";
+import { CustomSelect, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 import { formatBoxAndPcs, formatTileOrItemQty, parseBoxAndPcs } from "@/lib/tiles-calculator";
 
 export default function ChallansPage() {
@@ -106,8 +106,12 @@ export default function ChallansPage() {
 
   return (
     <div className="space-y-5">
+      {loading ? (
+        <ListPageSkeleton actionButtons={1} filterCount={2} tableCols={8} tableRows={8} />
+      ) : (
+        <>
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 flex items-center justify-center shrink-0">
             <Truck className="w-5 h-5" />
@@ -124,7 +128,7 @@ export default function ChallansPage() {
 
         <button
           onClick={fetchChallans}
-          className="h-[38px] w-fit self-start md:self-auto px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+          className="h-[38px] px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-rose-600" : ""}`} />
           <span>Refresh</span>
@@ -214,9 +218,31 @@ export default function ChallansPage() {
       {/* Table Container */}
       <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs overflow-hidden">
         {loading ? (
-          <div className="py-16 text-center text-slate-400">
-            <RefreshCw className="w-8 h-8 animate-spin mx-auto text-rose-600" />
-            <p className="text-xs font-semibold mt-2">Loading delivery records...</p>
+          <div className="p-4 sm:p-5">
+            <div className="hidden md:block">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white font-bold whitespace-nowrap">
+                    <th className="py-3 px-3 text-center w-[50px]">SL</th>
+                    <th className="py-3 px-4">Challan No</th>
+                    <th className="py-3 px-4">Invoice Ref</th>
+                    <th className="py-3 px-4">Date</th>
+                    <th className="py-3 px-4">Customer</th>
+                    <th className="py-3 px-4">Destination</th>
+                    <th className="py-3 px-4">Vehicle / Driver</th>
+                    <th className="py-3 px-4 text-center">Items (Boxes)</th>
+                    <th className="py-3 px-4 text-center">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <TableSkeleton rows={6} cols={10} />
+                </tbody>
+              </table>
+            </div>
+            <div className="block md:hidden">
+              <CardSkeleton count={4} />
+            </div>
           </div>
         ) : challans.length === 0 ? (
           <div className="py-16 text-center text-slate-400">
@@ -381,6 +407,8 @@ export default function ChallansPage() {
           </>
         )}
       </div>
+        </>
+      )}
 
       {/* Printable Receipt Overlay */}
       {selectedChallan && (

@@ -10,7 +10,7 @@ import {
   X,
   Loader2,
 } from "lucide-react";
-import { CustomSelect, Pagination, DeleteConfirmModal } from "@/components/ui";
+import { CustomSelect, Pagination, DeleteConfirmModal, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
 interface BrandItem {
@@ -137,6 +137,10 @@ export default function BrandsPage() {
 
   return (
     <div className="space-y-4">
+      {loading ? (
+        <ListPageSkeleton actionButtons={1} filterCount={1} tableCols={4} tableRows={6} />
+      ) : (
+        <>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400 flex items-center justify-center border border-rose-100 dark:border-slate-800 shadow-xs shrink-0">
@@ -192,12 +196,7 @@ export default function BrandsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-700 dark:text-slate-200">
               {loading ? (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">
-                    <Loader2 className="w-5 h-5 animate-spin inline mr-2 text-emerald-600" />
-                    Loading brands...
-                  </td>
-                </tr>
+                <TableSkeleton rows={6} cols={4} />
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">
@@ -255,7 +254,7 @@ export default function BrandsPage() {
         {/* Mobile View */}
         <div className="block md:hidden p-3 space-y-3">
           {loading ? (
-            <div className="p-8 text-center text-slate-400 text-xs">Loading brands...</div>
+            <CardSkeleton count={4} />
           ) : filtered.length === 0 ? (
             <div className="p-6 text-center text-slate-400 text-xs">No brands found.</div>
           ) : (
@@ -397,6 +396,8 @@ export default function BrandsPage() {
         warningMessage="Are you sure you want to delete this brand? This action cannot be undone."
         isLoading={deleting}
       />
+        </>
+      )}
     </div>
   );
 }

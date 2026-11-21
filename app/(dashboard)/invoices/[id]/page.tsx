@@ -7,6 +7,7 @@ import { Printer, ArrowLeft, Loader2 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { formatTileOrItemQty } from "@/lib/tiles-calculator";
 import { FreshWatermark } from "@/components/common/fresh-watermark";
+import { Skeleton } from "@/components/ui";
 
 interface InvoiceDetail {
   id: number;
@@ -139,9 +140,38 @@ export default function InvoiceBillPage({
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-slate-500">
-        <Loader2 className="w-8 h-8 animate-spin text-rose-600 mb-2" />
-        <p className="text-sm font-semibold">Loading invoice bill details...</p>
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-9 w-24 rounded-xl" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-28 rounded-xl" />
+            <Skeleton className="h-9 w-24 rounded-xl" />
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 space-y-6">
+          <div className="flex justify-between items-start">
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <Skeleton className="h-10 w-28 rounded-lg" />
+          </div>
+          <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-3 w-48" />
+            </div>
+            <div className="space-y-2 text-right">
+              <Skeleton className="h-4 w-28 ml-auto" />
+              <Skeleton className="h-3 w-36 ml-auto" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-full rounded-lg" />
+            <Skeleton className="h-8 w-full rounded-lg" />
+            <Skeleton className="h-8 w-full rounded-lg" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -231,7 +261,7 @@ export default function InvoiceBillPage({
             <div className="text-center sm:text-right print:text-right text-[11px] text-slate-800 leading-tight max-w-[240px]">
               <div><strong>Office:</strong> Success Super Market,</div>
               <div>Sadar Police Fari, Ataikula Road, Pabna.</div>
-              <div><strong>Mobile:</strong> 01711-968720</div>
+              <div><strong>Mobile:</strong> 01975-703216, 01715-842083</div>
               <div><strong>E-mail:</strong> runatraders2018@gmail.com</div>
             </div>
           </div>

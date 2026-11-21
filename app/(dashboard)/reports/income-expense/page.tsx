@@ -18,6 +18,7 @@ import {
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { FreshWatermark } from "@/components/common/fresh-watermark";
+import { KpiSkeleton, Skeleton, ListPageSkeleton } from "@/components/ui";
 
 interface StatementSummary {
   opening_balance: number;
@@ -148,6 +149,10 @@ export default function IncomeExpensePage() {
         </div>
       </div>
 
+      {loading ? (
+        <ListPageSkeleton hasKpis={true} kpiCount={4} actionButtons={1} filterCount={1} tableCols={4} tableRows={6} />
+      ) : (
+        <>
       {/* 1. Header & Actions (Hidden in Print) */}
       <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
@@ -174,7 +179,9 @@ export default function IncomeExpensePage() {
       </div>
 
       {/* 2. Top Summary KPI Row (1 col mobile, 2 col sm, 4 col lg, 2 Columns in Print) */}
-      {summary && (
+      {loading && !summary ? (
+        <KpiSkeleton count={4} />
+      ) : summary && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-2 gap-2.5 sm:gap-3 print:gap-2">
           <div className="bg-white dark:bg-[#0f172a] p-3.5 print:p-2.5 print:py-1.5 rounded-2xl print:rounded-lg border border-[#cbd5e1] dark:border-[#334155] print:border-[#cbd5e1] shadow-xs print:flex print:items-center print:justify-between">
             <div>
@@ -258,37 +265,41 @@ export default function IncomeExpensePage() {
         <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-thin pb-1 sm:pb-0 w-full sm:w-auto shrink-0">
           <button
             onClick={() => setPreset("today")}
-            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "today"
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              activePreset === "today"
                 ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                 : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-              }`}
+            }`}
           >
             Today
           </button>
           <button
             onClick={() => setPreset("yesterday")}
-            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "yesterday"
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              activePreset === "yesterday"
                 ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                 : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-              }`}
+            }`}
           >
             Yesterday
           </button>
           <button
             onClick={() => setPreset("7days")}
-            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "7days"
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              activePreset === "7days"
                 ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                 : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-              }`}
+            }`}
           >
             7 Days
           </button>
           <button
             onClick={() => setPreset("month")}
-            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "month"
+            className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              activePreset === "month"
                 ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                 : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-              }`}
+            }`}
           >
             This Month
           </button>
@@ -431,6 +442,8 @@ export default function IncomeExpensePage() {
         <div className="w-36 text-center border-t border-black pt-1">Authorized Signature</div>
       </div>
       <div className="print-page-number" />
+        </>
+      )}
 
       {/* Print Media Styling */}
       <style jsx global>{`

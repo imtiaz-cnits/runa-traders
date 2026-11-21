@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/date-picker";
-import { Pagination } from "@/components/ui";
+import { Pagination, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 import { FreshWatermark } from "@/components/common/fresh-watermark";
 
 interface SalesOrder {
@@ -180,6 +180,10 @@ export default function SalesReportPage() {
         </div>
       </div>
 
+      {loading ? (
+        <ListPageSkeleton hasKpis={true} kpiCount={4} actionButtons={1} filterCount={1} tableCols={9} tableRows={8} />
+      ) : (
+        <>
       {/* 1. Header & Quick Actions (Hidden in Print) */}
       <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
@@ -313,37 +317,41 @@ export default function SalesReportPage() {
           <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-thin pb-1 sm:pb-0 w-full sm:w-auto shrink-0">
             <button
               onClick={() => setPreset("today")}
-              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "today"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "today"
                   ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                   : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                }`}
+              }`}
             >
               Today
             </button>
             <button
               onClick={() => setPreset("yesterday")}
-              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "yesterday"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "yesterday"
                   ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                   : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                }`}
+              }`}
             >
               Yesterday
             </button>
             <button
               onClick={() => setPreset("7days")}
-              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "7days"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "7days"
                   ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                   : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                }`}
+              }`}
             >
               7 Days
             </button>
             <button
               onClick={() => setPreset("month")}
-              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${activePreset === "month"
+              className={`h-[38px] px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                activePreset === "month"
                   ? "bg-gradient-to-r from-[#991b1b] to-[#dc2626] text-white shadow-xs"
                   : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                }`}
+              }`}
             >
               This Month
             </button>
@@ -379,12 +387,7 @@ export default function SalesReportPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr>
-                  <td colSpan={isAdmin ? 9 : 8} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                    <span>Loading sales report...</span>
-                  </td>
-                </tr>
+                <TableSkeleton rows={8} cols={isAdmin ? 9 : 8} />
               ) : orders.length === 0 ? (
                 <tr>
                   <td colSpan={isAdmin ? 9 : 8} className="py-10 text-center text-slate-400 font-bold">
@@ -463,7 +466,14 @@ export default function SalesReportPage() {
 
       {/* 5. Mobile Cards View (Strictly Hidden in Print) */}
       <div className="block md:hidden print:hidden space-y-2.5">
-        {displayedOrders.map((o) => (
+        {loading ? (
+          <CardSkeleton count={5} />
+        ) : displayedOrders.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 font-bold bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
+            No sales invoices found for the specified period.
+          </div>
+        ) : (
+          displayedOrders.map((o) => (
           <div
             key={o.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -499,7 +509,7 @@ export default function SalesReportPage() {
               Date: {o.date} &bull; {o.items_count} items
             </div>
           </div>
-        ))}
+        )))}
 
         {/* Mobile Pagination */}
         <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
@@ -523,6 +533,8 @@ export default function SalesReportPage() {
         <div className="w-36 text-center border-t border-black pt-1">Authorized Signature</div>
       </div>
       <div className="print-page-number" />
+        </>
+      )}
 
       {/* Print Media Styling */}
       <style jsx global>{`

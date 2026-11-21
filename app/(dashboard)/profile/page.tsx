@@ -23,6 +23,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import { Skeleton } from "@/components/ui";
 
 interface UserProfile {
   id: number;
@@ -238,9 +239,26 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-slate-500 font-sans">
-        <Loader2 className="w-8 h-8 animate-spin text-rose-600 mb-2" />
-        <p className="text-sm font-semibold">Loading profile information...</p>
+      <div className="max-w-4xl mx-auto space-y-6 p-4 sm:p-6 font-sans">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-9 w-40 rounded-xl" />
+          <Skeleton className="h-9 w-24 rounded-xl" />
+        </div>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 space-y-6">
+          <div className="flex items-center gap-5">
+            <Skeleton className="w-24 h-24 rounded-full shrink-0" />
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Skeleton className="h-10 w-full rounded-xl" />
+            <Skeleton className="h-10 w-full rounded-xl" />
+            <Skeleton className="h-10 w-full rounded-xl" />
+            <Skeleton className="h-10 w-full rounded-xl" />
+          </div>
+        </div>
       </div>
     );
   }

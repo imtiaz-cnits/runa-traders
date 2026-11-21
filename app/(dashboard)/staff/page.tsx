@@ -20,11 +20,10 @@ import {
   Calendar,
 } from "lucide-react";
 import { formatBdCurrency } from "@/lib/utils";
-import { isSuperAdminRole, isTopSuperAdmin } from "@/lib/permissions";
 import { CustomDatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/components/ui/toast";
-import { Pagination, DeleteConfirmModal } from "@/components/ui";
+import { Pagination, DeleteConfirmModal, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 
 interface StaffMember {
   id: number;
@@ -186,12 +185,9 @@ export default function StaffPage() {
     }
   };
 
-  const isProtectedStaff = (item: StaffMember) =>
-    item.id === 1 || isTopSuperAdmin(item) || isSuperAdminRole(item.role);
-
   const handleDeleteStaff = (item: StaffMember) => {
-    if (isProtectedStaff(item)) {
-      toast.error("Primary Admin / Super Admin account cannot be deleted!");
+    if (item.id === 1 || item.id === 7) {
+      toast.error("Super Admin account cannot be deleted!");
       return;
     }
     setDeleteError(null);
@@ -292,6 +288,10 @@ export default function StaffPage() {
 
   return (
     <div className="space-y-4">
+      {loading ? (
+        <ListPageSkeleton hasKpis={true} kpiCount={3} actionButtons={1} filterCount={2} tableCols={7} tableRows={8} />
+      ) : (
+        <>
       {/* 1. Page Header & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
@@ -394,12 +394,7 @@ export default function StaffPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr>
-                  <td colSpan={7} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-                    <span>Loading staff directory...</span>
-                  </td>
-                </tr>
+                <TableSkeleton rows={6} cols={7} />
               ) : staffList.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-10 text-center text-slate-400 font-bold">
@@ -485,8 +480,8 @@ export default function StaffPage() {
                         <button
                           type="button"
                           onClick={() => handleDeleteStaff(item)}
-                          disabled={isProtectedStaff(item)}
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isProtectedStaff(item)
+                          disabled={item.id === 1 || item.id === 7}
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${item.id === 1 || item.id === 7
                             ? "bg-slate-100 text-slate-300 cursor-not-allowed"
                             : "bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 cursor-pointer"
                             }`}
@@ -519,7 +514,14 @@ export default function StaffPage() {
 
       {/* 5. Mobile Cards View */}
       <div className="block md:hidden space-y-2.5">
-        {displayedStaff.map((item) => (
+        {loading ? (
+          <CardSkeleton count={4} />
+        ) : displayedStaff.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 font-bold bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
+            No staff members found.
+          </div>
+        ) : (
+          displayedStaff.map((item) => (
           <div
             key={item.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -562,8 +564,8 @@ export default function StaffPage() {
               <button
                 type="button"
                 onClick={() => handleDeleteStaff(item)}
-                disabled={isProtectedStaff(item)}
-                className={`h-[30px] w-full px-2 rounded-lg text-xs font-bold ${isProtectedStaff(item)
+                disabled={item.id === 1 || item.id === 7}
+                className={`h-[30px] w-full px-2 rounded-lg text-xs font-bold ${item.id === 1 || item.id === 7
                   ? "bg-slate-100 text-slate-300 cursor-not-allowed"
                   : "bg-rose-50 text-rose-600"
                   }`}
@@ -572,7 +574,7 @@ export default function StaffPage() {
               </button>
             </div>
           </div>
-        ))}
+        )))}
 
         {/* Mobile Pagination */}
         <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
@@ -879,6 +881,8 @@ export default function StaffPage() {
         loading={isDeleting}
         error={deleteError}
       />
+        </>
+      )}
     </div>
   );
 }

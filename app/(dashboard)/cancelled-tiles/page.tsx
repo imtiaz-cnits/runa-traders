@@ -22,7 +22,7 @@ import {
 import Link from "next/link";
 import { formatBdCurrency } from "@/lib/utils";
 import { formatBoxAndPcs } from "@/lib/tiles-calculator";
-import { Pagination } from "@/components/ui/pagination";
+import { Pagination, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 import { DeleteConfirmModal } from "@/components/ui/delete-confirm-modal";
 
 interface CancelledItemDetail {
@@ -193,6 +193,10 @@ export default function CancelledTilesPage() {
 
   return (
     <div className="space-y-4">
+      {loading ? (
+        <ListPageSkeleton actionButtons={2} filterCount={1} tableCols={8} tableRows={8} />
+      ) : (
+        <>
       {/* 1. Header & Summary Statistics (Strict Marss Corp Rule) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs">
         <div className="flex items-center gap-3">
@@ -266,12 +270,7 @@ export default function CancelledTilesPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr>
-                  <td colSpan={7} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-rose-600" />
-                    <span>Loading cancelled tiles records...</span>
-                  </td>
-                </tr>
+                <TableSkeleton rows={6} cols={7} />
               ) : filteredRecords.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-10 text-center text-slate-400 font-bold">
@@ -378,7 +377,14 @@ export default function CancelledTilesPage() {
 
       {/* 4. Mobile Card View */}
       <div className="block md:hidden space-y-2.5">
-        {displayedRecords.map((r) => (
+        {loading ? (
+          <CardSkeleton count={4} />
+        ) : displayedRecords.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 font-bold bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155]">
+            No cancelled tiles records found.
+          </div>
+        ) : (
+          displayedRecords.map((r) => (
           <div
             key={r.id}
             className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-[#cbd5e1] dark:border-[#334155] shadow-xs space-y-2"
@@ -450,7 +456,7 @@ export default function CancelledTilesPage() {
               </button>
             </div>
           </div>
-        ))}
+        )))}
 
         <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-[#cbd5e1] dark:border-[#334155] overflow-hidden">
           <Pagination
@@ -726,6 +732,8 @@ export default function CancelledTilesPage() {
         warningMessage="Are you sure you want to permanently delete this cancelled tiles record? This action will remove the record from the cancelled tiles registry."
         isLoading={deleting}
       />
+        </>
+      )}
     </div>
   );
 }

@@ -11,7 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
-import { Pagination, CustomSelect, DeleteConfirmModal } from "@/components/ui";
+import { Pagination, CustomSelect, DeleteConfirmModal, TableSkeleton, CardSkeleton, ListPageSkeleton } from "@/components/ui";
 
 interface UnitItem {
   id: number;
@@ -136,6 +136,10 @@ export default function UnitsPage() {
 
   return (
     <div className="space-y-4">
+      {loading ? (
+        <ListPageSkeleton actionButtons={1} filterCount={1} tableCols={4} tableRows={6} />
+      ) : (
+        <>
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-3">
@@ -193,12 +197,7 @@ export default function UnitsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-700 dark:text-slate-200">
               {loading ? (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">
-                    <Loader2 className="w-5 h-5 animate-spin inline mr-2 text-rose-600" />
-                    Loading units...
-                  </td>
-                </tr>
+                <TableSkeleton rows={6} cols={4} />
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">
@@ -256,7 +255,7 @@ export default function UnitsPage() {
         {/* Mobile View Card List */}
         <div className="block md:hidden p-3 space-y-3">
           {loading ? (
-            <div className="p-8 text-center text-slate-400 text-xs">Loading units...</div>
+            <CardSkeleton count={4} />
           ) : filtered.length === 0 ? (
             <div className="p-6 text-center text-slate-400 text-xs">No units found.</div>
           ) : (
@@ -398,6 +397,8 @@ export default function UnitsPage() {
         warningMessage="Are you sure you want to delete this unit? This action cannot be undone."
         isLoading={deleting}
       />
+        </>
+      )}
     </div>
   );
 }
